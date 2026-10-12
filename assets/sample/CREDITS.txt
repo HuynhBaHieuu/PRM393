@@ -1,0 +1,68 @@
+Sample wardrobe photos
+
+The photos shown for the sample wardrobe come from Wikimedia Commons. Each one
+was cropped and resized to 900 x 1200 pixels for this app; other changes are
+noted below. Photos under CC BY-SA stay under that same license in their
+modified form.
+
+White T-Shirt (white-tee.jpg)
+"Serge 2017-05-10 (Unsplash)" by Serge (@sergevorobets on Unsplash).
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Serge_2017-05-10_(Unsplash).jpg
+
+Black T-Shirt (black-tee.jpg)
+"Ironed black T-shirt (003)" by Juan de Vojníkov.
+License: CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0.
+https://commons.wikimedia.org/wiki/File:Ironed_black_T-shirt_(003).JPG
+
+Blue Jeans (blue-jeans.jpg)
+"Skinny Jeans (Unsplash)" by Pete Bellis (@petebellis on Unsplash).
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Skinny_Jeans_(Unsplash).jpg
+
+Black Jeans (black-jeans.jpg)
+"Brooke Cagle 2017-01-23 (Unsplash Dyy9nL9ov8s)" by Brooke Cagle (@brookecagle on Unsplash).
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Brooke_Cagle_2017-01-23_(Unsplash_Dyy9nL9ov8s).jpg
+
+Denim Jacket (denim-jacket.jpg)
+"Woman facing a field (Unsplash)" by Hermes Rivera (@hermez777 on Unsplash).
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Woman_facing_a_field_(Unsplash).jpg
+
+White Sneakers (white-sneakers.jpg)
+"The High Line, New York, United States (Unsplash DOjEoly80Qc)" by Julian Alexander (@santaana_photography on Unsplash).
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:The_High_Line,_New_York,_United_States_(Unsplash_DOjEoly80Qc).jpg
+
+Black Sneakers (black-sneakers.jpg)
+"Imani-bahati-unpaired-gray-nike-running-shoe" by Imani Bahati, https://www.imani-bht.com/.
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Imani-bahati-unpaired-gray-nike-running-shoe.jpg
+
+Black Cap (black-cap.jpg)
+"Baseball cap" by TexasRebel.
+License: Public domain.
+Converted to grayscale and placed on a taller white canvas.
+https://commons.wikimedia.org/wiki/File:Baseball_cap.jpg
+
+Beige Chinos (beige-chinos.jpg)
+"Chino pants" by Kuha455405.
+License: CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0.
+https://commons.wikimedia.org/wiki/File:Chino_pants.jpg
+
+Camel Wool Coat (camel-coat.jpg)
+"Pierre Balmain, Swing Coat (1954-56) 01" by Photographer for the Rhode Island School of Design Museum of Art.
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Pierre_Balmain,_Swing_Coat_(1954-56)_01.jpg
+
+Leather Tote (leather-tote.jpg)
+"Last Drip Designs Tote Bag" by Fujisun.
+License: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0.
+Background extended above and below.
+https://commons.wikimedia.org/wiki/File:Last_Drip_Designs_Tote_Bag.png
+
+Black Slip Dress (slip-dress.jpg)
+"Little Black Dress (Unsplash)" by Kira Ikonnikova (@kiraikonnikova on Unsplash).
+License: CC0 1.0 (public domain dedication).
+https://commons.wikimedia.org/wiki/File:Little_Black_Dress_(Unsplash).jpg
