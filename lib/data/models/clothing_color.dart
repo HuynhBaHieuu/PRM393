@@ -21,18 +21,16 @@ enum ClothingColor {
 
   final String label;
 
-  /// Representative color. For [multi], widgets render a gradient instead.
+  /// Representative color. For [multi], widgets draw [multiBlocks] instead.
   final Color swatch;
 
   bool get isMulti => this == ClothingColor.multi;
 
-  /// Gradient stops used to render [multi].
-  static const List<Color> multiStops = [
+  /// Flat blocks of color used to render [multi].
+  static const List<Color> multiBlocks = [
     Color(0xFFB23A3A),
     Color(0xFFE5C04A),
     Color(0xFF5B7553),
     Color(0xFF5B83B8),
-    Color(0xFF7D5BA6),
-    Color(0xFFB23A3A),
   ];
 }

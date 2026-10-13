@@ -36,10 +36,25 @@ abstract final class SampleData {
   static const String _camelCoat = '${idPrefix}camel-coat';
   static const String _tote = '${idPrefix}leather-tote';
   static const String _slipDress = '${idPrefix}slip-dress';
+  static const String _samba = '${idPrefix}samba';
+  static const String _sharkHoodie = '${idPrefix}shark-hoodie';
+  static const String _cargo = '${idPrefix}cargo-pants';
+  static const String _carharttHoodie = '${idPrefix}carhartt-hoodie';
+  static const String _stussyTee = '${idPrefix}stussy-long-sleeve';
+  static const String _sherpaJacket = '${idPrefix}nuptse-jacket';
+  static const String _balenciagaHoodie = '${idPrefix}balenciaga-hoodie';
+  static const String _tripleS = '${idPrefix}triple-s';
+  static const String _oldSkool = '${idPrefix}old-skool';
+  static const String _chuck70 = '${idPrefix}chuck-70';
+  static const String _dunkHigh = '${idPrefix}dunk-high';
+  static const String _supremeAf1 = '${idPrefix}supreme-af1';
+  static const String _jordanLow = '${idPrefix}jordan-1-low';
 
   static const String weekendDenimId = '${idPrefix}outfit-weekend-denim';
   static const String allBlackId = '${idPrefix}outfit-all-black';
   static const String offDutyId = '${idPrefix}outfit-off-duty';
+  static const String hypeLayersId = '${idPrefix}outfit-hype-layers';
+  static const String skateDayId = '${idPrefix}outfit-skate-day';
 
   static const List<Season> _allYear = Season.values;
   static const List<Season> _warm = [Season.spring, Season.summer];
@@ -60,7 +75,8 @@ abstract final class SampleData {
       String? notes,
       bool favorite = false,
     }) {
-      final created = now.subtract(Duration(days: 40 - order * 3));
+      // ponytail: fits 30 items; raise the base if the sample set grows.
+      final created = now.subtract(Duration(days: 60 - order * 2));
       order++;
       return ClothingItem(
         id: id,
@@ -80,30 +96,30 @@ abstract final class SampleData {
     return [
       item(
         _camelCoat,
-        'Camel Wool Coat',
+        'Beige Trench Coat',
         ClothingCategory.outerwear,
         ClothingColor.beige,
-        _cold,
-        brand: 'Atelier Nine',
-        price: 240,
+        _transitional,
+        brand: 'Vero Moda',
+        price: 129,
       ),
       item(
         _slipDress,
-        'Black Slip Dress',
+        'Black Midi Dress',
         ClothingCategory.dresses,
         ClothingColor.black,
         _warm,
-        brand: 'Maison Lune',
-        price: 89,
+        brand: 'H&M',
+        price: 39,
       ),
       item(
         _tote,
-        'Leather Tote',
+        'Pochette Métis Bag',
         ClothingCategory.bags,
         ClothingColor.brown,
         _allYear,
-        brand: 'Atelier Nine',
-        price: 160,
+        brand: 'Louis Vuitton',
+        price: 2570,
       ),
       item(
         _beigeChinos,
@@ -111,35 +127,35 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.beige,
         _transitional,
-        brand: 'North Thread',
-        price: 55,
+        brand: 'Zara',
+        price: 49,
       ),
       item(
         _blackCap,
-        'Black Cap',
+        'Black 9FORTY Cap',
         ClothingCategory.accessories,
         ClothingColor.black,
         _allYear,
-        brand: 'Everyday Co.',
-        price: 25,
+        brand: 'New Era',
+        price: 30,
       ),
       item(
         _blackSneakers,
-        'Black Sneakers',
+        'Black Court Sneakers',
         ClothingCategory.shoes,
         ClothingColor.black,
         _allYear,
-        brand: 'Stride',
-        price: 95,
+        brand: 'Adidas',
+        price: 75,
       ),
       item(
         _whiteSneakers,
-        'White Sneakers',
+        'Air Force 1',
         ClothingCategory.shoes,
         ClothingColor.white,
         _allYear,
-        brand: 'Stride',
-        price: 110,
+        brand: 'Nike',
+        price: 115,
         favorite: true,
         notes: 'Clean with a soft brush after rainy days.',
       ),
@@ -149,7 +165,7 @@ abstract final class SampleData {
         ClothingCategory.outerwear,
         ClothingColor.blue,
         _transitional,
-        brand: 'North Thread',
+        brand: 'Lee',
         price: 98,
         favorite: true,
       ),
@@ -159,8 +175,8 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.black,
         _allYear,
-        brand: 'North Thread',
-        price: 79,
+        brand: 'Acne Studios',
+        price: 280,
       ),
       item(
         _blueJeans,
@@ -168,18 +184,18 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.blue,
         _allYear,
-        brand: 'North Thread',
-        price: 69,
+        brand: 'Levi’s',
+        price: 89,
         notes: 'Straight fit. Wash cold, inside out.',
       ),
       item(
         _blackTee,
-        'Black T-Shirt',
+        'Black Graphic Tee',
         ClothingCategory.tops,
         ClothingColor.black,
         _allYear,
-        brand: 'Everyday Co.',
-        price: 18,
+        brand: 'H&M',
+        price: 15,
       ),
       item(
         _whiteTee,
@@ -187,8 +203,128 @@ abstract final class SampleData {
         ClothingCategory.tops,
         ClothingColor.white,
         _allYear,
-        brand: 'Everyday Co.',
-        price: 18,
+        brand: 'Uniqlo',
+        price: 15,
+        favorite: true,
+      ),
+      item(
+        _samba,
+        'Samba OG',
+        ClothingCategory.shoes,
+        ClothingColor.white,
+        _allYear,
+        brand: 'Adidas',
+        price: 100,
+      ),
+      item(
+        _sharkHoodie,
+        'Shark Full Zip Hoodie',
+        ClothingCategory.outerwear,
+        ClothingColor.black,
+        _cold,
+        brand: 'BAPE',
+        price: 435,
+        favorite: true,
+      ),
+      item(
+        _cargo,
+        'Black Cargo Pants',
+        ClothingCategory.bottoms,
+        ClothingColor.black,
+        _allYear,
+        brand: 'Dickies',
+        price: 65,
+      ),
+      item(
+        _carharttHoodie,
+        'Heart Patch Zip Hoodie',
+        ClothingCategory.tops,
+        ClothingColor.grey,
+        _cold,
+        brand: 'Carhartt WIP',
+        price: 120,
+      ),
+      item(
+        _stussyTee,
+        'Stock Logo Long Sleeve',
+        ClothingCategory.tops,
+        ClothingColor.white,
+        _transitional,
+        brand: 'Stüssy',
+        price: 55,
+      ),
+      item(
+        _sherpaJacket,
+        'Sherpa Fleece Jacket',
+        ClothingCategory.outerwear,
+        ClothingColor.beige,
+        _cold,
+        brand: 'The North Face',
+        price: 330,
+      ),
+      item(
+        _balenciagaHoodie,
+        'Campaign Logo Hoodie',
+        ClothingCategory.tops,
+        ClothingColor.navy,
+        _cold,
+        brand: 'Balenciaga',
+        price: 795,
+      ),
+      item(
+        _tripleS,
+        'Triple S',
+        ClothingCategory.shoes,
+        ClothingColor.white,
+        _allYear,
+        brand: 'Balenciaga',
+        price: 1150,
+      ),
+      item(
+        _oldSkool,
+        'Old Skool',
+        ClothingCategory.shoes,
+        ClothingColor.black,
+        _allYear,
+        brand: 'Vans',
+        price: 70,
+        favorite: true,
+      ),
+      item(
+        _chuck70,
+        'Chuck 70 High',
+        ClothingCategory.shoes,
+        ClothingColor.black,
+        _allYear,
+        brand: 'Converse',
+        price: 90,
+      ),
+      item(
+        _dunkHigh,
+        'Dunk High',
+        ClothingCategory.shoes,
+        ClothingColor.multi,
+        _allYear,
+        brand: 'Nike',
+        price: 125,
+      ),
+      item(
+        _supremeAf1,
+        'Supreme Air Force 1',
+        ClothingCategory.shoes,
+        ClothingColor.white,
+        _allYear,
+        brand: 'Supreme',
+        price: 150,
+      ),
+      item(
+        _jordanLow,
+        'Air Jordan 1 Low',
+        ClothingCategory.shoes,
+        ClothingColor.red,
+        _allYear,
+        brand: 'Jordan',
+        price: 115,
         favorite: true,
       ),
     ];
@@ -245,6 +381,23 @@ abstract final class SampleData {
         Occasion.work,
         _cold,
         daysAgo: 7,
+      ),
+      outfit(
+        hypeLayersId,
+        'Hype Layers',
+        [_sharkHoodie, _blackTee, _cargo, _jordanLow, _blackCap],
+        Occasion.casual,
+        _cold,
+        favorite: true,
+        daysAgo: 5,
+      ),
+      outfit(
+        skateDayId,
+        'Skate Day',
+        [_stussyTee, _blueJeans, _oldSkool],
+        Occasion.casual,
+        _transitional,
+        daysAgo: 3,
       ),
     ];
   }

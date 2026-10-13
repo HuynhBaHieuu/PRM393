@@ -388,7 +388,6 @@ class _OverlayAction extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: context.palette.surface.withValues(alpha: 0.88),
-          shape: BoxShape.circle,
         ),
         child: child,
       ),

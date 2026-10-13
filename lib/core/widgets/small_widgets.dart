@@ -24,9 +24,7 @@ class FavoriteOverlayButton extends StatelessWidget {
       label: isFavorite ? 'Remove from favorites' : 'Add to favorites',
       child: Material(
         color: palette.surface.withValues(alpha: 0.9),
-        shape: const CircleBorder(),
         child: InkWell(
-          customBorder: const CircleBorder(),
           onTap: onPressed,
           child: SizedBox.square(
             dimension: size,
@@ -42,7 +40,7 @@ class FavoriteOverlayButton extends StatelessWidget {
   }
 }
 
-/// Small rounded label, e.g. "Archived" or an occasion.
+/// Small label, e.g. "Archived" or an occasion.
 class TagLabel extends StatelessWidget {
   const TagLabel(this.text, {super.key, this.inverted = false, this.icon});
 

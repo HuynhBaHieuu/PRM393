@@ -110,7 +110,14 @@ void main() {
     expect(find.text('Planned for today'), findsOneWidget);
 
     await _tapNav(tester, 'Wardrobe');
-    expect(find.text('12 pieces'), findsOneWidget);
+    expect(find.text('25 pieces'), findsOneWidget);
+
+    // Brands filter the grid like categories do. The brand bar scrolls
+    // sideways, so its pills may start out of view.
+    await _tap(tester, find.text('Adidas', skipOffstage: false));
+    expect(find.text('2 items'), findsOneWidget);
+    await _tap(tester, find.text('Adidas'));
+    expect(find.text('25 items'), findsOneWidget);
   });
 
   testWidgets('add item validation highlights missing fields', (tester) async {
@@ -121,6 +128,19 @@ void main() {
     expect(find.text('A photo is required'), findsOneWidget);
     expect(find.text('Please enter a name'), findsOneWidget);
     expect(find.text('Choose a category'), findsOneWidget);
+  });
+
+  testWidgets('a suggested brand fills the brand field', (tester) async {
+    await _pumpApp(tester, testDependencies());
+    await _tap(tester, find.text('Add Clothing').first);
+    // Typing narrows the brand row to matching brands.
+    final brandField = find.widgetWithText(TextFormField, 'Brand');
+    await tester.enterText(brandField, 'bal');
+    await tester.pumpAndSettle();
+    expect(find.text('Supreme'), findsNothing);
+    await _tap(tester, find.text('Balenciaga'));
+
+    expect(find.widgetWithText(TextFormField, 'Balenciaga'), findsOneWidget);
   });
 
   testWidgets('full flow: add clothes, build an outfit, plan it and wear it', (
@@ -305,7 +325,7 @@ void main() {
       expect(find.text('Saved'), findsOneWidget);
 
       await _tap(tester, find.byTooltip('Close'));
-      expect(find.text('4 looks'), findsOneWidget);
+      expect(find.text('6 looks'), findsOneWidget);
       expect(find.text('Rainy Monday'), findsOneWidget);
     });
 

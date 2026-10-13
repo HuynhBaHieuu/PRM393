@@ -90,9 +90,8 @@ class ClothingTile extends StatelessWidget {
                       Positioned(
                         top: _overlayInset,
                         left: _overlayInset,
-                        child: CircleAvatar(
-                          radius: 12,
-                          backgroundColor: palette.ink,
+                        child: ColoredBox(
+                          color: palette.ink,
                           child: Icon(
                             Icons.check_rounded,
                             size: 16,

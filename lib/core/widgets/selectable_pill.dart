@@ -4,7 +4,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 
-/// Rounded selectable chip: ink when selected, outlined otherwise.
+/// Selectable chip: ink when selected, outlined otherwise.
 class SelectablePill extends StatelessWidget {
   const SelectablePill({
     super.key,
@@ -97,6 +97,34 @@ class PillGroup<T> extends StatelessWidget {
             onTap: () => onToggle(option),
           ),
       ],
+    );
+  }
+}
+
+/// A single horizontally scrolling row of pills.
+class PillBar extends StatelessWidget {
+  const PillBar({
+    super.key,
+    required this.pills,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+  });
+
+  final List<Widget> pills;
+  final EdgeInsetsGeometry padding;
+
+  static const double _height = 36;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _height,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: padding,
+        itemCount: pills.length,
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
+        itemBuilder: (_, index) => pills[index],
+      ),
     );
   }
 }

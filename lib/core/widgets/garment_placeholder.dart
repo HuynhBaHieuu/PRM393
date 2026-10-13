@@ -91,14 +91,9 @@ class GarmentPainter extends CustomPainter {
 
     final shape = _shapeFor(category);
     final bounds = shape.body.getBounds();
-    final fill = Paint()..style = PaintingStyle.fill;
-    final itemColor = color;
-    if (itemColor != null && itemColor.isMulti) {
-      fill.shader = const LinearGradient(colors: ClothingColor.multiStops)
-          .createShader(bounds);
-    } else {
-      fill.color = itemColor?.swatch ?? AppColors.neutralGarment;
-    }
+    final fill = Paint()
+      ..style = PaintingStyle.fill
+      ..color = color?.swatch ?? AppColors.neutralGarment;
     final stroke = Paint()
       ..style = PaintingStyle.stroke
       // Divide by scale so the outline keeps a constant on-screen width.
@@ -107,7 +102,27 @@ class GarmentPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = outline;
 
-    canvas.drawPath(shape.body, fill);
+    if (color?.isMulti ?? false) {
+      // Vertical stripes, clipped to the garment.
+      const blocks = ClothingColor.multiBlocks;
+      final stripe = bounds.width / blocks.length;
+      canvas.save();
+      canvas.clipPath(shape.body);
+      for (final (index, block) in blocks.indexed) {
+        canvas.drawRect(
+          Rect.fromLTWH(
+            bounds.left + stripe * index,
+            bounds.top,
+            stripe,
+            bounds.height,
+          ),
+          fill..color = block,
+        );
+      }
+      canvas.restore();
+    } else {
+      canvas.drawPath(shape.body, fill);
+    }
     canvas.drawPath(shape.body, stroke);
     if (shape.details != null) canvas.drawPath(shape.details!, stroke);
     canvas.restore();

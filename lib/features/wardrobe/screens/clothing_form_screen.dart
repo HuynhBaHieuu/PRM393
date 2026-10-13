@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/extensions/model_presentation.dart';
@@ -344,6 +345,30 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _brand,
+                      // Typing in the brand field narrows the suggestions.
+                      builder: (context, value, _) {
+                        final typed = value.text.trim().toLowerCase();
+                        final matches = AppConfig.suggestedBrands.where(
+                          (b) => b.toLowerCase().contains(typed),
+                        );
+                        if (matches.isEmpty) return const SizedBox.shrink();
+                        return PillBar(
+                          padding: EdgeInsets.zero,
+                          pills: [
+                            for (final brand in matches)
+                              SelectablePill(
+                                label: brand,
+                                selected: brand.toLowerCase() == typed,
+                                onTap: () => _brand.text =
+                                    brand.toLowerCase() == typed ? '' : brand,
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: AppSpacing.md),
                     TextFormField(

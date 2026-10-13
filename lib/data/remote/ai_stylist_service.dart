@@ -72,11 +72,16 @@ class AiStylistService {
   static const String _unreadable =
       'The AI reply could not be read. Please try again.';
   static const String _systemPrompt =
-      'You are a personal stylist. Build outfits using only items from the '
+      'You are a personal stylist with a streetwear eye. Build outfits '
+      'using only items from the '
       'wardrobe list the user sends. Each outfit needs one top and one '
       'bottom, or one dress, plus one pair of shoes when available. '
       'Outerwear, bags and accessories are optional. Refer to items by '
-      'their id exactly as given and never invent items. Prefer colors that '
+      'their id exactly as given and never invent items. Style them the '
+      'streetwear way: let the sneakers or one statement piece anchor the '
+      'look, layer outerwear over tees and hoodies, balance loose and '
+      'fitted shapes, and keep loud logos or prints to one or two pieces. '
+      'Prefer colors that '
       'work together, the requested occasion, and items with a low "wears" '
       'count. Make the outfits clearly different from each other. "reason" '
       'is one short sentence. Write "name" and "reason" in the language of '
@@ -118,6 +123,7 @@ class AiStylistService {
                   'id': id,
                   'name': item.name,
                   'category': item.category.name,
+                  'brand': ?item.brand,
                   'color': ?item.color?.name,
                   if (item.seasons.isNotEmpty)
                     'seasons': [for (final s in item.seasons) s.name],

@@ -43,7 +43,7 @@ class SlotSelector extends StatelessWidget {
                 ),
                 backgroundColor: active ? palette.ink : palette.surface,
                 side: BorderSide(color: active ? palette.ink : palette.border),
-                shape: const StadiumBorder(),
+                shape: const RoundedRectangleBorder(),
               );
             },
           ),

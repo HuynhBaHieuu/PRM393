@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/utils/adaptive_grid.dart';
+import 'package:all_fits/core/widgets/reveal.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 
@@ -35,13 +36,18 @@ class ClothingSliverGrid extends StatelessWidget {
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
           final item = items[index];
-          return ClothingTile(
+          return Reveal(
             key: ValueKey(item.id),
-            item: item,
-            selected: isSelected?.call(item) ?? false,
-            onTap: () => onTap(item),
-            onFavorite: onFavorite == null ? null : () => onFavorite!(item),
-            onLongPress: onLongPress == null ? null : () => onLongPress!(item),
+            index: index,
+            child: ClothingTile(
+              item: item,
+              selected: isSelected?.call(item) ?? false,
+              onTap: () => onTap(item),
+              onFavorite: onFavorite == null ? null : () => onFavorite!(item),
+              onLongPress: onLongPress == null
+                  ? null
+                  : () => onLongPress!(item),
+            ),
           );
         }, childCount: items.length),
       ),

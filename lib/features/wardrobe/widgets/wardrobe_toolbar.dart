@@ -85,33 +85,65 @@ class CategoryFilterBar extends StatelessWidget {
   final ValueChanged<ClothingCategory?> onChanged;
   final List<ClothingCategory> categories;
 
-  static const double _height = 36;
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _height,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-        itemCount: categories.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return SelectablePill(
-              label: 'All',
-              selected: selected == null,
-              onTap: () => onChanged(null),
-            );
-          }
-          final category = categories[index - 1];
-          return SelectablePill(
+    return PillBar(
+      pills: [
+        SelectablePill(
+          label: 'All',
+          selected: selected == null,
+          onTap: () => onChanged(null),
+        ),
+        for (final category in categories)
+          SelectablePill(
             label: category.label,
             selected: selected == category,
             onTap: () => onChanged(selected == category ? null : category),
-          );
-        },
-      ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Horizontally scrolling brand pills. Several brands can be active at once,
+/// like the Brand section of the filter sheet.
+class BrandFilterBar extends StatelessWidget {
+  const BrandFilterBar({
+    super.key,
+    required this.brands,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final List<String> brands;
+
+  /// Lower-cased brand names, as in `WardrobeQuery.brands`.
+  final Set<String> selected;
+  final ValueChanged<Set<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PillBar(
+      pills: [
+        SelectablePill(
+          label: 'All brands',
+          selected: selected.isEmpty,
+          onTap: () => onChanged(const {}),
+        ),
+        for (final brand in brands)
+          SelectablePill(
+            label: brand,
+            selected: selected.contains(brand.toLowerCase()),
+            onTap: () {
+              final key = brand.toLowerCase();
+              onChanged(
+                selected.contains(key)
+                    ? ({...selected}..remove(key))
+                    : {...selected, key},
+              );
+            },
+          ),
+      ],
     );
   }
 }

@@ -52,10 +52,7 @@ class AppEmptyState extends StatelessWidget {
               Container(
                 width: circle,
                 height: circle,
-                decoration: BoxDecoration(
-                  color: palette.surfaceMuted,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: palette.surfaceMuted),
                 child: Icon(
                   icon,
                   size: compact ? AppSizes.iconLg : AppSizes.iconXl,

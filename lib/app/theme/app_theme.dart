@@ -4,7 +4,7 @@ import 'package:all_fits/app/theme/app_colors.dart';
 import 'package:all_fits/app/theme/app_text_styles.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 
-/// Material 3 theme customised toward a quiet, editorial look.
+/// Material 3 theme customised toward a flat, square-edged streetwear look.
 abstract final class AppTheme {
   static ThemeData light() => _build(AppPalette.light, Brightness.light);
 
@@ -78,7 +78,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         indicatorColor: p.ink,
-        indicatorShape: const StadiumBorder(),
+        indicatorShape: const RoundedRectangleBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
@@ -127,7 +127,10 @@ abstract final class AppTheme {
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(foregroundColor: p.ink),
+        style: IconButton.styleFrom(
+          foregroundColor: p.ink,
+          shape: const RoundedRectangleBorder(),
+        ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: p.ink,
@@ -238,6 +241,7 @@ abstract final class AppTheme {
             (states) => states.contains(WidgetState.selected) ? p.onInk : p.ink,
           ),
           side: WidgetStatePropertyAll(BorderSide(color: p.border)),
+          shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
           textStyle: WidgetStatePropertyAll(text.labelMedium),
         ),
       ),
@@ -257,6 +261,7 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         todayBorder: BorderSide(color: p.ink),
+        dayShape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
       ),
       cardTheme: CardThemeData(
         color: p.surface,

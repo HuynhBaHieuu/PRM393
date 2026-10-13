@@ -59,6 +59,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     final results = _query.apply(wardrobe.allItems);
     final insets = pageInsets(context.screenSize.width);
     final activeCount = wardrobe.activeItems.length;
+    final brands = wardrobe.brands;
 
     return SafeArea(
       bottom: false,
@@ -97,6 +98,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   _setQuery(_query.copyWith(category: category)),
             ),
           ),
+          if (brands.isNotEmpty) ...[
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xs)),
+            SliverToBoxAdapter(
+              child: BrandFilterBar(
+                brands: brands,
+                selected: _query.brands,
+                onChanged: (brands) =>
+                    _setQuery(_query.copyWith(brands: brands)),
+              ),
+            ),
+          ],
           SliverToBoxAdapter(
             child: _ResultsBar(
               count: results.length,

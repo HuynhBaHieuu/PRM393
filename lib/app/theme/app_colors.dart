@@ -4,33 +4,33 @@ import 'package:flutter/material.dart';
 /// (`context.palette`) so light and dark themes both work.
 abstract final class AppColors {
   // Light
-  static const Color lightBackground = Color(0xFFF7F5F1);
+  static const Color lightBackground = Color(0xFFF2F2F0);
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceMuted = Color(0xFFEFEBE5);
-  static const Color lightInk = Color(0xFF171614);
+  static const Color lightSurfaceMuted = Color(0xFFE3E3E0);
+  static const Color lightInk = Color(0xFF0B0B0B);
   static const Color lightOnInk = Color(0xFFFFFFFF);
-  static const Color lightTextSecondary = Color(0xFF6E6963);
-  static const Color lightTextTertiary = Color(0xFFA39D96);
-  static const Color lightBorder = Color(0xFFE5E0D8);
-  static const Color lightAccent = Color(0xFF8C5A3C);
-  static const Color lightDanger = Color(0xFFB4443F);
-  static const Color lightSuccess = Color(0xFF55704F);
+  static const Color lightTextSecondary = Color(0xFF5C5C5A);
+  static const Color lightTextTertiary = Color(0xFF8F8F8C);
+  static const Color lightBorder = Color(0xFFC6C6C2);
+  static const Color lightAccent = Color(0xFFD63A00);
+  static const Color lightDanger = Color(0xFFC1121F);
+  static const Color lightSuccess = Color(0xFF1F7A3D);
 
   // Dark
-  static const Color darkBackground = Color(0xFF121110);
-  static const Color darkSurface = Color(0xFF1B1A18);
-  static const Color darkSurfaceMuted = Color(0xFF26241F);
-  static const Color darkInk = Color(0xFFF3F0EB);
-  static const Color darkOnInk = Color(0xFF171614);
-  static const Color darkTextSecondary = Color(0xFFA9A39B);
-  static const Color darkTextTertiary = Color(0xFF6F6A63);
-  static const Color darkBorder = Color(0xFF2F2C28);
-  static const Color darkAccent = Color(0xFFC89A72);
-  static const Color darkDanger = Color(0xFFE38983);
-  static const Color darkSuccess = Color(0xFF9CB894);
+  static const Color darkBackground = Color(0xFF0A0A0A);
+  static const Color darkSurface = Color(0xFF141414);
+  static const Color darkSurfaceMuted = Color(0xFF202020);
+  static const Color darkInk = Color(0xFFF5F5F3);
+  static const Color darkOnInk = Color(0xFF0A0A0A);
+  static const Color darkTextSecondary = Color(0xFFA3A3A0);
+  static const Color darkTextTertiary = Color(0xFF6B6B69);
+  static const Color darkBorder = Color(0xFF303030);
+  static const Color darkAccent = Color(0xFFFF6B2C);
+  static const Color darkDanger = Color(0xFFFF6B6B);
+  static const Color darkSuccess = Color(0xFF7BD88F);
 
   /// Fill for garment silhouettes when an item has no color.
-  static const Color neutralGarment = Color(0xFFBDB5AA);
+  static const Color neutralGarment = Color(0xFFB5B5B1);
 
   static const Color scrim = Color(0x66000000);
 }

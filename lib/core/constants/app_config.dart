@@ -8,6 +8,45 @@ abstract final class AppConfig {
 
   static const String defaultCurrencySymbol = '\$';
 
+  /// Brands offered as one-tap choices in the clothing form, streetwear
+  /// first. Any other brand can still be typed in.
+  static const List<String> suggestedBrands = [
+    'Supreme',
+    'Stüssy',
+    'BAPE',
+    'Off-White',
+    'Palace',
+    'Fear of God',
+    'Carhartt WIP',
+    'The North Face',
+    'Stone Island',
+    'Kith',
+    'Champion',
+    'Dickies',
+    'Chrome Hearts',
+    'Comme des Garçons',
+    'Nike',
+    'Jordan',
+    'Adidas',
+    'New Balance',
+    'Converse',
+    'Vans',
+    'Puma',
+    'Asics',
+    'Yeezy',
+    'Balenciaga',
+    'Louis Vuitton',
+    'Gucci',
+    'Dior',
+    'Chanel',
+    'Prada',
+    'New Era',
+    'Levi’s',
+    'Uniqlo',
+    'Zara',
+    'H&M',
+  ];
+
   static const int recentItemsLimit = 10;
   static const int recentOutfitsLimit = 8;
 

@@ -162,9 +162,7 @@ class _DayCell extends StatelessWidget {
       width: _numberSize,
       height: _numberSize,
       alignment: Alignment.center,
-      decoration: isToday
-          ? BoxDecoration(color: palette.ink, shape: BoxShape.circle)
-          : null,
+      decoration: isToday ? BoxDecoration(color: palette.ink) : null,
       child: Text(
         '${day.day}',
         style: text.labelMedium?.copyWith(
@@ -253,7 +251,6 @@ class _StatusDot extends StatelessWidget {
       width: _DayCell._dotSize,
       height: _DayCell._dotSize,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
         color: worn ? palette.ink : palette.surface,
         border: Border.all(color: worn ? palette.surface : palette.ink),
       ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 
-/// Large editorial title used at the top of each main tab.
+/// Large title used at the top of each main tab.
 class PageHeader extends StatelessWidget {
   const PageHeader({
     super.key,

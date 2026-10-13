@@ -66,7 +66,7 @@ class _AvatarButton extends StatelessWidget {
 
   final String initials;
 
-  static const double _radius = 22;
+  static const double _size = 44;
 
   @override
   Widget build(BuildContext context) {
@@ -75,12 +75,12 @@ class _AvatarButton extends StatelessWidget {
       button: true,
       label: 'Open profile',
       child: InkWell(
-        customBorder: const CircleBorder(),
         onTap: () => context.read<ShellController>().select(AppTab.profile),
-        child: CircleAvatar(
-          radius: _radius,
-          backgroundColor: palette.surfaceMuted,
-          foregroundColor: palette.ink,
+        child: Container(
+          width: _size,
+          height: _size,
+          alignment: Alignment.center,
+          color: palette.surfaceMuted,
           child: initials.isEmpty
               ? const Icon(Icons.person_outline_rounded)
               : Text(initials, style: context.textTheme.titleSmall),

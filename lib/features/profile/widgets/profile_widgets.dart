@@ -32,10 +32,11 @@ class ProfileHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: AppSizes.avatar / 2,
-            backgroundColor: palette.surfaceMuted,
-            foregroundColor: palette.ink,
+          Container(
+            width: AppSizes.avatar,
+            height: AppSizes.avatar,
+            alignment: Alignment.center,
+            color: palette.surfaceMuted,
             child: initials.isEmpty
                 ? Icon(
                     Icons.person_outline_rounded,

@@ -20,10 +20,10 @@ record id starts with `sample-`, and all sample data lives in
 `lib/data/sample/`.
 
 Sample items show the photos in `assets/sample/`, one per item and no two the
-same (checked by `test/data/sample_photos_test.dart`). Their sources and
-licenses are in `assets/sample/CREDITS.txt` and in the app under
-**Settings → Licenses & photo credits**. Three of them are CC BY-SA, so keep
-that credit if you keep the photos.
+same (checked by `test/data/sample_photos_test.dart`). They come from Unsplash
+under the Unsplash License; the photographers are credited in
+`assets/sample/CREDITS.txt` and in the app under
+**Settings → Licenses & photo credits**.
 
 ## Accounts
 
@@ -62,7 +62,7 @@ the stylist screen explains how to set it up.
 - **Provider:** any OpenAI-compatible chat completions API. The example
   above is Google Gemini. Leave out `AI_BASE_URL` and `AI_MODEL` to use
   OpenAI with `gpt-4o`.
-- **What is sent:** item names, categories, colors, seasons and wear counts,
+- **What is sent:** item names, brands, categories, colors, seasons and wear counts,
   plus the occasion and note you type. Photos are never sent. This is the
   only feature that uses the network.
 - **API key:** the file is bundled into the app, so use it for development

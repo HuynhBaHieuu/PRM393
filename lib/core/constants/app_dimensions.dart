@@ -12,13 +12,15 @@ abstract final class AppSpacing {
   static const double page = 20;
 }
 
+/// Corner radii. The app is square-edged by design, so every step is zero;
+/// the scale stays so a radius can be brought back in one place.
 abstract final class AppRadius {
-  static const double xs = 6;
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 20;
-  static const double xl = 28;
-  static const double pill = 999;
+  static const double xs = 0;
+  static const double sm = 0;
+  static const double md = 0;
+  static const double lg = 0;
+  static const double xl = 0;
+  static const double pill = 0;
 }
 
 abstract final class AppSizes {

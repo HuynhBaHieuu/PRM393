@@ -5,33 +5,51 @@ import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 
-BoxDecoration _swatchDecoration(ClothingColor color, Color border) {
-  return BoxDecoration(
-    shape: BoxShape.circle,
-    color: color.isMulti ? null : color.swatch,
-    gradient: color.isMulti
-        ? const SweepGradient(colors: ClothingColor.multiStops)
-        : null,
-    border: Border.all(color: border),
-  );
-}
-
+/// Square color chip. "Multicolor" is drawn as four flat blocks.
 class ColorSwatchDot extends StatelessWidget {
   const ColorSwatchDot({
     super.key,
     required this.color,
     this.size = AppSizes.swatchDot,
+    this.child,
   });
 
   final ClothingColor color;
   final double size;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
+    const blocks = ClothingColor.multiBlocks;
     return Container(
       width: size,
       height: size,
-      decoration: _swatchDecoration(color, context.palette.border),
+      color: color.isMulti ? null : color.swatch,
+      foregroundDecoration: BoxDecoration(
+        border: Border.all(color: context.palette.border),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (color.isMulti)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var row = 0; row < blocks.length; row += 2)
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final block in blocks.skip(row).take(2))
+                          Expanded(child: ColoredBox(color: block)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ?child,
+        ],
+      ),
     );
   }
 }
@@ -78,16 +96,14 @@ class ColorSwatchPicker extends StatelessWidget {
                       duration: AppDurations.fast,
                       padding: const EdgeInsets.all(_ringGap),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected ? palette.ink : Colors.transparent,
                           width: 1.5,
                         ),
                       ),
-                      child: Container(
-                        width: AppSizes.swatch,
-                        height: AppSizes.swatch,
-                        decoration: _swatchDecoration(color, palette.border),
+                      child: ColorSwatchDot(
+                        color: color,
+                        size: AppSizes.swatch,
                         child: isSelected
                             ? Icon(
                                 Icons.check_rounded,

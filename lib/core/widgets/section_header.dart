@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 
-/// Serif section title with an optional trailing text action.
+/// Section title with an optional trailing text action.
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
