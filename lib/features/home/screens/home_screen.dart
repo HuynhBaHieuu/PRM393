@@ -6,6 +6,7 @@ import 'package:all_fits/core/widgets/section_header.dart';
 import 'package:all_fits/features/home/widgets/home_greeting.dart';
 import 'package:all_fits/features/home/widgets/home_sections.dart';
 import 'package:all_fits/features/home/widgets/today_outfit_section.dart';
+import 'package:all_fits/features/home/widgets/weather_section.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,8 @@ class HomeScreen extends StatelessWidget {
           ),
           SizedBox(height: AppSpacing.xl),
           RecentlyAddedSection(),
+          SizedBox(height: AppSpacing.xl),
+          ResponsiveCenter(child: WeatherSection()),
           SizedBox(height: AppSpacing.xl),
           RecentlyWornSection(),
         ],

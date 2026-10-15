@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:all_fits/app/app_dependencies.dart';
+import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
@@ -8,6 +11,8 @@ import 'package:all_fits/data/local/password_hasher.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/remote/weather_service.dart';
+import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/calendar_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
@@ -137,6 +142,7 @@ AppDependencies testDependencies({
   FakeImagePickerService? picker,
   bool seedSampleData = false,
   AiStylistService aiStylist = const AiStylistService(apiKey: ''),
+  WeatherService weather = const FakeWeatherService(),
 }) {
   return AppDependencies(
     storage: storage ?? InMemoryStorageService(),
@@ -146,6 +152,7 @@ AppDependencies testDependencies({
     clock: () => testNow,
     seedSampleData: seedSampleData,
     aiStylist: aiStylist,
+    weather: weather,
     passwordHasher: fastPasswordHasher,
   );
 }
@@ -170,5 +177,61 @@ Future<AppUser> registerTestUser(
     displayName: name,
     email: email,
     password: password,
+  );
+}
+
+/// Puts [user] on the Premium plan before the app starts.
+Future<void> makePremium(AppDependencies deps, AppUser user) =>
+    deps.storage.write(
+      '${StorageKeys.userScope(user.id)}${StorageKeys.settings}',
+      jsonEncode({'plan': 'premium'}),
+    );
+
+/// Writes [count] clothing items for [user] before the app starts.
+Future<void> seedWardrobe(AppDependencies deps, AppUser user, int count) =>
+    deps.storage.write(
+      '${StorageKeys.userScope(user.id)}${StorageKeys.clothingItems}',
+      jsonEncode([
+        for (var i = 0; i < count; i++)
+          {
+            'id': 'seed-$i',
+            'name': 'Piece $i',
+            'category': 'tops',
+            'imagePath': 'images/seed-$i.jpg',
+            'createdAt': testNow.toIso8601String(),
+          },
+      ]),
+    );
+
+const WeatherLocation testCity = WeatherLocation(
+  name: 'Oslo',
+  country: 'Norway',
+  latitude: 59.9,
+  longitude: 10.7,
+);
+
+/// Answers instantly: [city] always resolves to [testCity].
+class FakeWeatherService implements WeatherService {
+  const FakeWeatherService({
+    this.temperature = 6,
+    this.condition = WeatherCondition.rain,
+  });
+
+  final double temperature;
+  final WeatherCondition condition;
+
+  @override
+  Future<WeatherLocation?> findCity(String name) async =>
+      name.trim().toLowerCase() == 'oslo' ? testCity : null;
+
+  @override
+  Future<WeatherReport> today(WeatherLocation location) async => WeatherReport(
+    location: location,
+    temperature: temperature,
+    high: temperature + 3,
+    low: temperature - 3,
+    condition: condition,
+    rainChance: 80,
+    fetchedAt: testNow,
   );
 }

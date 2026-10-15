@@ -47,6 +47,15 @@ abstract final class AppConfig {
     'H&M',
   ];
 
+  /// Clothing items a Free account can hold; Premium has no limit.
+  static const int freeWardrobeLimit = 30;
+
+  /// Shown on the Premium screen. Checkout is simulated: nothing is charged.
+  static const double premiumMonthlyPrice = 4.99;
+
+  /// Weather is fetched again once it is older than this.
+  static const Duration weatherMaxAge = Duration(minutes: 30);
+
   static const int recentItemsLimit = 10;
   static const int recentOutfitsLimit = 8;
 

@@ -19,8 +19,12 @@ Future<void> _pumpApp(
   WidgetTester tester,
   AppDependencies deps, {
   bool signedIn = true,
+  bool premium = false,
 }) async {
-  if (signedIn) await registerTestUser(deps);
+  if (signedIn) {
+    final user = await registerTestUser(deps);
+    if (premium) await makePremium(deps, user);
+  }
   tester.view.physicalSize = _phoneSize;
   tester.view.devicePixelRatio = _phoneRatio;
   addTearDown(tester.view.reset);
@@ -310,6 +314,7 @@ void main() {
       await _pumpApp(
         tester,
         testDependencies(seedSampleData: true, aiStylist: const _FakeStylist()),
+        premium: true,
       );
       await _tapNav(tester, 'Outfits');
       await _tap(tester, find.byTooltip('AI stylist'));
@@ -332,7 +337,7 @@ void main() {
     testWidgets('explains how to turn it on when there is no API key', (
       tester,
     ) async {
-      await _pumpApp(tester, testDependencies());
+      await _pumpApp(tester, testDependencies(), premium: true);
       await _tapNav(tester, 'Outfits');
       await _tap(tester, find.byTooltip('AI stylist'));
       expect(find.text('AI stylist isn’t set up'), findsOneWidget);

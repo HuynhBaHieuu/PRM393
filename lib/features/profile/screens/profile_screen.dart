@@ -10,8 +10,10 @@ import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/features/auth/auth_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
+import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/profile/widgets/profile_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
+import 'package:all_fits/features/shopping/controllers/shopping_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -29,6 +31,9 @@ class ProfileScreen extends StatelessWidget {
     final favoriteCount =
         wardrobe.favoriteItems.length + outfits.favorites.length;
     final archivedCount = wardrobe.archivedItems.length;
+    final toBuyCount = context.select<ShoppingController, int>(
+      (s) => s.toBuy.length,
+    );
 
     return SafeArea(
       bottom: false,
@@ -43,6 +48,7 @@ class ProfileScreen extends StatelessWidget {
                   name: settings.displayName,
                   username: settings.username,
                   email: user.email,
+                  badge: settings.isPremium ? const PremiumBadge() : null,
                   onEdit: () => AppNavigator.settings(context),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -60,10 +66,26 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 ProfileMenuTile(
+                  icon: Icons.workspace_premium_outlined,
+                  title: 'All Fits Premium',
+                  subtitle: settings.isPremium
+                      ? 'Unlimited wardrobe and AI Stylist'
+                      : 'Unlock the AI Stylist and unlimited space',
+                  trailingText: settings.plan.label,
+                  onTap: () => AppNavigator.premium(context),
+                ),
+                ProfileMenuTile(
                   icon: Icons.insights_outlined,
                   title: 'Wardrobe Insights',
                   subtitle: 'Value, wear and breakdowns',
                   onTap: () => AppNavigator.insights(context),
+                ),
+                ProfileMenuTile(
+                  icon: Icons.shopping_bag_outlined,
+                  title: 'Shopping List',
+                  subtitle: 'Pieces you want to buy',
+                  trailingText: toBuyCount == 0 ? null : '$toBuyCount',
+                  onTap: () => AppNavigator.shopping(context),
                 ),
                 ProfileMenuTile(
                   icon: Icons.favorite_border_rounded,

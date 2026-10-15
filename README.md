@@ -41,9 +41,45 @@ Log out is under **Profile** and **Settings → Account**.
 - **Going online later:** implement `AuthRepository` (for example with
   Firebase Auth) and swap it in `AppDependencies`. The UI doesn't change.
 
+## Shopping list
+
+**Profile → Shopping List** keeps track of pieces you want to buy: name,
+category, color, brand or store, price, a link, notes and a priority
+(Low / Medium / Must-have). Must-haves are listed first, and the screen shows
+what the list will cost and what you've spent.
+
+Tick an item to mark it bought. The snackbar offers **Add to wardrobe**,
+which opens the add-clothing form already filled in from the item (you only
+add a photo). The new piece is linked back to the purchase, which then shows
+"In your wardrobe". The list is stored per user under `shopping.items.v1`
+and is cleared by **Erase all data**.
+
+## Free and Premium
+
+Accounts start on **Free**. **Profile → All Fits Premium** (or **Settings →
+Plan**) compares the plans and upgrades or cancels.
+
+- **Free:** up to 30 clothing items (archived ones count); everything else
+  except the AI Stylist.
+- **Premium:** unlimited items and the AI Stylist.
+- **Checkout is simulated:** upgrading asks for confirmation and takes no
+  payment. The plan is stored with the account's settings. To sell it for
+  real, replace `SettingsController.startPremium` with Google Play Billing.
+- The limit and price live in `AppConfig.freeWardrobeLimit` and
+  `AppConfig.premiumMonthlyPrice`.
+
+## Weather picks
+
+Home has a **Dress for the weather** section. Set your city once and it
+shows today's temperature and rain chance, a styling tip, and up to three
+saved outfits that suit the day (scored by the seasons on the outfit and its
+clothes, and whether it has outerwear). Weather comes from
+[Open-Meteo](https://open-meteo.com), which is free and needs no API key;
+only the city's coordinates are sent.
+
 ## AI stylist
 
-**Outfits → ✨** opens the AI Stylist. It suggests three outfits built from
+**Outfits → ✨** opens the AI Stylist (Premium). It suggests three outfits built from
 your own wardrobe, which you can save or open in the outfit builder.
 
 Copy `assets/env.example.json` to `assets/env.json` (ignored by git), paste
@@ -63,8 +99,7 @@ the stylist screen explains how to set it up.
   above is Google Gemini. Leave out `AI_BASE_URL` and `AI_MODEL` to use
   OpenAI with `gpt-4o`.
 - **What is sent:** item names, brands, categories, colors, seasons and wear counts,
-  plus the occasion and note you type. Photos are never sent. This is the
-  only feature that uses the network.
+  plus the occasion and note you type. Photos are never sent.
 - **API key:** the file is bundled into the app, so use it for development
   and demos only. Put a backend proxy in front before publishing.
 - **Credit:** the request pattern (chat completions with a strict JSON
@@ -81,19 +116,20 @@ lib/
 ├── data/
 │   ├── models/               ClothingItem, Outfit, OutfitCalendarEntry, WardrobeStats, enums
 │   ├── local/                Key-value storage, JSON collection store, image storage, image picker
-│   ├── remote/               AI stylist service (the only network call)
+│   ├── remote/               AI stylist and weather services (the only network calls)
 │   ├── repositories/         Repository interfaces + local implementations
 │   └── sample/               Optional demo data
 ├── features/
 │   ├── auth/                 Login, register, AuthController, logout flow
-│   ├── home/ wardrobe/ outfits/ planner/ insights/ profile/ settings/ stylist/
+│   ├── home/ wardrobe/ outfits/ planner/ insights/ profile/ settings/ stylist/ shopping/
+│   │                         premium/ weather/
 │   └── shared/               ClosetActions (cross-entity logic) and ClosetFlows (UI flows)
 └── navigation/               Bottom-navigation shell
 ```
 
 - **State:** `provider` with one `ChangeNotifier` controller per domain
   (`WardrobeController`, `OutfitController`, `PlannerController`,
-  `SettingsController`). Operations that touch several domains live in
+  `SettingsController`, `ShoppingController`). Operations that touch several domains live in
   `ClosetActions`, for example marking an outfit worn (calendar, outfit and
   item wear counts) or deleting an item (removing it from outfits).
 - **Persistence:** repositories write JSON through `LocalStorageService`,

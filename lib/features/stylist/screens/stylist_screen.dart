@@ -11,10 +11,13 @@ import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_collage.dart';
+import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
+import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 /// Asks the AI stylist for outfits built from the user's wardrobe.
@@ -105,6 +108,17 @@ class _StylistScreenState extends State<StylistScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final plan = context.select<SettingsController, SubscriptionPlan>(
+      (s) => s.plan,
+    );
+    if (!plan.hasAiStylist) {
+      return const PremiumLockedView(
+        title: 'AI Stylist is a Premium feature',
+        message:
+            'Upgrade to get outfit ideas built from the clothes you '
+            'already own.',
+      );
+    }
     if (!context.read<AiStylistService>().isConfigured) {
       return const AppEmptyState(
         icon: Icons.auto_awesome_outlined,

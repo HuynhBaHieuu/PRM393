@@ -4,10 +4,15 @@ import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/features/insights/screens/insights_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_builder_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_detail_screen.dart';
+import 'package:all_fits/features/premium/premium_flows.dart';
+import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
 import 'package:all_fits/features/profile/screens/favorites_screen.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
+import 'package:all_fits/features/shopping/screens/shopping_item_form_screen.dart';
+import 'package:all_fits/features/shopping/screens/shopping_list_screen.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
+import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_form_screen.dart';
 
@@ -22,11 +27,17 @@ abstract final class AppRoutes {
   static const String archived = '/archived';
   static const String settings = '/settings';
   static const String stylist = '/stylist';
+  static const String shopping = '/shopping';
+  static const String premium = '/premium';
+  static const String addShoppingItem = '/shopping/new';
+  static const String editShoppingItem = '/shopping/edit';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
     final Widget page = switch (settings.name) {
-      AppRoutes.addClothing => const ClothingFormScreen(),
+      AppRoutes.addClothing => ClothingFormScreen(
+        initial: args is ClothingDraft ? args : null,
+      ),
       AppRoutes.editClothing when args is String => ClothingFormScreen(
         itemId: args,
       ),
@@ -44,13 +55,21 @@ abstract final class AppRoutes {
       AppRoutes.archived => const ArchivedItemsScreen(),
       AppRoutes.settings => const SettingsScreen(),
       AppRoutes.stylist => const StylistScreen(),
+      AppRoutes.shopping => const ShoppingListScreen(),
+      AppRoutes.premium => const PremiumScreen(),
+      AppRoutes.addShoppingItem => const ShoppingItemFormScreen(),
+      AppRoutes.editShoppingItem when args is String => ShoppingItemFormScreen(
+        itemId: args,
+      ),
       _ => const NotFoundView(),
     };
     final isModalForm =
         settings.name == AppRoutes.addClothing ||
         settings.name == AppRoutes.editClothing ||
         settings.name == AppRoutes.outfitBuilder ||
-        settings.name == AppRoutes.stylist;
+        settings.name == AppRoutes.stylist ||
+        settings.name == AppRoutes.addShoppingItem ||
+        settings.name == AppRoutes.editShoppingItem;
     return MaterialPageRoute<dynamic>(
       settings: settings,
       fullscreenDialog: isModalForm,
@@ -61,11 +80,19 @@ abstract final class AppRoutes {
 
 /// Typed navigation helpers so call sites never build route strings.
 abstract final class AppNavigator {
-  /// Resolves to the new item's id when an item was saved.
-  static Future<String?> addClothing(BuildContext context) async {
+  /// Resolves to the new item's id when an item was saved. On a full Free
+  /// wardrobe it explains the limit instead and resolves to null.
+  static Future<String?> addClothing(
+    BuildContext context, {
+    ClothingDraft? initial,
+  }) async {
+    if (!PremiumFlows.canAddClothing(context)) {
+      await PremiumFlows.showWardrobeLimit(context);
+      return null;
+    }
     // Routes are built as Route<dynamic>, so push untyped and narrow after.
     final result = await Navigator.of(context)
-        .pushNamed<Object?>(AppRoutes.addClothing);
+        .pushNamed<Object?>(AppRoutes.addClothing, arguments: initial);
     return result is String ? result : null;
   }
 
@@ -109,4 +136,17 @@ abstract final class AppNavigator {
 
   static Future<void> stylist(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.stylist);
+
+  static Future<void> premium(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.premium);
+
+  static Future<void> shopping(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.shopping);
+
+  static Future<void> addShoppingItem(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.addShoppingItem);
+
+  static Future<void> editShoppingItem(BuildContext context, String itemId) =>
+      Navigator.of(context)
+          .pushNamed(AppRoutes.editShoppingItem, arguments: itemId);
 }

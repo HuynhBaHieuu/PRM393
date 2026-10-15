@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
@@ -14,6 +15,7 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/settings/widgets/settings_section.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/features/shopping/controllers/shopping_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -80,17 +82,19 @@ class SettingsScreen extends StatelessWidget {
       context,
       title: 'Erase all data?',
       message:
-          'Every clothing item, photo, outfit and plan will be permanently '
+          'Every clothing item, photo, outfit, plan and shopping list item '
+          'will be permanently '
           'deleted. This can’t be undone.',
       confirmLabel: 'Erase everything',
       destructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    await ClosetFlows.guard(
-      context,
-      context.read<ClosetActions>().eraseAllData,
-      successMessage: 'All data erased',
-    );
+    final closet = context.read<ClosetActions>();
+    final shopping = context.read<ShoppingController>();
+    await ClosetFlows.guard(context, () async {
+      await closet.eraseAllData();
+      await shopping.clearAll();
+    }, successMessage: 'All data erased');
   }
 
   @override
@@ -142,6 +146,18 @@ class SettingsScreen extends StatelessWidget {
                       leading: const Icon(Icons.mail_outline_rounded),
                       title: const Text('Email'),
                       subtitle: Text(context.read<AppUser>().email),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.workspace_premium_outlined),
+                      title: const Text('Plan'),
+                      subtitle: Text(
+                        settings.isPremium
+                            ? 'Premium'
+                            : 'Free · ${context.read<WardrobeController>().allItems.length}'
+                                  ' of ${AppConfig.freeWardrobeLimit} items',
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => AppNavigator.premium(context),
                     ),
                     ListTile(
                       leading: const Icon(Icons.logout_rounded),

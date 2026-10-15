@@ -5,6 +5,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/features/shopping/controllers/shopping_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 /// Loads the signed-in user's data before the main UI is shown.
@@ -15,6 +16,7 @@ class AppBootstrap {
     required this.wardrobe,
     required this.outfits,
     required this.planner,
+    required this.shopping,
     required this.closet,
     required this.seedSampleData,
   });
@@ -24,6 +26,7 @@ class AppBootstrap {
   final WardrobeController wardrobe;
   final OutfitController outfits;
   final PlannerController planner;
+  final ShoppingController shopping;
   final ClosetActions closet;
   final bool seedSampleData;
 
@@ -33,6 +36,7 @@ class AppBootstrap {
       wardrobe.load(),
       outfits.load(),
       planner.load(),
+      shopping.load(),
     ]);
     if (settings.displayName.isEmpty && settings.username.isEmpty) {
       // A new account starts with the name and handle given at sign-up.
