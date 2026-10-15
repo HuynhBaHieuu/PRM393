@@ -1,5 +1,9 @@
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
+import 'package:all_fits/data/models/subscription_plan.dart';
+import 'package:all_fits/data/models/weather.dart';
+
+const Object _unset = Object();
 
 enum ThemePreference {
   system('System'),
@@ -18,6 +22,9 @@ class AppSettings {
     this.themePreference = ThemePreference.system,
     this.currencySymbol = AppConfig.defaultCurrencySymbol,
     this.hasSeededSampleData = false,
+    this.plan = SubscriptionPlan.free,
+    this.premiumSince,
+    this.weatherLocation,
   });
 
   factory AppSettings.fromJson(JsonMap json) {
@@ -31,6 +38,11 @@ class AppSettings {
           JsonReader.nonEmptyString(json, 'currencySymbol') ??
           AppConfig.defaultCurrencySymbol,
       hasSeededSampleData: JsonReader.boolean(json, 'hasSeededSampleData'),
+      plan:
+          JsonReader.enumValue(SubscriptionPlan.values, json['plan']) ??
+          SubscriptionPlan.free,
+      premiumSince: JsonReader.date(json, 'premiumSince'),
+      weatherLocation: WeatherLocation.tryFromJson(json['weatherLocation']),
     );
   }
 
@@ -39,6 +51,13 @@ class AppSettings {
   final ThemePreference themePreference;
   final String currencySymbol;
   final bool hasSeededSampleData;
+  final SubscriptionPlan plan;
+
+  /// When the current Premium subscription started.
+  final DateTime? premiumSince;
+
+  /// City used for weather-based outfit picks.
+  final WeatherLocation? weatherLocation;
 
   JsonMap toJson() => {
     'displayName': displayName,
@@ -46,6 +65,9 @@ class AppSettings {
     'theme': themePreference.name,
     'currencySymbol': currencySymbol,
     'hasSeededSampleData': hasSeededSampleData,
+    'plan': plan.name,
+    'premiumSince': premiumSince?.toIso8601String(),
+    'weatherLocation': weatherLocation?.toJson(),
   };
 
   AppSettings copyWith({
@@ -54,6 +76,9 @@ class AppSettings {
     ThemePreference? themePreference,
     String? currencySymbol,
     bool? hasSeededSampleData,
+    SubscriptionPlan? plan,
+    Object? premiumSince = _unset,
+    Object? weatherLocation = _unset,
   }) {
     return AppSettings(
       displayName: displayName ?? this.displayName,
@@ -61,6 +86,13 @@ class AppSettings {
       themePreference: themePreference ?? this.themePreference,
       currencySymbol: currencySymbol ?? this.currencySymbol,
       hasSeededSampleData: hasSeededSampleData ?? this.hasSeededSampleData,
+      plan: plan ?? this.plan,
+      premiumSince: identical(premiumSince, _unset)
+          ? this.premiumSince
+          : premiumSince as DateTime?,
+      weatherLocation: identical(weatherLocation, _unset)
+          ? this.weatherLocation
+          : weatherLocation as WeatherLocation?,
     );
   }
 }

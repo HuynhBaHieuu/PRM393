@@ -11,12 +11,16 @@ class ProfileHeader extends StatelessWidget {
     required this.username,
     required this.onEdit,
     this.email,
+    this.badge,
   });
 
   final String name;
   final String username;
   final String? email;
   final VoidCallback onEdit;
+
+  /// Optional tag under the name, e.g. the Premium badge.
+  final Widget? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +65,7 @@ class ProfileHeader extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxs),
             Text(email!, style: text.bodySmall),
           ],
+          if (badge != null) ...[const SizedBox(height: AppSpacing.sm), badge!],
           const SizedBox(height: AppSpacing.md),
           OutlinedButton(
             onPressed: onEdit,

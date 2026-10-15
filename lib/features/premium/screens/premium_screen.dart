@@ -1,0 +1,158 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:all_fits/core/constants/app_config.dart';
+import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/utils/formatters.dart';
+import 'package:all_fits/core/widgets/layout.dart';
+import 'package:all_fits/core/widgets/section_header.dart';
+import 'package:all_fits/features/premium/premium_flows.dart';
+import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
+import 'package:all_fits/features/settings/controllers/settings_controller.dart';
+import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+
+/// Compares the Free and Premium plans and handles upgrading or cancelling.
+class PremiumScreen extends StatelessWidget {
+  const PremiumScreen({super.key});
+
+  static const List<(bool, String)> _freeFeatures = [
+    (true, 'Up to ${AppConfig.freeWardrobeLimit} clothing items'),
+    (true, 'Outfits, planner and insights'),
+    (true, 'Shopping list and weather picks'),
+    (false, 'AI Stylist outfit ideas'),
+  ];
+
+  static const List<(bool, String)> _premiumFeatures = [
+    (true, 'Unlimited clothing items'),
+    (true, 'Outfits, planner and insights'),
+    (true, 'Shopping list and weather picks'),
+    (true, 'AI Stylist outfit ideas'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsController>();
+    final itemCount = context.select<WardrobeController, int>(
+      (w) => w.allItems.length,
+    );
+    final palette = context.palette;
+    final text = context.textTheme;
+    final isPremium = settings.isPremium;
+    final premiumSince = settings.settings.premiumSince;
+    final premiumPrice =
+        '${AppFormatters.price(AppConfig.premiumMonthlyPrice, settings.currencySymbol)} / month';
+
+    final free = PlanCard(
+      name: 'Free',
+      price: '${AppFormatters.price(0, settings.currencySymbol)} forever',
+      features: _freeFeatures,
+      isCurrent: !isPremium,
+    );
+    final premium = PlanCard(
+      name: 'Premium',
+      price: premiumPrice,
+      features: _premiumFeatures,
+      isCurrent: isPremium,
+      highlighted: true,
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('All Fits Premium')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.page,
+          AppSpacing.md,
+          AppSpacing.page,
+          AppSpacing.xxl,
+        ),
+        children: [
+          ResponsiveCenter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Eyebrow('Plans'),
+                const SizedBox(height: AppSpacing.xs),
+                Text('Style more, limit less.', style: text.headlineMedium),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  isPremium
+                      ? 'You have every feature unlocked.'
+                      : 'Unlock the AI Stylist and room for your whole '
+                            'wardrobe.',
+                  style: text.bodyLarge?.copyWith(color: palette.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                if (isPremium)
+                  Row(
+                    children: [
+                      const PremiumBadge(),
+                      const SizedBox(width: AppSpacing.xs),
+                      if (premiumSince != null)
+                        Text(
+                          'Active since '
+                          '${AppFormatters.shortDate(premiumSince)}',
+                          style: text.bodySmall,
+                        ),
+                    ],
+                  )
+                else
+                  Text(
+                    '$itemCount of ${AppConfig.freeWardrobeLimit} '
+                    'wardrobe spaces used',
+                    style: text.bodySmall,
+                  ),
+                const SizedBox(height: AppSpacing.md),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth >= AppSizes.maxFormWidth) {
+                      return IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: free),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(child: premium),
+                          ],
+                        ),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        premium,
+                        const SizedBox(height: AppSpacing.sm),
+                        free,
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                if (isPremium)
+                  OutlinedButton(
+                    onPressed: () => PremiumFlows.cancel(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: palette.danger,
+                    ),
+                    child: const Text('Cancel Premium'),
+                  )
+                else
+                  FilledButton(
+                    onPressed: () => PremiumFlows.upgrade(context),
+                    child: Text('Upgrade for $premiumPrice'),
+                  ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Demo checkout: no payment is taken. You can cancel '
+                  'any time from this screen.',
+                  textAlign: TextAlign.center,
+                  style: text.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -19,6 +19,7 @@ import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
@@ -27,9 +28,12 @@ import 'package:all_fits/navigation/app_navigation.dart';
 
 /// Add a new clothing item, or edit one when [itemId] is given.
 class ClothingFormScreen extends StatefulWidget {
-  const ClothingFormScreen({super.key, this.itemId});
+  const ClothingFormScreen({super.key, this.itemId, this.initial});
 
   final String? itemId;
+
+  /// Values to start a new item with, e.g. from a shopping list purchase.
+  final ClothingDraft? initial;
 
   @override
   State<ClothingFormScreen> createState() => _ClothingFormScreenState();
@@ -62,17 +66,19 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     final item = itemId == null
         ? null
         : context.read<WardrobeController>().itemById(itemId);
+    final initial = item == null ? widget.initial : null;
     _existing = item;
-    _category = item?.category;
-    _color = item?.color;
-    _seasons.addAll(item?.seasons ?? const []);
-    _isFavorite = item?.isFavorite ?? false;
-    _name = TextEditingController(text: item?.name);
-    _brand = TextEditingController(text: item?.brand);
+    _category = item?.category ?? initial?.category;
+    _color = item?.color ?? initial?.color;
+    _seasons.addAll(item?.seasons ?? initial?.seasons ?? const []);
+    _isFavorite = item?.isFavorite ?? initial?.isFavorite ?? false;
+    _name = TextEditingController(text: item?.name ?? initial?.name);
+    _brand = TextEditingController(text: item?.brand ?? initial?.brand);
+    final price = item?.price ?? initial?.price;
     _price = TextEditingController(
-      text: item?.price == null ? '' : _formatPriceInput(item!.price!),
+      text: price == null ? '' : _formatPriceInput(price),
     );
-    _notes = TextEditingController(text: item?.notes);
+    _notes = TextEditingController(text: item?.notes ?? initial?.notes);
     for (final controller in [_name, _brand, _price, _notes]) {
       controller.addListener(_markDirty);
     }
@@ -122,6 +128,13 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     final formValid = _formKey.currentState?.validate() ?? false;
     if (!formValid || _missingImage || _category == null) {
       context.showSnack('Please complete the highlighted fields.');
+      return;
+    }
+
+    // The limit is checked before the form opens; this covers pieces added
+    // elsewhere while it was open.
+    if (_existing == null && !PremiumFlows.canAddClothing(context)) {
+      await PremiumFlows.showWardrobeLimit(context);
       return;
     }
 

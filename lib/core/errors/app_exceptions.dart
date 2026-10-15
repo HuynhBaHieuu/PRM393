@@ -40,6 +40,16 @@ class AiException extends AppException {
   const AiException(super.message);
 }
 
+/// Weather could not be loaded.
+class WeatherException extends AppException {
+  const WeatherException(super.message);
+}
+
+/// The action needs Premium, e.g. adding past the Free wardrobe limit.
+class PlanLimitException extends AppException {
+  const PlanLimitException(super.message);
+}
+
 class NotFoundException extends AppException {
   const NotFoundException([super.message = 'This item no longer exists.']);
 }

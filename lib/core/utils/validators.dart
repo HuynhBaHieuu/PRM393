@@ -1,6 +1,7 @@
 abstract final class Validators {
   static const int maxNameLength = 60;
   static const int maxNotesLength = 500;
+  static const int maxLinkLength = 2000;
   static const double maxPrice = 10000000;
   static const int minPasswordLength = 8;
   static const int maxPasswordLength = 128;
@@ -59,6 +60,19 @@ abstract final class Validators {
     final text = value?.trim() ?? '';
     if (text.length > maxNameLength) {
       return 'Keep it under $maxNameLength characters';
+    }
+    return null;
+  }
+
+  /// Accepts an empty value or a web address such as "shop.com/item".
+  static String? optionalLink(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    if (text.length > maxLinkLength) return 'That link is too long';
+    final uri = Uri.tryParse(text.contains('://') ? text : 'https://$text');
+    final host = uri?.host ?? '';
+    if (text.contains(RegExp(r'\s')) || !host.contains('.')) {
+      return 'Enter a valid web address';
     }
     return null;
   }

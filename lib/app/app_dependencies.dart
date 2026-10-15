@@ -10,10 +10,12 @@ import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/local/password_hasher.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/remote/weather_service.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/data/repositories/calendar_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
+import 'package:all_fits/data/repositories/shopping_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 
 /// Composition root for services and repositories. Swap implementations
@@ -27,6 +29,7 @@ class AppDependencies {
     this.clock = systemClock,
     this.seedSampleData = AppConfig.seedSampleDataOnFirstLaunch,
     this.aiStylist = const AiStylistService(apiKey: ''),
+    this.weather = const OpenMeteoWeatherService(),
     PasswordHasher passwordHasher = const Pbkdf2PasswordHasher(),
   }) : authRepository = LocalAuthRepository(
          storage,
@@ -65,6 +68,7 @@ class AppDependencies {
   final Clock clock;
   final bool seedSampleData;
   final AiStylistService aiStylist;
+  final WeatherService weather;
   final AuthRepository authRepository;
 
   /// Repositories whose data belongs to [userId] only.
@@ -75,6 +79,7 @@ class AppDependencies {
       outfits: LocalOutfitRepository(scoped),
       calendar: LocalCalendarRepository(scoped),
       settings: LocalSettingsRepository(scoped),
+      shopping: LocalShoppingRepository(scoped),
     );
   }
 
@@ -104,10 +109,12 @@ class UserRepositories {
     required this.outfits,
     required this.calendar,
     required this.settings,
+    required this.shopping,
   });
 
   final WardrobeRepository wardrobe;
   final OutfitRepository outfits;
   final CalendarRepository calendar;
   final SettingsRepository settings;
+  final ShoppingRepository shopping;
 }
