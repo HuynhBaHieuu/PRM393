@@ -41,12 +41,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _busy = true);
     try {
-      await context.read<AuthController>().register(
+      final email = await context.read<AuthController>().register(
         displayName: _name.text,
         email: _email.text,
         password: _password.text,
       );
-      // On success the app switches to the new user's wardrobe.
+      // Back to the login screen, which prefills [email].
+      if (mounted) Navigator.of(context).pop(email);
     } catch (error) {
       if (mounted) {
         setState(() {

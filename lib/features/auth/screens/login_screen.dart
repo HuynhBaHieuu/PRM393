@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
+import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/features/auth/controllers/auth_controller.dart';
 import 'package:all_fits/features/auth/screens/register_screen.dart';
@@ -61,9 +62,15 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _openRegister() {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => const RegisterScreen()));
+  Future<void> _openRegister() async {
+    final email = await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<String>(builder: (_) => const RegisterScreen()));
+    if (email == null || !mounted) return;
+    setState(() => _error = null);
+    _email.text = email;
+    _password.clear();
+    context.showSnack('Account created. Log in to continue.');
   }
 
   @override

@@ -232,6 +232,12 @@ void main() {
       await _tap(tester, find.widgetWithText(FilledButton, 'Create account'));
     }
 
+    /// The login screen is prefilled with the new account's email.
+    Future<void> logIn(WidgetTester tester) async {
+      await fill(tester, 'Password', testPassword);
+      await _tap(tester, find.widgetWithText(FilledButton, 'Log in'));
+    }
+
     Future<void> logOut(WidgetTester tester) async {
       await _tapNav(tester, 'Profile');
       await _tap(tester, find.text('Log out'));
@@ -244,7 +250,7 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
     });
 
-    testWidgets('register validates input, then opens the wardrobe', (
+    testWidgets('register validates input, then returns to log in', (
       tester,
     ) async {
       await _pumpApp(tester, testDependencies(), signedIn: false);
@@ -262,6 +268,11 @@ void main() {
       await tester.pumpAndSettle();
       await register(tester, name: 'Jamie Lee', email: 'jamie@example.com');
 
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.text('Account created. Log in to continue.'), findsOneWidget);
+      expect(find.text('jamie@example.com'), findsOneWidget);
+
+      await logIn(tester);
       expect(find.byType(NavigationBar), findsOneWidget);
       expect(find.textContaining('Jamie'), findsWidgets);
       await _tapNav(tester, 'Profile');
@@ -297,6 +308,7 @@ void main() {
 
       await logOut(tester);
       await register(tester, name: 'Sam', email: 'sam@example.com');
+      await logIn(tester);
       await _tapNav(tester, 'Wardrobe');
       expect(find.text('Your wardrobe is empty'), findsOneWidget);
 

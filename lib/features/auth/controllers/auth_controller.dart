@@ -37,7 +37,9 @@ class AuthController extends ChangeNotifier {
     _setStatus();
   }
 
-  Future<void> register({
+  /// Creates the account but leaves the user signed out, so they log in
+  /// with it next. Returns the normalized email for prefilling the form.
+  Future<String> register({
     required String displayName,
     required String email,
     required String password,
@@ -48,7 +50,10 @@ class AuthController extends ChangeNotifier {
       password: password,
     );
     await _onRegistered?.call(user);
-    _signedIn(user);
+    // Both backends start a session on sign-up; end it.
+    await _repository.signOut();
+    _lastEmail = user.email;
+    return user.email;
   }
 
   Future<void> signIn({required String email, required String password}) async {
