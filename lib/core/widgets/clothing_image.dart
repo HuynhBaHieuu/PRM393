@@ -43,7 +43,9 @@ class ClothingImage extends StatelessWidget {
         : context.read<ImageStorageService>().resolvePath(reference);
     final samplePhoto = reference == null ? SampleData.photoFor(item.id) : null;
     final ImageProvider provider;
-    if (path != null) {
+    if (path != null && path.startsWith('https://')) {
+      provider = NetworkImage(path);
+    } else if (path != null) {
       provider = FileImage(File(path));
     } else if (samplePhoto != null) {
       provider = AssetImage(samplePhoto);

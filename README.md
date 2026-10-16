@@ -77,6 +77,32 @@ clothes, and whether it has outerwear). Weather comes from
 [Open-Meteo](https://open-meteo.com), which is free and needs no API key;
 only the city's coordinates are sent.
 
+## Server (Supabase)
+
+Accounts, wardrobe, outfits, planner, shopping list and settings are stored
+on [Supabase](https://supabase.com) when it is configured, and on the device
+when it is not (tests always run on device).
+
+1. Create a free project at supabase.com.
+2. **SQL Editor:** paste [`supabase/schema.sql`](supabase/schema.sql) and run
+   it. This creates the tables, row-level security and the `wardrobe-images`
+   photo bucket.
+3. **Authentication → Sign In / Providers → Email:** turn off *Confirm email*
+   so new accounts can sign in straight away (with it on, the app asks the user
+   to confirm by email first).
+4. **Project Settings → API Keys:** copy the project URL and the publishable
+   key (the legacy `anon` key works too) into `assets/env.json`:
+
+```json
+{
+  "SUPABASE_URL": "https://xxxx.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
+}
+```
+
+Data saved on the device before the switch is not uploaded. Free projects
+pause after a week without use; resume them from the dashboard.
+
 ## AI stylist
 
 **Outfits → ✨** opens the AI Stylist (Premium). It suggests three outfits built from
@@ -116,7 +142,7 @@ lib/
 ├── data/
 │   ├── models/               ClothingItem, Outfit, OutfitCalendarEntry, WardrobeStats, enums
 │   ├── local/                Key-value storage, JSON collection store, image storage, image picker
-│   ├── remote/               AI stylist and weather services (the only network calls)
+│   ├── remote/               AI stylist, weather and Supabase backend
 │   ├── repositories/         Repository interfaces + local implementations
 │   └── sample/               Optional demo data
 ├── features/

@@ -16,15 +16,20 @@ abstract interface class ShoppingRepository {
 
 class LocalShoppingRepository implements ShoppingRepository {
   LocalShoppingRepository(LocalStorageService storage)
-    : _store = JsonCollectionStore<ShoppingItem>(
-        storage: storage,
-        key: StorageKeys.shoppingItems,
-        fromJson: ShoppingItem.fromJson,
-        toJson: (item) => item.toJson(),
-        idOf: (item) => item.id,
+    : this.fromStore(
+        JsonCollectionStore<ShoppingItem>(
+          storage: storage,
+          key: StorageKeys.shoppingItems,
+          fromJson: ShoppingItem.fromJson,
+          toJson: (item) => item.toJson(),
+          idOf: (item) => item.id,
+        ),
       );
 
-  final JsonCollectionStore<ShoppingItem> _store;
+  /// Uses any [CollectionStore], e.g. `SupabaseCollectionStore` for the server.
+  LocalShoppingRepository.fromStore(this._store);
+
+  final CollectionStore<ShoppingItem> _store;
 
   @override
   Future<List<ShoppingItem>> fetchAll() => _store.readAll();

@@ -18,7 +18,8 @@ abstract interface class ImageStorageService {
   /// reference. Throws [InvalidImageException] or [StorageException].
   Future<String> saveImage(String sourcePath);
 
-  /// Absolute file path for [reference], or null when it can't be resolved.
+  /// Absolute file path or `https` URL for [reference], or null when it
+  /// can't be resolved.
   String? resolvePath(String reference);
 
   Future<void> deleteImage(String reference);
@@ -67,6 +68,20 @@ class LocalImageStorageService implements ImageStorageService {
       throw const StorageException('Photo storage is not available.');
     }
     final source = File(sourcePath);
+    final extension = await validate(source);
+    final reference = '$folder/${_ids.next()}.$extension';
+    try {
+      await source.copy('$root/$reference');
+    } on FileSystemException catch (error) {
+      developer.log('Failed to copy image', name: 'images', error: error);
+      throw const StorageException('The photo could not be saved.');
+    }
+    return reference;
+  }
+
+  /// Checks [source] can be stored and returns its lowercase extension.
+  /// Throws [InvalidImageException] otherwise.
+  static Future<String> validate(File source) async {
     if (!await source.exists()) {
       throw const InvalidImageException('The selected photo is unavailable.');
     }
@@ -77,19 +92,11 @@ class LocalImageStorageService implements ImageStorageService {
     if (length > AppConfig.maxImageBytes) {
       throw const InvalidImageException('This photo is too large to save.');
     }
-    final extension = _extensionOf(sourcePath);
+    final extension = _extensionOf(source.path);
     if (!supportedExtensions.contains(extension)) {
       throw const InvalidImageException('This file type isn’t supported.');
     }
-
-    final reference = '$folder/${_ids.next()}.$extension';
-    try {
-      await source.copy('$root/$reference');
-    } on FileSystemException catch (error) {
-      developer.log('Failed to copy image', name: 'images', error: error);
-      throw const StorageException('The photo could not be saved.');
-    }
-    return reference;
+    return extension;
   }
 
   @override

@@ -49,3 +49,6 @@ app.*.map.json
 
 # Local API keys (see README, "AI stylist"). Never commit this file.
 assets/env.json
+
+# Supabase database password (kept out of the app bundle). Never commit.
+supabase/db_password.txt

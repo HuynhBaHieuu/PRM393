@@ -6,12 +6,23 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 
+/// A keyed collection of records, stored on the device or on a server.
+abstract interface class CollectionStore<T> {
+  Future<List<T>> readAll();
+
+  Future<void> upsertAll(Iterable<T> values);
+
+  Future<void> removeIds(Iterable<String> ids);
+
+  Future<void> clear();
+}
+
 /// Persists a collection of records as a JSON array under a single key.
 ///
 /// Malformed records are skipped instead of failing the whole load, and an
 /// unreadable payload is backed up before it can be overwritten.
 /// The in-memory cache is only updated after a write succeeds.
-class JsonCollectionStore<T> {
+class JsonCollectionStore<T> implements CollectionStore<T> {
   JsonCollectionStore({
     required this._storage,
     required this._key,
@@ -28,8 +39,10 @@ class JsonCollectionStore<T> {
 
   Map<String, T>? _cache;
 
+  @override
   Future<List<T>> readAll() async => List.of((await _load()).values);
 
+  @override
   Future<void> upsertAll(Iterable<T> values) async {
     final next = Map.of(await _load());
     for (final value in values) {
@@ -38,6 +51,7 @@ class JsonCollectionStore<T> {
     await _persist(next);
   }
 
+  @override
   Future<void> removeIds(Iterable<String> ids) async {
     final next = Map.of(await _load());
     var changed = false;
@@ -47,6 +61,7 @@ class JsonCollectionStore<T> {
     if (changed) await _persist(next);
   }
 
+  @override
   Future<void> clear() => _persist({});
 
   Future<Map<String, T>> _load() async {

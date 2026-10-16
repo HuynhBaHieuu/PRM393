@@ -16,15 +16,20 @@ abstract interface class OutfitRepository {
 
 class LocalOutfitRepository implements OutfitRepository {
   LocalOutfitRepository(LocalStorageService storage)
-    : _store = JsonCollectionStore<Outfit>(
-        storage: storage,
-        key: StorageKeys.outfits,
-        fromJson: Outfit.fromJson,
-        toJson: (outfit) => outfit.toJson(),
-        idOf: (outfit) => outfit.id,
+    : this.fromStore(
+        JsonCollectionStore<Outfit>(
+          storage: storage,
+          key: StorageKeys.outfits,
+          fromJson: Outfit.fromJson,
+          toJson: (outfit) => outfit.toJson(),
+          idOf: (outfit) => outfit.id,
+        ),
       );
 
-  final JsonCollectionStore<Outfit> _store;
+  /// Uses any [CollectionStore], e.g. `SupabaseCollectionStore` for the server.
+  LocalOutfitRepository.fromStore(this._store);
+
+  final CollectionStore<Outfit> _store;
 
   @override
   Future<List<Outfit>> fetchAll() => _store.readAll();

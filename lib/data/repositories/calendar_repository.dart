@@ -16,15 +16,20 @@ abstract interface class CalendarRepository {
 
 class LocalCalendarRepository implements CalendarRepository {
   LocalCalendarRepository(LocalStorageService storage)
-    : _store = JsonCollectionStore<OutfitCalendarEntry>(
-        storage: storage,
-        key: StorageKeys.calendarEntries,
-        fromJson: OutfitCalendarEntry.fromJson,
-        toJson: (entry) => entry.toJson(),
-        idOf: (entry) => entry.id,
+    : this.fromStore(
+        JsonCollectionStore<OutfitCalendarEntry>(
+          storage: storage,
+          key: StorageKeys.calendarEntries,
+          fromJson: OutfitCalendarEntry.fromJson,
+          toJson: (entry) => entry.toJson(),
+          idOf: (entry) => entry.id,
+        ),
       );
 
-  final JsonCollectionStore<OutfitCalendarEntry> _store;
+  /// Uses any [CollectionStore], e.g. `SupabaseCollectionStore` for the server.
+  LocalCalendarRepository.fromStore(this._store);
+
+  final CollectionStore<OutfitCalendarEntry> _store;
 
   @override
   Future<List<OutfitCalendarEntry>> fetchAll() => _store.readAll();
