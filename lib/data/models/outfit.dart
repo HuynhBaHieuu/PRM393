@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/season.dart';
 
 const Object _unset = Object();
@@ -19,6 +20,7 @@ class Outfit {
     this.isFavorite = false,
     this.wearCount = 0,
     this.lastWornAt,
+    this.layout = const [],
   });
 
   factory Outfit.fromJson(JsonMap json) {
@@ -40,6 +42,10 @@ class Outfit {
       isFavorite: JsonReader.boolean(json, 'isFavorite'),
       wearCount: math.max(0, JsonReader.integer(json, 'wearCount')),
       lastWornAt: JsonReader.date(json, 'lastWornAt'),
+      layout: [
+        if (json['layout'] case final List<dynamic> raw)
+          ...raw.map(OutfitPlacement.tryFromJson).whereType<OutfitPlacement>(),
+      ],
       createdAt: createdAt,
       updatedAt: JsonReader.date(json, 'updatedAt') ?? createdAt,
     );
@@ -56,6 +62,10 @@ class Outfit {
   final bool isFavorite;
   final int wearCount;
   final DateTime? lastWornAt;
+
+  /// Where each piece sits on the outfit canvas, back to front. Pieces
+  /// without an entry get a default spot when shown.
+  final List<OutfitPlacement> layout;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -69,6 +79,7 @@ class Outfit {
     'isFavorite': isFavorite,
     'wearCount': wearCount,
     'lastWornAt': lastWornAt?.toIso8601String(),
+    'layout': layout.map((p) => p.toJson()).toList(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -82,6 +93,7 @@ class Outfit {
     bool? isFavorite,
     int? wearCount,
     Object? lastWornAt = _unset,
+    List<OutfitPlacement>? layout,
     DateTime? updatedAt,
   }) {
     return Outfit(
@@ -98,6 +110,7 @@ class Outfit {
       lastWornAt: identical(lastWornAt, _unset)
           ? this.lastWornAt
           : lastWornAt as DateTime?,
+      layout: layout ?? this.layout,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

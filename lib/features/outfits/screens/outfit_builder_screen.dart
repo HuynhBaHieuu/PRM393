@@ -18,7 +18,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_builder_controller.
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/builder_widgets.dart';
 import 'package:all_fits/features/outfits/widgets/item_picker_sheet.dart';
-import 'package:all_fits/features/outfits/widgets/outfit_collage.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
@@ -191,7 +191,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
           listenable: builder,
           builder: (context, _) {
             final items = wardrobe.itemsByIds(builder.itemIds);
-            final preview = _Preview(items: items);
+            final preview = _Preview(builder: builder, items: items);
             return LayoutBuilder(
               builder: (context, constraints) {
                 final wide =
@@ -230,19 +230,17 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
 }
 
 class _Preview extends StatelessWidget {
-  const _Preview({required this.items});
+  const _Preview({required this.builder, required this.items});
 
+  final OutfitBuilderController builder;
   final List<ClothingItem> items;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppSizes.maxPreviewWidth),
-        child: AspectRatio(
-          aspectRatio: AppSizes.outfitImageAspect,
-          child: items.isEmpty
+    final canvas = AspectRatio(
+      aspectRatio: AppSizes.outfitImageAspect,
+      child: items.isEmpty
               ? Container(
                   decoration: BoxDecoration(
                     color: palette.surfaceMuted,
@@ -272,7 +270,44 @@ class _Preview extends StatelessWidget {
                     ],
                   ),
                 )
-              : OutfitComposition(items: items),
+              : DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: palette.border),
+                  ),
+                  child: OutfitCanvas(
+                    items: items,
+                    layout: builder.layout,
+                    onChanged: builder.setLayout,
+                  ),
+                ),
+    );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppSizes.maxPreviewWidth),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            canvas,
+            if (items.isNotEmpty)
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Drag to move, pinch to resize and turn.',
+                      style: context.textTheme.bodySmall,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: builder.layout.isEmpty
+                        ? null
+                        : builder.resetLayout,
+                    child: const Text('Reset layout'),
+                  ),
+                ],
+              ),
+          ],
         ),
       ),
     );

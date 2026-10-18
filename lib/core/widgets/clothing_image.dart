@@ -18,6 +18,7 @@ class ClothingImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.decodeWidth,
+    this.cutout = false,
   });
 
   final ClothingItem item;
@@ -26,6 +27,10 @@ class ClothingImage extends StatelessWidget {
 
   /// Logical width hint used to decode a smaller bitmap for thumbnails.
   final double? decodeWidth;
+
+  /// Shows the piece cut out of its background when a cut-out exists,
+  /// otherwise the photo.
+  final bool cutout;
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +42,14 @@ class ClothingImage extends StatelessWidget {
   }
 
   Widget _buildImage(BuildContext context) {
-    final reference = item.imagePath;
+    final reference = (cutout ? item.cutoutPath : null) ?? item.imagePath;
     final path = reference == null
         ? null
         : context.read<ImageStorageService>().resolvePath(reference);
-    final samplePhoto = reference == null ? SampleData.photoFor(item.id) : null;
+    final samplePhoto = reference == null
+        ? (cutout ? SampleData.cutoutFor(item.id) : null) ??
+              SampleData.photoFor(item.id)
+        : null;
     final ImageProvider provider;
     if (path != null && path.startsWith('https://')) {
       provider = NetworkImage(path);

@@ -76,6 +76,7 @@ class OutfitController extends ChangeNotifier {
       seasons: draft.seasons,
       notes: draft.notes.trimmedOrNull,
       isFavorite: draft.isFavorite,
+      layout: draft.layout,
       createdAt: now,
       updatedAt: now,
     );
@@ -93,6 +94,7 @@ class OutfitController extends ChangeNotifier {
       seasons: draft.seasons,
       notes: draft.notes.trimmedOrNull,
       isFavorite: draft.isFavorite,
+      layout: draft.layout,
       updatedAt: _clock(),
     );
     await _commit([updated]);
@@ -124,6 +126,7 @@ class OutfitController extends ChangeNotifier {
         .map(
           (outfit) => outfit.copyWith(
             itemIds: outfit.itemIds.where((id) => id != itemId).toList(),
+            layout: outfit.layout.where((p) => p.itemId != itemId).toList(),
             updatedAt: now,
           ),
         )

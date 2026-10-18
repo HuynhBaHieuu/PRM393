@@ -15,7 +15,7 @@ import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
-import 'package:all_fits/features/outfits/widgets/outfit_collage.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
@@ -283,7 +283,7 @@ class _SuggestionCard extends StatelessWidget {
             width: _previewWidth,
             child: AspectRatio(
               aspectRatio: AppSizes.outfitImageAspect,
-              child: OutfitCollage(items: items, borderRadius: AppRadius.md),
+              child: OutfitCanvas(items: items),
             ),
           ),
           const SizedBox(width: AppSpacing.md),

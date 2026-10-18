@@ -1,6 +1,7 @@
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/season.dart';
 
 /// User input for creating or editing an outfit.
@@ -12,6 +13,7 @@ class OutfitDraft {
     this.seasons = const [],
     this.notes,
     this.isFavorite = false,
+    this.layout = const [],
   });
 
   final String name;
@@ -20,6 +22,7 @@ class OutfitDraft {
   final List<Season> seasons;
   final String? notes;
   final bool isFavorite;
+  final List<OutfitPlacement> layout;
 
   void ensureValid() {
     if (itemIds.isEmpty) {

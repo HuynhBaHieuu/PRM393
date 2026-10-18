@@ -7,14 +7,12 @@ abstract final class StorageKeys {
   static const String outfits = 'outfits.v1';
   static const String calendarEntries = 'calendar.entries.v1';
   static const String settings = 'settings.v1';
-  static const String shoppingItems = 'shopping.items.v1';
 
   static const List<String> userDataKeys = [
     clothingItems,
     outfits,
     calendarEntries,
     settings,
-    shoppingItems,
   ];
 
   // Device-wide auth data.

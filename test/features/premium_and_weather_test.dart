@@ -259,8 +259,6 @@ void main() {
         await tap(tester, find.text('All Fits Premium'));
         expect(find.text('Cancel Premium'), findsOneWidget);
         await tap(tester, find.byTooltip('Back'));
-        await tap(tester, find.text('Shopping List'));
-        expect(find.text('Nothing on your list'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }

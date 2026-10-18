@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
+import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
@@ -20,7 +21,8 @@ class OutfitBuilderController extends ChangeNotifier {
   }) : editingId = initial?.id,
        _occasion = initial?.occasion,
        _seasons = {...?initial?.seasons},
-       _isFavorite = initial?.isFavorite ?? false {
+       _isFavorite = initial?.isFavorite ?? false,
+       _layout = initial?.layout ?? const [] {
     final ids = initial?.itemIds ?? initialItemIds;
     if (initial != null) {
       // Keep the saved order; drop pieces that were deleted since.
@@ -39,6 +41,7 @@ class OutfitBuilderController extends ChangeNotifier {
   Occasion? _occasion;
   final Set<Season> _seasons;
   bool _isFavorite;
+  List<OutfitPlacement> _layout;
 
   bool get isEditing => editingId != null;
   List<String> get itemIds => List.unmodifiable(_itemIds);
@@ -46,6 +49,9 @@ class OutfitBuilderController extends ChangeNotifier {
   Occasion? get occasion => _occasion;
   Set<Season> get seasons => Set.unmodifiable(_seasons);
   bool get isFavorite => _isFavorite;
+
+  /// Where pieces sit on the canvas; empty until the user moves one.
+  List<OutfitPlacement> get layout => _layout;
 
   bool contains(String id) => _itemIds.contains(id);
 
@@ -110,6 +116,14 @@ class OutfitBuilderController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setLayout(List<OutfitPlacement> layout) {
+    _layout = List.unmodifiable(layout);
+    notifyListeners();
+  }
+
+  /// Puts every piece back in its default spot.
+  void resetLayout() => setLayout(const []);
+
   OutfitDraft buildDraft({
     required String name,
     required String fallbackName,
@@ -123,6 +137,7 @@ class OutfitBuilderController extends ChangeNotifier {
       seasons: Season.values.where(_seasons.contains).toList(),
       notes: notes,
       isFavorite: _isFavorite,
+      layout: _layout.where((p) => _itemIds.contains(p.itemId)).toList(),
     );
   }
 

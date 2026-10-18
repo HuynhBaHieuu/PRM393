@@ -41,19 +41,6 @@ Log out is under **Profile** and **Settings → Account**.
 - **Going online later:** implement `AuthRepository` (for example with
   Firebase Auth) and swap it in `AppDependencies`. The UI doesn't change.
 
-## Shopping list
-
-**Profile → Shopping List** keeps track of pieces you want to buy: name,
-category, color, brand or store, price, a link, notes and a priority
-(Low / Medium / Must-have). Must-haves are listed first, and the screen shows
-what the list will cost and what you've spent.
-
-Tick an item to mark it bought. The snackbar offers **Add to wardrobe**,
-which opens the add-clothing form already filled in from the item (you only
-add a photo). The new piece is linked back to the purchase, which then shows
-"In your wardrobe". The list is stored per user under `shopping.items.v1`
-and is cleared by **Erase all data**.
-
 ## Free and Premium
 
 Accounts start on **Free**. **Profile → All Fits Premium** (or **Settings →
@@ -79,7 +66,7 @@ only the city's coordinates are sent.
 
 ## Server (Supabase)
 
-Accounts, wardrobe, outfits, planner, shopping list and settings are stored
+Accounts, wardrobe, outfits, planner and settings are stored
 on [Supabase](https://supabase.com) when it is configured, and on the device
 when it is not (tests always run on device).
 
@@ -147,7 +134,7 @@ lib/
 │   └── sample/               Optional demo data
 ├── features/
 │   ├── auth/                 Login, register, AuthController, logout flow
-│   ├── home/ wardrobe/ outfits/ planner/ insights/ profile/ settings/ stylist/ shopping/
+│   ├── home/ wardrobe/ outfits/ planner/ insights/ profile/ settings/ stylist/
 │   │                         premium/ weather/
 │   └── shared/               ClosetActions (cross-entity logic) and ClosetFlows (UI flows)
 └── navigation/               Bottom-navigation shell
@@ -155,7 +142,7 @@ lib/
 
 - **State:** `provider` with one `ChangeNotifier` controller per domain
   (`WardrobeController`, `OutfitController`, `PlannerController`,
-  `SettingsController`, `ShoppingController`). Operations that touch several domains live in
+  `SettingsController`). Operations that touch several domains live in
   `ClosetActions`, for example marking an outfit worn (calendar, outfit and
   item wear counts) or deleting an item (removing it from outfits).
 - **Persistence:** repositories write JSON through `LocalStorageService`,

@@ -24,6 +24,16 @@ abstract final class SampleData {
       ? '$_photoFolder/${itemId.substring(idPrefix.length)}.jpg'
       : null;
 
+  /// The bundled cut-out (transparent background) of a sample item, or null
+  /// when there is none.
+  static String? cutoutFor(String itemId) =>
+      isSampleId(itemId) && !_withoutCutout.contains(itemId)
+      ? '$_photoFolder/cutouts/${itemId.substring(idPrefix.length)}.webp'
+      : null;
+
+  /// Photos too close-up or busy to cut out; these show the photo.
+  static const Set<String> _withoutCutout = {_carharttHoodie, _stussyTee};
+
   static const String _whiteTee = '${idPrefix}white-tee';
   static const String _blackTee = '${idPrefix}black-tee';
   static const String _blueJeans = '${idPrefix}blue-jeans';

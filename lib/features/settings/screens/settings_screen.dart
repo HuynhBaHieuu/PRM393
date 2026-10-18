@@ -15,7 +15,6 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/settings/widgets/settings_section.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
-import 'package:all_fits/features/shopping/controllers/shopping_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -82,19 +81,18 @@ class SettingsScreen extends StatelessWidget {
       context,
       title: 'Erase all data?',
       message:
-          'Every clothing item, photo, outfit, plan and shopping list item '
-          'will be permanently '
+          'Every clothing item, photo, outfit and plan will be permanently '
           'deleted. This can’t be undone.',
       confirmLabel: 'Erase everything',
       destructive: true,
     );
     if (!confirmed || !context.mounted) return;
     final closet = context.read<ClosetActions>();
-    final shopping = context.read<ShoppingController>();
-    await ClosetFlows.guard(context, () async {
-      await closet.eraseAllData();
-      await shopping.clearAll();
-    }, successMessage: 'All data erased');
+    await ClosetFlows.guard(
+      context,
+      closet.eraseAllData,
+      successMessage: 'All data erased',
+    );
   }
 
   @override

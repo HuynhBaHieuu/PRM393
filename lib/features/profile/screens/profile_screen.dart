@@ -13,7 +13,6 @@ import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/profile/widgets/profile_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
-import 'package:all_fits/features/shopping/controllers/shopping_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -31,9 +30,6 @@ class ProfileScreen extends StatelessWidget {
     final favoriteCount =
         wardrobe.favoriteItems.length + outfits.favorites.length;
     final archivedCount = wardrobe.archivedItems.length;
-    final toBuyCount = context.select<ShoppingController, int>(
-      (s) => s.toBuy.length,
-    );
 
     return SafeArea(
       bottom: false,
@@ -79,13 +75,6 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Wardrobe Insights',
                   subtitle: 'Value, wear and breakdowns',
                   onTap: () => AppNavigator.insights(context),
-                ),
-                ProfileMenuTile(
-                  icon: Icons.shopping_bag_outlined,
-                  title: 'Shopping List',
-                  subtitle: 'Pieces you want to buy',
-                  trailingText: toBuyCount == 0 ? null : '$toBuyCount',
-                  onTap: () => AppNavigator.shopping(context),
                 ),
                 ProfileMenuTile(
                   icon: Icons.favorite_border_rounded,

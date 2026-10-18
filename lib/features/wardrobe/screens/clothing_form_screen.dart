@@ -32,7 +32,7 @@ class ClothingFormScreen extends StatefulWidget {
 
   final String? itemId;
 
-  /// Values to start a new item with, e.g. from a shopping list purchase.
+  /// Values to start a new item with, e.g. prefilled by another screen.
   final ClothingDraft? initial;
 
   @override

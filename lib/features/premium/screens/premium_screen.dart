@@ -19,14 +19,14 @@ class PremiumScreen extends StatelessWidget {
   static const List<(bool, String)> _freeFeatures = [
     (true, 'Up to ${AppConfig.freeWardrobeLimit} clothing items'),
     (true, 'Outfits, planner and insights'),
-    (true, 'Shopping list and weather picks'),
+    (true, 'Weather outfit picks'),
     (false, 'AI Stylist outfit ideas'),
   ];
 
   static const List<(bool, String)> _premiumFeatures = [
     (true, 'Unlimited clothing items'),
     (true, 'Outfits, planner and insights'),
-    (true, 'Shopping list and weather picks'),
+    (true, 'Weather outfit picks'),
     (true, 'AI Stylist outfit ideas'),
   ];
 

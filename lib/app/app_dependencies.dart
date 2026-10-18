@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:supabase_flutter/supabase_flutter.dart'
@@ -7,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
+import 'package:all_fits/data/local/background_remover.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
@@ -18,12 +20,10 @@ import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/data/repositories/calendar_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
-import 'package:all_fits/data/repositories/shopping_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/outfit_calendar_entry.dart';
-import 'package:all_fits/data/models/shopping_item.dart';
 
 /// Composition root for services and repositories. With [supabase] set,
 /// accounts and per-user data live on the server; otherwise on the device.
@@ -32,6 +32,7 @@ class AppDependencies {
     required this.storage,
     required this.imageStorage,
     required this.imagePicker,
+    this.backgroundRemover = const NoBackgroundRemover(),
     this.idGenerator = const UuidIdGenerator(),
     this.clock = systemClock,
     this.seedSampleData = AppConfig.seedSampleDataOnFirstLaunch,
@@ -69,6 +70,9 @@ class AppDependencies {
       storage: SharedPreferencesStorageService(),
       imageStorage: imageStorage,
       imagePicker: DeviceImagePickerService(),
+      backgroundRemover: Platform.isAndroid
+          ? MlKitBackgroundRemover()
+          : const NoBackgroundRemover(),
       aiStylist: AiStylistService.fromConfig(env),
       supabase: supabase,
     );
@@ -88,6 +92,7 @@ class AppDependencies {
   final LocalStorageService storage;
   final ImageStorageService imageStorage;
   final ImagePickerService imagePicker;
+  final BackgroundRemover backgroundRemover;
   final IdGenerator idGenerator;
   final Clock clock;
   final bool seedSampleData;
@@ -134,14 +139,6 @@ class AppDependencies {
           ),
         ),
         settings: SupabaseSettingsRepository(client, userId),
-        shopping: LocalShoppingRepository.fromStore(
-          store(
-            'shopping_items',
-            ShoppingItem.fromJson,
-            (i) => i.toJson(),
-            (i) => i.id,
-          ),
-        ),
       );
     }
     final scoped = ScopedStorageService(storage, StorageKeys.userScope(userId));
@@ -150,7 +147,6 @@ class AppDependencies {
       outfits: LocalOutfitRepository(scoped),
       calendar: LocalCalendarRepository(scoped),
       settings: LocalSettingsRepository(scoped),
-      shopping: LocalShoppingRepository(scoped),
     );
   }
 
@@ -181,12 +177,10 @@ class UserRepositories {
     required this.outfits,
     required this.calendar,
     required this.settings,
-    required this.shopping,
   });
 
   final WardrobeRepository wardrobe;
   final OutfitRepository outfits;
   final CalendarRepository calendar;
   final SettingsRepository settings;
-  final ShoppingRepository shopping;
 }

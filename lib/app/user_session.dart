@@ -14,7 +14,6 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
-import 'package:all_fits/features/shopping/controllers/shopping_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -41,7 +40,6 @@ class _UserSessionState extends State<UserSession> {
   late final WardrobeController _wardrobe;
   late final OutfitController _outfits;
   late final PlannerController _planner;
-  late final ShoppingController _shopping;
   late final WeatherController _weather;
   late final ClosetActions _closet;
   late final ShellController _shell;
@@ -60,6 +58,7 @@ class _UserSessionState extends State<UserSession> {
     _wardrobe = WardrobeController(
       repository: repositories.wardrobe,
       imageStorage: deps.imageStorage,
+      backgroundRemover: deps.backgroundRemover,
       idGenerator: deps.idGenerator,
       clock: deps.clock,
     );
@@ -71,11 +70,6 @@ class _UserSessionState extends State<UserSession> {
     _planner = PlannerController(
       repository: repositories.calendar,
       idGenerator: deps.idGenerator,
-    );
-    _shopping = ShoppingController(
-      repository: repositories.shopping,
-      idGenerator: deps.idGenerator,
-      clock: deps.clock,
     );
     _weather = WeatherController(service: deps.weather, clock: deps.clock);
     _closet = ClosetActions(
@@ -92,7 +86,6 @@ class _UserSessionState extends State<UserSession> {
       wardrobe: _wardrobe,
       outfits: _outfits,
       planner: _planner,
-      shopping: _shopping,
       closet: _closet,
       seedSampleData: deps.seedSampleData,
     );
@@ -105,7 +98,6 @@ class _UserSessionState extends State<UserSession> {
     _wardrobe.dispose();
     _outfits.dispose();
     _planner.dispose();
-    _shopping.dispose();
     _weather.dispose();
     _shell.dispose();
     super.dispose();
@@ -126,7 +118,6 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _wardrobe),
         ChangeNotifierProvider.value(value: _outfits),
         ChangeNotifierProvider.value(value: _planner),
-        ChangeNotifierProvider.value(value: _shopping),
         ChangeNotifierProvider.value(value: _weather),
         ChangeNotifierProvider.value(value: _shell),
         Provider.value(value: _closet),

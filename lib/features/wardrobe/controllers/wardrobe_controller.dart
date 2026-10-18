@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,7 @@ import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/core/utils/load_status.dart';
+import 'package:all_fits/data/local/background_remover.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
@@ -18,13 +20,16 @@ class WardrobeController extends ChangeNotifier {
   WardrobeController({
     required this._repository,
     required ImageStorageService imageStorage,
+    BackgroundRemover backgroundRemover = const NoBackgroundRemover(),
     IdGenerator idGenerator = const UuidIdGenerator(),
     this._clock = systemClock,
   }) : _images = imageStorage,
+       _backgrounds = backgroundRemover,
        _ids = idGenerator;
 
   final WardrobeRepository _repository;
   final ImageStorageService _images;
+  final BackgroundRemover _backgrounds;
   final IdGenerator _ids;
   final Clock _clock;
 
@@ -34,6 +39,7 @@ class WardrobeController extends ChangeNotifier {
   List<ClothingItem> _all = const [];
   List<ClothingItem> _active = const [];
   List<ClothingItem> _archived = const [];
+  final Set<String> _cutoutAttempts = {};
 
   LoadStatus get status => _status;
   Object? get error => _error;
@@ -87,11 +93,13 @@ class WardrobeController extends ChangeNotifier {
   Future<ClothingItem> addItem(ClothingDraft draft) async {
     draft.ensureValid(requireImage: true);
     final imageRef = await _images.saveImage(draft.newImagePath!);
+    final cutoutRef = await _saveCutout(draft.newImagePath!);
     final now = _clock();
     final item = ClothingItem(
       id: _ids.next(),
       name: draft.name.trim(),
       imagePath: imageRef,
+      cutoutPath: cutoutRef,
       category: draft.category!,
       color: draft.color,
       seasons: draft.seasons,
@@ -106,6 +114,7 @@ class WardrobeController extends ChangeNotifier {
       await _commit([item]);
     } catch (_) {
       await _images.deleteImage(imageRef);
+      if (cutoutRef != null) await _images.deleteImage(cutoutRef);
       rethrow;
     }
     return item;
@@ -116,13 +125,16 @@ class WardrobeController extends ChangeNotifier {
     draft.ensureValid(requireImage: existing.imagePath == null);
 
     String? newImageRef;
+    String? newCutoutRef;
     final newImagePath = draft.newImagePath;
     if (newImagePath != null) {
       newImageRef = await _images.saveImage(newImagePath);
+      newCutoutRef = await _saveCutout(newImagePath);
     }
     final updated = existing.copyWith(
       name: draft.name.trim(),
       imagePath: newImageRef ?? existing.imagePath,
+      cutoutPath: newImageRef != null ? newCutoutRef : existing.cutoutPath,
       category: draft.category,
       color: draft.color,
       seasons: draft.seasons,
@@ -136,11 +148,13 @@ class WardrobeController extends ChangeNotifier {
       await _commit([updated]);
     } catch (_) {
       if (newImageRef != null) await _images.deleteImage(newImageRef);
+      if (newCutoutRef != null) await _images.deleteImage(newCutoutRef);
       rethrow;
     }
-    final oldImage = existing.imagePath;
-    if (newImageRef != null && oldImage != null) {
-      await _images.deleteImage(oldImage);
+    if (newImageRef != null) {
+      for (final old in _photosOf([existing])) {
+        await _images.deleteImage(old);
+      }
     }
     return updated;
   }
@@ -162,7 +176,7 @@ class WardrobeController extends ChangeNotifier {
   /// removing references from outfits (see `ClosetActions`).
   Future<void> deleteItems(Iterable<String> ids) async {
     final removed = ids.map((id) => _byId[id]).whereType<ClothingItem>();
-    final images = removed.map((i) => i.imagePath).whereType<String>().toList();
+    final images = _photosOf(removed);
     final removedIds = removed.map((i) => i.id).toSet();
     if (removedIds.isEmpty) return;
     await _repository.deleteAll(removedIds);
@@ -205,7 +219,7 @@ class WardrobeController extends ChangeNotifier {
   }
 
   Future<void> clearAll() async {
-    final images = _all.map((i) => i.imagePath).whereType<String>().toList();
+    final images = _photosOf(_all);
     await _repository.clear();
     _setItems(const []);
     notifyListeners();
@@ -213,6 +227,55 @@ class WardrobeController extends ChangeNotifier {
       await _images.deleteImage(image);
     }
   }
+
+  /// Makes cut-outs for pieces that have a photo but none yet. Each piece is
+  /// tried once per session, so a photo that can't be cut out isn't retried
+  /// on every rebuild. Never throws.
+  Future<void> ensureCutouts(Iterable<String> ids) async {
+    for (final item in itemsByIds(ids)) {
+      final photo = item.imagePath;
+      if (photo == null || item.cutoutPath != null) continue;
+      if (!_cutoutAttempts.add(item.id)) continue;
+      final source = _images.resolvePath(photo);
+      if (source == null) continue;
+      final cutout = await _saveCutout(source);
+      if (cutout == null) continue;
+      final current = _byId[item.id];
+      try {
+        // The photo may have changed or the item gone while cutting out.
+        if (current == null || current.imagePath != photo) {
+          throw const NotFoundException('Photo changed');
+        }
+        await _commit([current.copyWith(cutoutPath: cutout)]);
+      } catch (error) {
+        developer.log('Cut-out dropped', name: 'wardrobe', error: error);
+        await _images.deleteImage(cutout);
+      }
+    }
+  }
+
+  /// Stores a cut-out of the photo at [source], or returns null when its
+  /// background can't be removed. The piece then shows its photo instead.
+  Future<String?> _saveCutout(String source) async {
+    final cutout = await _backgrounds.removeBackground(source);
+    if (cutout == null) return null;
+    try {
+      return await _images.saveImage(cutout);
+    } catch (error) {
+      developer.log('Cut-out not saved', name: 'wardrobe', error: error);
+      return null;
+    } finally {
+      try {
+        await File(cutout).delete();
+      } on FileSystemException {
+        // A leftover temp file is harmless.
+      }
+    }
+  }
+
+  static List<String> _photosOf(Iterable<ClothingItem> items) => [
+    for (final item in items) ...[?item.imagePath, ?item.cutoutPath],
+  ];
 
   ClothingItem _require(String id) {
     final item = _byId[id];

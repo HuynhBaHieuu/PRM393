@@ -15,6 +15,7 @@ class ClothingItem {
     required this.createdAt,
     required this.updatedAt,
     this.imagePath,
+    this.cutoutPath,
     this.color,
     this.seasons = const [],
     this.brand,
@@ -42,6 +43,7 @@ class ClothingItem {
       id: id,
       name: name,
       imagePath: JsonReader.nonEmptyString(json, 'imagePath'),
+      cutoutPath: JsonReader.nonEmptyString(json, 'cutoutPath'),
       category:
           JsonReader.enumValue(ClothingCategory.values, json['category']) ??
           ClothingCategory.other,
@@ -64,6 +66,10 @@ class ClothingItem {
 
   /// Storage reference resolved by `ImageStorageService`, not an absolute path.
   final String? imagePath;
+
+  /// The photo with its background removed, cropped to the piece. Stored
+  /// like [imagePath]; null until a cut-out has been made.
+  final String? cutoutPath;
   final ClothingCategory category;
   final ClothingColor? color;
   final List<Season> seasons;
@@ -81,6 +87,7 @@ class ClothingItem {
     'id': id,
     'name': name,
     'imagePath': imagePath,
+    'cutoutPath': cutoutPath,
     'category': category.name,
     'color': color?.name,
     'seasons': seasons.map((s) => s.name).toList(),
@@ -99,6 +106,7 @@ class ClothingItem {
   ClothingItem copyWith({
     String? name,
     Object? imagePath = _unset,
+    Object? cutoutPath = _unset,
     ClothingCategory? category,
     Object? color = _unset,
     List<Season>? seasons,
@@ -117,6 +125,9 @@ class ClothingItem {
       imagePath: identical(imagePath, _unset)
           ? this.imagePath
           : imagePath as String?,
+      cutoutPath: identical(cutoutPath, _unset)
+          ? this.cutoutPath
+          : cutoutPath as String?,
       category: category ?? this.category,
       color: identical(color, _unset) ? this.color : color as ClothingColor?,
       seasons: seasons ?? this.seasons,

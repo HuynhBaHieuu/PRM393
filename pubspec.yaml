@@ -41,7 +41,7 @@ dependencies:
   uuid: ^4.6.0
   crypto: ^3.0.7
   supabase_flutter: ^2.18.3
-
+  google_mlkit_subject_segmentation: ^0.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -69,6 +69,7 @@ flutter:
   assets:
     - assets/
     - assets/sample/
+    - assets/sample/cutouts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

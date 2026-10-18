@@ -8,7 +8,7 @@ import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
-import 'package:all_fits/features/outfits/widgets/outfit_collage.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 String outfitMetaLine(Outfit outfit, int pieceCount) => [
@@ -61,7 +61,7 @@ class OutfitCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  OutfitCollage(items: items),
+                  OutfitCanvas(items: items, layout: outfit.layout),
                   if (onFavorite != null)
                     Positioned(
                       top: _overlayInset,
@@ -169,11 +169,7 @@ class OutfitListRow extends StatelessWidget {
               width: _thumbWidth,
               child: AspectRatio(
                 aspectRatio: AppSizes.outfitImageAspect,
-                child: OutfitCollage(
-                  items: items,
-                  borderRadius: AppRadius.sm,
-                  decodeWidth: _thumbWidth,
-                ),
+                child: OutfitCanvas(items: items, layout: outfit.layout),
               ),
             ),
             const SizedBox(width: AppSpacing.md),

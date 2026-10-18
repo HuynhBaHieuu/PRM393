@@ -9,8 +9,6 @@ import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
 import 'package:all_fits/features/profile/screens/favorites_screen.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
-import 'package:all_fits/features/shopping/screens/shopping_item_form_screen.dart';
-import 'package:all_fits/features/shopping/screens/shopping_list_screen.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
@@ -27,10 +25,7 @@ abstract final class AppRoutes {
   static const String archived = '/archived';
   static const String settings = '/settings';
   static const String stylist = '/stylist';
-  static const String shopping = '/shopping';
   static const String premium = '/premium';
-  static const String addShoppingItem = '/shopping/new';
-  static const String editShoppingItem = '/shopping/edit';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -55,21 +50,14 @@ abstract final class AppRoutes {
       AppRoutes.archived => const ArchivedItemsScreen(),
       AppRoutes.settings => const SettingsScreen(),
       AppRoutes.stylist => const StylistScreen(),
-      AppRoutes.shopping => const ShoppingListScreen(),
       AppRoutes.premium => const PremiumScreen(),
-      AppRoutes.addShoppingItem => const ShoppingItemFormScreen(),
-      AppRoutes.editShoppingItem when args is String => ShoppingItemFormScreen(
-        itemId: args,
-      ),
       _ => const NotFoundView(),
     };
     final isModalForm =
         settings.name == AppRoutes.addClothing ||
         settings.name == AppRoutes.editClothing ||
         settings.name == AppRoutes.outfitBuilder ||
-        settings.name == AppRoutes.stylist ||
-        settings.name == AppRoutes.addShoppingItem ||
-        settings.name == AppRoutes.editShoppingItem;
+        settings.name == AppRoutes.stylist;
     return MaterialPageRoute<dynamic>(
       settings: settings,
       fullscreenDialog: isModalForm,
@@ -139,14 +127,4 @@ abstract final class AppNavigator {
 
   static Future<void> premium(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.premium);
-
-  static Future<void> shopping(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.shopping);
-
-  static Future<void> addShoppingItem(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.addShoppingItem);
-
-  static Future<void> editShoppingItem(BuildContext context, String itemId) =>
-      Navigator.of(context)
-          .pushNamed(AppRoutes.editShoppingItem, arguments: itemId);
 }
