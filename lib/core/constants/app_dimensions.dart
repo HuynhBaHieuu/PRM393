@@ -12,22 +12,22 @@ abstract final class AppSpacing {
   static const double page = 20;
 }
 
-/// Corner radii. The app is square-edged by design, so every step is zero;
-/// the scale stays so a radius can be brought back in one place.
+/// Corner radii: soft cards and sheets, fully rounded pills and buttons.
 abstract final class AppRadius {
-  static const double xs = 0;
-  static const double sm = 0;
-  static const double md = 0;
-  static const double lg = 0;
-  static const double xl = 0;
-  static const double pill = 0;
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+  static const double pill = 999;
 }
 
 abstract final class AppSizes {
   static const double buttonHeight = 52;
   static const double compactButtonHeight = 40;
   static const double headerActionSize = 42;
-  static const double navBarHeight = 68;
+  static const double navBarHeight = 64;
+  static const double navAddButtonSize = 48;
 
   static const double iconSm = 18;
   static const double icon = 22;
@@ -49,13 +49,17 @@ abstract final class AppSizes {
 
   static const double gridMinTileWidth = 156;
 
+  /// Clothing grids show three cut-outs across on a phone.
+  static const double clothingMinTileWidth = 96;
+
   /// Width / height of clothing photos in grids.
   static const double clothingImageAspect = 3 / 4;
 
   /// Width / height of outfit previews.
   static const double outfitImageAspect = 4 / 5;
 
-  static const double clothingTileFooterHeight = 50;
+  /// Clothing tiles are image-only.
+  static const double clothingTileFooterHeight = 0;
   static const double outfitTileFooterHeight = 50;
 
   static const double recentItemWidth = 124;

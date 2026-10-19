@@ -4,28 +4,29 @@ import 'package:flutter/material.dart';
 /// (`context.palette`) so light and dark themes both work.
 abstract final class AppColors {
   // Light
-  static const Color lightBackground = Color(0xFFF2F2F0);
+  static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceMuted = Color(0xFFE3E3E0);
-  static const Color lightInk = Color(0xFF0B0B0B);
+  static const Color lightSurfaceMuted = Color(0xFFF3F3F3);
+  static const Color lightInk = Color(0xFF111111);
   static const Color lightOnInk = Color(0xFFFFFFFF);
-  static const Color lightTextSecondary = Color(0xFF5C5C5A);
-  static const Color lightTextTertiary = Color(0xFF8F8F8C);
-  static const Color lightBorder = Color(0xFFC6C6C2);
-  static const Color lightAccent = Color(0xFFD63A00);
+  static const Color lightTextSecondary = Color(0xFF6E6E6E);
+  static const Color lightTextTertiary = Color(0xFFA3A3A3);
+  static const Color lightBorder = Color(0xFFE8E8E8);
+  // Black-and-white UI: the accent is the ink color.
+  static const Color lightAccent = lightInk;
   static const Color lightDanger = Color(0xFFC1121F);
   static const Color lightSuccess = Color(0xFF1F7A3D);
 
   // Dark
-  static const Color darkBackground = Color(0xFF0A0A0A);
-  static const Color darkSurface = Color(0xFF141414);
-  static const Color darkSurfaceMuted = Color(0xFF202020);
-  static const Color darkInk = Color(0xFFF5F5F3);
-  static const Color darkOnInk = Color(0xFF0A0A0A);
-  static const Color darkTextSecondary = Color(0xFFA3A3A0);
-  static const Color darkTextTertiary = Color(0xFF6B6B69);
-  static const Color darkBorder = Color(0xFF303030);
-  static const Color darkAccent = Color(0xFFFF6B2C);
+  static const Color darkBackground = Color(0xFF000000);
+  static const Color darkSurface = Color(0xFF121212);
+  static const Color darkSurfaceMuted = Color(0xFF1E1E1E);
+  static const Color darkInk = Color(0xFFF5F5F5);
+  static const Color darkOnInk = Color(0xFF000000);
+  static const Color darkTextSecondary = Color(0xFFA3A3A3);
+  static const Color darkTextTertiary = Color(0xFF6B6B6B);
+  static const Color darkBorder = Color(0xFF2A2A2A);
+  static const Color darkAccent = darkInk;
   static const Color darkDanger = Color(0xFFFF6B6B);
   static const Color darkSuccess = Color(0xFF7BD88F);
 

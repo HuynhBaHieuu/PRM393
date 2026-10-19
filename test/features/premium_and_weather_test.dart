@@ -18,6 +18,7 @@ import 'package:all_fits/features/home/screens/home_screen.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/features/weather/weather_advice.dart';
+import 'package:all_fits/navigation/app_navigation.dart';
 
 import '../helpers/test_harness.dart';
 
@@ -178,15 +179,20 @@ void main() {
     Future<void> tapNav(WidgetTester tester, String label) => tap(
       tester,
       find.descendant(
-        of: find.byType(NavigationBar),
+        of: find.byType(AppBottomBar),
         matching: find.text(label),
       ),
     );
 
+    /// Picks an option from the central "+" sheet.
+    Future<void> create(WidgetTester tester, String option) async {
+      await tap(tester, find.byTooltip('Create'));
+      await tap(tester, find.text(option));
+    }
+
     testWidgets('the AI Stylist unlocks after upgrading', (tester) async {
       await pumpApp(tester, testDependencies());
-      await tapNav(tester, 'Outfits');
-      await tap(tester, find.byTooltip('AI stylist'));
+      await create(tester, 'AI Stylist');
       expect(find.text('AI Stylist is a Premium feature'), findsOneWidget);
 
       await tap(tester, find.text('See Premium'));
@@ -209,8 +215,7 @@ void main() {
         testDependencies(),
         items: AppConfig.freeWardrobeLimit,
       );
-      await tapNav(tester, 'Wardrobe');
-      await tap(tester, find.byTooltip('Add clothing'));
+      await create(tester, 'Add clothes');
       expect(find.text('Your wardrobe is full'), findsOneWidget);
       expect(find.text('Add clothing'), findsNothing);
     });
@@ -255,6 +260,7 @@ void main() {
         await tester.pumpAndSettle();
 
         await tapNav(tester, 'Profile');
+        await tap(tester, find.byTooltip('Account'));
         expect(find.text('Premium'), findsWidgets);
         await tap(tester, find.text('All Fits Premium'));
         expect(find.text('Cancel Premium'), findsOneWidget);

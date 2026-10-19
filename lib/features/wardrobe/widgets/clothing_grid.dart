@@ -33,6 +33,8 @@ class ClothingSliverGrid extends StatelessWidget {
           width: constraints.crossAxisExtent,
           imageAspect: AppSizes.clothingImageAspect,
           footerHeight: footer,
+          minTileWidth: AppSizes.clothingMinTileWidth,
+          spacing: AppSpacing.sm,
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
           final item = items[index];

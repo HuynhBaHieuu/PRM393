@@ -40,7 +40,10 @@ class ProfileHeader extends StatelessWidget {
             width: AppSizes.avatar,
             height: AppSizes.avatar,
             alignment: Alignment.center,
-            color: palette.surfaceMuted,
+            decoration: BoxDecoration(
+              color: palette.surfaceMuted,
+              shape: BoxShape.circle,
+            ),
             child: initials.isEmpty
                 ? Icon(
                     Icons.person_outline_rounded,

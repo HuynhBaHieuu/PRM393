@@ -162,11 +162,18 @@ class _DayCell extends StatelessWidget {
       width: _numberSize,
       height: _numberSize,
       alignment: Alignment.center,
-      decoration: isToday ? BoxDecoration(color: palette.ink) : null,
+      // Selected day: black circle; today otherwise: outlined circle.
+      decoration: isSelected || isToday
+          ? BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? palette.ink : null,
+              border: Border.all(color: palette.ink),
+            )
+          : null,
       child: Text(
         '${day.day}',
         style: text.labelMedium?.copyWith(
-          color: isToday ? palette.onInk : palette.ink,
+          color: isSelected ? palette.onInk : palette.ink,
         ),
       ),
     );
@@ -189,11 +196,8 @@ class _DayCell extends StatelessWidget {
             margin: const EdgeInsets.all(2),
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: isSelected ? palette.surface : null,
+              color: isSelected ? palette.surfaceMuted : null,
               borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(
-                color: isSelected ? palette.ink : Colors.transparent,
-              ),
             ),
             child: Column(
               children: [
@@ -251,6 +255,7 @@ class _StatusDot extends StatelessWidget {
       width: _DayCell._dotSize,
       height: _DayCell._dotSize,
       decoration: BoxDecoration(
+        shape: BoxShape.circle,
         color: worn ? palette.ink : palette.surface,
         border: Border.all(color: worn ? palette.surface : palette.ink),
       ),

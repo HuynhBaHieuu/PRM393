@@ -5,7 +5,6 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/formatters.dart';
-import 'package:all_fits/core/widgets/page_header.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/planner/widgets/day_plan_panel.dart';
@@ -66,21 +65,13 @@ class _PlannerScreenState extends State<PlannerScreen> {
       );
     }
 
-    final upcoming = planner.entries
-        .where(
-          (e) =>
-              e.isPlanned &&
-              DateHelpers.isSameMonth(e.date, _month) &&
-              !e.date.isBefore(today),
-        )
-        .length;
-
     final calendar = Column(
       children: [
         _MonthNavigator(
           month: _month,
           onPrevious: () => _changeMonth(-1),
           onNext: () => _changeMonth(1),
+          onToday: () => _select(today),
         ),
         const SizedBox(height: AppSpacing.sm),
         MonthCalendar(
@@ -102,19 +93,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= AppSizes.wideLayoutBreakpoint;
-          final header = PageHeader(
-            title: 'Planner',
-            subtitle: upcoming == 0
-                ? 'Plan your looks ahead'
-                : '${AppFormatters.count(upcoming, 'outfit')} planned this month',
-            actions: [
-              HeaderIconButton(
-                icon: Icons.today_outlined,
-                tooltip: 'Go to today',
-                onPressed: () => _select(today),
-              ),
-            ],
-          );
+          const header = SizedBox(height: AppSpacing.sm);
           if (wide) {
             return ListView(
               children: [
@@ -169,11 +148,13 @@ class _MonthNavigator extends StatelessWidget {
     required this.month,
     required this.onPrevious,
     required this.onNext,
+    required this.onToday,
   });
 
   final DateTime month;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
+  final VoidCallback onToday;
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +176,11 @@ class _MonthNavigator extends StatelessWidget {
           tooltip: 'Next month',
           onPressed: onNext,
           icon: const Icon(Icons.chevron_right_rounded),
+        ),
+        IconButton(
+          tooltip: 'Go to today',
+          onPressed: onToday,
+          icon: const Icon(Icons.today_outlined),
         ),
       ],
     );

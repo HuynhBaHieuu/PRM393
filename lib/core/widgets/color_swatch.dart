@@ -5,7 +5,7 @@ import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 
-/// Square color chip. "Multicolor" is drawn as four flat blocks.
+/// Round color chip. "Multicolor" is drawn as four flat blocks.
 class ColorSwatchDot extends StatelessWidget {
   const ColorSwatchDot({
     super.key,
@@ -24,8 +24,13 @@ class ColorSwatchDot extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      color: color.isMulti ? null : color.swatch,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: color.isMulti ? null : color.swatch,
+        shape: BoxShape.circle,
+      ),
       foregroundDecoration: BoxDecoration(
+        shape: BoxShape.circle,
         border: Border.all(color: context.palette.border),
       ),
       child: Stack(
@@ -96,6 +101,7 @@ class ColorSwatchPicker extends StatelessWidget {
                       duration: AppDurations.fast,
                       padding: const EdgeInsets.all(_ringGap),
                       decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected ? palette.ink : Colors.transparent,
                           width: 1.5,

@@ -1,9 +1,9 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_subject_segmentation/google_mlkit_subject_segmentation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -44,7 +44,7 @@ class MlKitBackgroundRemover implements BackgroundRemover {
     try {
       if (source.startsWith('https://')) download = await _download(source);
       final input = InputImage.fromFilePath(download?.path ?? source);
-      final result = await _segmenter.processImage(input);
+      final result = await _segment(input);
       final foreground = result.foregroundBitmap;
       if (foreground == null) return null;
       final png = await cropToContent(foreground);
@@ -59,6 +59,21 @@ class MlKitBackgroundRemover implements BackgroundRemover {
       return null;
     } finally {
       if (download != null) await _deleteQuietly(download);
+    }
+  }
+
+  /// Installs from Play get the model at install time; others (`flutter
+  /// run`, sideloads) download it on first use and fail until it lands,
+  /// usually within ~10 s, so wait for it instead of saving the plain photo.
+  Future<SubjectSegmentationResult> _segment(InputImage input) async {
+    for (var attempt = 1; ; attempt++) {
+      try {
+        return await _segmenter.processImage(input);
+      } on PlatformException catch (error) {
+        final downloading = error.message?.contains('downloaded') ?? false;
+        if (!downloading || attempt == 15) rethrow;
+        await Future<void>.delayed(const Duration(seconds: 2));
+      }
     }
   }
 

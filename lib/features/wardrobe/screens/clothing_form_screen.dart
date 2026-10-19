@@ -157,7 +157,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     try {
       if (_existing == null) {
         final item = await wardrobe.addItem(draft);
-        shell.select(AppTab.wardrobe);
+        shell.openCloset(ClosetTab.clothes);
         _dirty = false;
         navigator.pop(item.id);
         if (mounted) context.showSnack('${item.name} added to your wardrobe');

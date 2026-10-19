@@ -4,10 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
-import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/layout.dart';
-import 'package:all_fits/core/widgets/page_header.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/occasion.dart';
@@ -140,25 +138,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       bottom: false,
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(
-            child: PageHeader(
-              title: 'Outfits',
-              subtitle: AppFormatters.count(all.length, 'look'),
-              actions: [
-                HeaderIconButton(
-                  icon: Icons.auto_awesome_outlined,
-                  tooltip: 'AI stylist',
-                  onPressed: () => AppNavigator.stylist(context),
-                ),
-                HeaderIconButton(
-                  icon: Icons.add_rounded,
-                  tooltip: 'Create outfit',
-                  filled: true,
-                  onPressed: () => AppNavigator.createOutfit(context),
-                ),
-              ],
-            ),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
           if (all.isNotEmpty)
             SliverToBoxAdapter(
               child: SizedBox(

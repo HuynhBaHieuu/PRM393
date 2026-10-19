@@ -124,7 +124,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
       final editingId = builder.editingId;
       if (editingId == null) {
         await outfits.createOutfit(draft);
-        shell.select(AppTab.outfits);
+        shell.openCloset(ClosetTab.outfits);
       } else {
         await outfits.updateOutfit(editingId, draft);
       }

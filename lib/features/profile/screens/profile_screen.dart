@@ -31,9 +31,9 @@ class ProfileScreen extends StatelessWidget {
         wardrobe.favoriteItems.length + outfits.favorites.length;
     final archivedCount = wardrobe.archivedItems.length;
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Account')),
+      body: ListView(
         padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
         children: [
           ResponsiveCenter(

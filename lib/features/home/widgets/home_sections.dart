@@ -41,7 +41,7 @@ class QuickActions extends StatelessWidget {
           child: _QuickAction(
             icon: Icons.event_outlined,
             label: 'Plan Outfit',
-            onTap: () => context.read<ShellController>().select(AppTab.planner),
+            onTap: () => context.read<ShellController>().openCloset(ClosetTab.planner),
           ),
         ),
       ],
@@ -116,7 +116,7 @@ class RecentlyAddedSection extends StatelessWidget {
         SectionHeader(
           title: 'Recently added',
           actionLabel: items.isEmpty ? null : 'See all',
-          onAction: () => shell.select(AppTab.wardrobe),
+          onAction: () => shell.openCloset(ClosetTab.clothes),
         ),
         const SizedBox(height: AppSpacing.md),
         if (items.isEmpty)

@@ -7,7 +7,6 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/layout.dart';
-import 'package:all_fits/core/widgets/page_header.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
@@ -66,20 +65,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       child: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverToBoxAdapter(
-            child: PageHeader(
-              title: 'Your Wardrobe',
-              subtitle: AppFormatters.count(activeCount, 'piece'),
-              actions: [
-                HeaderIconButton(
-                  icon: Icons.add_rounded,
-                  tooltip: 'Add clothing',
-                  filled: true,
-                  onPressed: () => AppNavigator.addClothing(context),
-                ),
-              ],
-            ),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
           SliverToBoxAdapter(
             child: WardrobeToolbar(
               searchController: _search,

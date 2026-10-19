@@ -4,7 +4,7 @@ import 'package:all_fits/app/theme/app_colors.dart';
 import 'package:all_fits/app/theme/app_text_styles.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 
-/// Material 3 theme customised toward a flat, square-edged streetwear look.
+/// Material 3 theme: white surfaces, black pill buttons, soft rounded cards.
 abstract final class AppTheme {
   static ThemeData light() => _build(AppPalette.light, Brightness.light);
 
@@ -45,11 +45,12 @@ abstract final class AppTheme {
     final roundedMd = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppRadius.md),
     );
+    const pill = StadiumBorder();
     const buttonPadding = EdgeInsets.symmetric(horizontal: AppSpacing.lg);
     const minButtonSize = Size(0, AppSizes.buttonHeight);
     final inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppRadius.md),
-      borderSide: BorderSide(color: p.border),
+      borderSide: BorderSide.none,
     );
 
     return ThemeData(
@@ -104,44 +105,45 @@ abstract final class AppTheme {
           disabledForegroundColor: p.textTertiary,
           minimumSize: minButtonSize,
           padding: buttonPadding,
-          shape: roundedMd,
-          textStyle: text.labelLarge,
+          shape: pill,
+          textStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           elevation: 0,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: p.ink,
+          backgroundColor: p.surfaceMuted,
           minimumSize: minButtonSize,
           padding: buttonPadding,
-          shape: roundedMd,
-          side: BorderSide(color: p.border),
-          textStyle: text.labelLarge,
+          shape: pill,
+          side: BorderSide.none,
+          textStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: p.ink,
           textStyle: text.labelLarge,
-          shape: roundedMd,
+          shape: pill,
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: p.ink,
-          shape: const RoundedRectangleBorder(),
+          shape: const CircleBorder(),
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: p.ink,
         foregroundColor: p.onInk,
-        elevation: 2,
-        highlightElevation: 4,
-        shape: roundedMd,
+        elevation: 0,
+        highlightElevation: 0,
+        shape: const CircleBorder(),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: p.surface,
+        fillColor: p.surfaceMuted,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md - 2,
@@ -197,12 +199,14 @@ abstract final class AppTheme {
       tabBarTheme: TabBarThemeData(
         labelColor: p.ink,
         unselectedLabelColor: p.textSecondary,
-        indicatorColor: p.ink,
-        indicatorSize: TabBarIndicatorSize.label,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(color: p.ink, width: 2),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: p.border,
         labelStyle: text.titleSmall,
         unselectedLabelStyle: text.titleSmall,
-        overlayColor: WidgetStatePropertyAll(p.surfaceMuted),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       listTileTheme: ListTileThemeData(
         iconColor: p.ink,
@@ -241,7 +245,7 @@ abstract final class AppTheme {
             (states) => states.contains(WidgetState.selected) ? p.onInk : p.ink,
           ),
           side: WidgetStatePropertyAll(BorderSide(color: p.border)),
-          shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+          shape: const WidgetStatePropertyAll(pill),
           textStyle: WidgetStatePropertyAll(text.labelMedium),
         ),
       ),
@@ -261,7 +265,7 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         todayBorder: BorderSide(color: p.ink),
-        dayShape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+        dayShape: const WidgetStatePropertyAll(CircleBorder()),
       ),
       cardTheme: CardThemeData(
         color: p.surface,

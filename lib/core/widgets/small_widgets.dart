@@ -24,8 +24,10 @@ class FavoriteOverlayButton extends StatelessWidget {
       label: isFavorite ? 'Remove from favorites' : 'Add to favorites',
       child: Material(
         color: palette.surface.withValues(alpha: 0.9),
+        shape: const CircleBorder(),
         child: InkWell(
           onTap: onPressed,
+          customBorder: const CircleBorder(),
           child: SizedBox.square(
             dimension: size,
             child: Icon(

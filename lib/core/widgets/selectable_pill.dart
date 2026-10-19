@@ -4,7 +4,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 
-/// Selectable chip: ink when selected, outlined otherwise.
+/// Selectable chip: ink when selected, a soft grey fill otherwise.
 class SelectablePill extends StatelessWidget {
   const SelectablePill({
     super.key,
@@ -38,11 +38,8 @@ class SelectablePill extends StatelessWidget {
             height: _height,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             decoration: BoxDecoration(
-              color: selected ? palette.ink : palette.surface,
+              color: selected ? palette.ink : palette.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.pill),
-              border: Border.all(
-                color: selected ? palette.ink : palette.border,
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

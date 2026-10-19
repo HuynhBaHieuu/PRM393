@@ -76,11 +76,15 @@ class _AvatarButton extends StatelessWidget {
       label: 'Open profile',
       child: InkWell(
         onTap: () => context.read<ShellController>().select(AppTab.profile),
+        customBorder: const CircleBorder(),
         child: Container(
           width: _size,
           height: _size,
           alignment: Alignment.center,
-          color: palette.surfaceMuted,
+          decoration: BoxDecoration(
+            color: palette.surfaceMuted,
+            shape: BoxShape.circle,
+          ),
           child: initials.isEmpty
               ? const Icon(Icons.person_outline_rounded)
               : Text(initials, style: context.textTheme.titleSmall),

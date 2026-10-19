@@ -8,6 +8,7 @@ import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
 import 'package:all_fits/features/profile/screens/favorites_screen.dart';
+import 'package:all_fits/features/profile/screens/profile_screen.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
@@ -26,6 +27,7 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
   static const String stylist = '/stylist';
   static const String premium = '/premium';
+  static const String account = '/account';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -51,6 +53,7 @@ abstract final class AppRoutes {
       AppRoutes.settings => const SettingsScreen(),
       AppRoutes.stylist => const StylistScreen(),
       AppRoutes.premium => const PremiumScreen(),
+      AppRoutes.account => const ProfileScreen(),
       _ => const NotFoundView(),
     };
     final isModalForm =
@@ -127,4 +130,7 @@ abstract final class AppNavigator {
 
   static Future<void> premium(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.premium);
+
+  static Future<void> account(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.account);
 }
