@@ -7,6 +7,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
+import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
@@ -40,8 +41,12 @@ class PremiumScreen extends StatelessWidget {
     final text = context.textTheme;
     final isPremium = settings.isPremium;
     final premiumSince = settings.settings.premiumSince;
-    final premiumPrice =
-        '${AppFormatters.price(AppConfig.premiumMonthlyPrice, settings.currencySymbol)} / month';
+    final premiumUntil = settings.premiumUntil;
+    // Real payments through payOS; without them Premium is a demo.
+    final paid = context.read<PayOSCheckout?>() != null;
+    final premiumPrice = paid
+        ? PremiumFlows.payOSPrice
+        : '${AppFormatters.price(AppConfig.premiumMonthlyPrice, settings.currencySymbol)} / month';
 
     final free = PlanCard(
       name: 'Free',
@@ -88,7 +93,13 @@ class PremiumScreen extends StatelessWidget {
                     children: [
                       const PremiumBadge(),
                       const SizedBox(width: AppSpacing.xs),
-                      if (premiumSince != null)
+                      if (premiumUntil != null)
+                        Text(
+                          'Active until '
+                          '${AppFormatters.shortDate(premiumUntil)}',
+                          style: text.bodySmall,
+                        )
+                      else if (premiumSince != null)
                         Text(
                           'Active since '
                           '${AppFormatters.shortDate(premiumSince)}',
@@ -128,7 +139,15 @@ class PremiumScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                if (isPremium)
+                if (isPremium && paid)
+                  OutlinedButton(
+                    onPressed: () => PremiumFlows.upgrade(context),
+                    child: Text(
+                      'Add ${AppConfig.premiumDays} days for '
+                      '${AppFormatters.price(AppConfig.premiumPriceVnd.toDouble(), '')} VND',
+                    ),
+                  )
+                else if (isPremium)
                   OutlinedButton(
                     onPressed: () => PremiumFlows.cancel(context),
                     style: OutlinedButton.styleFrom(
@@ -143,8 +162,12 @@ class PremiumScreen extends StatelessWidget {
                   ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Demo checkout: no payment is taken. You can cancel '
-                  'any time from this screen.',
+                  paid
+                      ? 'Pay by bank transfer or VietQR through payOS. '
+                            'Premium lasts ${AppConfig.premiumDays} days and '
+                            'doesn’t renew by itself.'
+                      : 'Demo checkout: no payment is taken. You can cancel '
+                            'any time from this screen.',
                   textAlign: TextAlign.center,
                   style: text.bodySmall,
                 ),

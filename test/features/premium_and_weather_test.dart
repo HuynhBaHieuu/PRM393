@@ -12,9 +12,13 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/subscription_plan.dart';
+import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/models/weather.dart';
+import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
 import 'package:all_fits/features/home/screens/home_screen.dart';
+import 'package:all_fits/features/premium/premium_flows.dart';
+import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/features/weather/weather_advice.dart';
@@ -155,7 +159,7 @@ void main() {
   });
 
   group('screens', () {
-    Future<void> pumpApp(
+    Future<AppUser> pumpApp(
       WidgetTester tester,
       AppDependencies deps, {
       int items = 0,
@@ -167,6 +171,7 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(AllFitsApp(dependencies: deps));
       await tester.pumpAndSettle();
+      return user;
     }
 
     Future<void> tap(WidgetTester tester, Finder finder) async {
@@ -205,6 +210,49 @@ void main() {
       await tap(tester, find.byTooltip('Back'));
       // Unlocked: without an API key the stylist explains its setup.
       expect(find.text('AI stylist isn’t set up'), findsOneWidget);
+    });
+
+    testWidgets('payOS checkout starts Premium once the payment arrives', (
+      tester,
+    ) async {
+      final payments = FakePayOSCheckout([
+        PaymentStatus.pending,
+        PaymentStatus.paid,
+      ]);
+      final deps = testDependencies(payments: payments);
+      final user = await pumpApp(tester, deps);
+      // What the Edge Function does on the server once payOS reports paid.
+      payments.onPaid = () async {
+        final repository = deps.repositoriesFor(user.id).settings;
+        final settings = await repository.load();
+        await repository.save(
+          settings.copyWith(
+            plan: SubscriptionPlan.premium,
+            premiumUntil: testNow.add(
+              const Duration(days: AppConfig.premiumDays),
+            ),
+          ),
+        );
+      };
+
+      await create(tester, 'AI Stylist');
+      await tap(tester, find.text('See Premium'));
+      expect(find.text(PremiumFlows.payOSPrice), findsOneWidget);
+      // The wait dialog spins until paid, so pump by hand instead of settling.
+      await tester.tap(find.textContaining('Upgrade for'));
+      await tester.pump();
+      await tester.pump();
+      expect(payments.opened, [FakePayOSCheckout.checkoutUrl]);
+      expect(find.text('Waiting for payment'), findsOneWidget);
+
+      await tester.pump(PaymentWaitDialog.pollInterval);
+      expect(find.text('Waiting for payment'), findsOneWidget);
+      await tester.pump(PaymentWaitDialog.pollInterval);
+      await tester.pumpAndSettle();
+      expect(find.text('Waiting for payment'), findsNothing);
+      expect(find.textContaining('Premium is active until'), findsOneWidget);
+      expect(find.text('Add 30 days for 2,000 VND'), findsOneWidget);
+      expect(find.text('Cancel Premium'), findsNothing);
     });
 
     testWidgets('a full Free wardrobe offers Premium instead of the form', (

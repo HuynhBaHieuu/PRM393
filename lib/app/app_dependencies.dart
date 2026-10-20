@@ -14,6 +14,7 @@ import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/local/password_hasher.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/data/remote/supabase_backend.dart';
 import 'package:all_fits/data/remote/weather_service.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
@@ -39,8 +40,12 @@ class AppDependencies {
     this.aiStylist = const AiStylistService(apiKey: ''),
     this.weather = const OpenMeteoWeatherService(),
     this.supabase,
+    PayOSCheckout? payments,
     PasswordHasher passwordHasher = const Pbkdf2PasswordHasher(),
-  }) : authRepository = supabase != null
+  }) : payments =
+           payments ??
+           (supabase == null ? null : PayOSCheckout(supabase.functions)),
+       authRepository = supabase != null
            ? SupabaseAuthRepository(supabase.auth, storage)
            : LocalAuthRepository(
                storage,
@@ -99,6 +104,9 @@ class AppDependencies {
   final AiStylistService aiStylist;
   final WeatherService weather;
   final SupabaseClient? supabase;
+
+  /// Real Premium payments; null without Supabase, where Premium is a demo.
+  final PayOSCheckout? payments;
   final AuthRepository authRepository;
 
   /// Repositories whose data belongs to [userId] only.

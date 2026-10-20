@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/app/routes.dart';
@@ -5,6 +7,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
+import 'package:all_fits/data/remote/payos_checkout.dart';
 
 /// Small ink tag marking Premium status or a Premium-only feature.
 class PremiumBadge extends StatelessWidget {
@@ -110,6 +113,98 @@ class PlanCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Shown while the user pays on the payOS page. Checks the order every few
+/// seconds and when the app comes back to the front, then closes with the
+/// final status, or with null when the user closes it first.
+class PaymentWaitDialog extends StatefulWidget {
+  const PaymentWaitDialog({
+    super.key,
+    required this.payments,
+    required this.order,
+  });
+
+  final PayOSCheckout payments;
+  final PayOSOrder order;
+
+  static const Duration pollInterval = Duration(seconds: 3);
+
+  @override
+  State<PaymentWaitDialog> createState() => _PaymentWaitDialogState();
+}
+
+class _PaymentWaitDialogState extends State<PaymentWaitDialog> {
+  late final Timer _timer;
+  late final AppLifecycleListener _lifecycle;
+  bool _checking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(PaymentWaitDialog.pollInterval, (_) => _check());
+    _lifecycle = AppLifecycleListener(onResume: _check);
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  Future<void> _check() async {
+    if (_checking) return;
+    _checking = true;
+    try {
+      final status = await widget.payments.status(widget.order.orderCode);
+      if (status != PaymentStatus.pending && mounted) {
+        Navigator.of(context).pop(status);
+      }
+    } catch (_) {
+      // Try again on the next tick; the network may be switching back.
+    } finally {
+      _checking = false;
+    }
+  }
+
+  Future<void> _reopen() async {
+    try {
+      await widget.payments.open(widget.order.checkoutUrl);
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Waiting for payment'),
+      content: Row(
+        children: [
+          const SizedBox.square(
+            dimension: AppSizes.iconLg,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              'Finish paying on the payOS page, then come back here. '
+              'Premium starts as soon as the payment arrives.',
+              style: context.textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+        TextButton(onPressed: _reopen, child: const Text('Open payment page')),
+      ],
     );
   }
 }

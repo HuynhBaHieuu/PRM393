@@ -1,6 +1,7 @@
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/season.dart';
@@ -26,13 +27,9 @@ abstract final class SampleData {
 
   /// The bundled cut-out (transparent background) of a sample item, or null
   /// when there is none.
-  static String? cutoutFor(String itemId) =>
-      isSampleId(itemId) && !_withoutCutout.contains(itemId)
+  static String? cutoutFor(String itemId) => isSampleId(itemId)
       ? '$_photoFolder/cutouts/${itemId.substring(idPrefix.length)}.webp'
       : null;
-
-  /// Photos too close-up or busy to cut out; these show the photo.
-  static const Set<String> _withoutCutout = {_carharttHoodie, _stussyTee};
 
   static const String _whiteTee = '${idPrefix}white-tee';
   static const String _blackTee = '${idPrefix}black-tee';
@@ -49,7 +46,7 @@ abstract final class SampleData {
   static const String _samba = '${idPrefix}samba';
   static const String _sharkHoodie = '${idPrefix}shark-hoodie';
   static const String _cargo = '${idPrefix}cargo-pants';
-  static const String _carharttHoodie = '${idPrefix}carhartt-hoodie';
+  static const String _boxLogoHoodie = '${idPrefix}box-logo-hoodie';
   static const String _stussyTee = '${idPrefix}stussy-long-sleeve';
   static const String _sherpaJacket = '${idPrefix}nuptse-jacket';
   static const String _balenciagaHoodie = '${idPrefix}balenciaga-hoodie';
@@ -80,6 +77,7 @@ abstract final class SampleData {
       ClothingCategory category,
       ClothingColor color,
       List<Season> seasons, {
+      ClothingSubcategory? sub,
       String? brand,
       double? price,
       String? notes,
@@ -92,6 +90,7 @@ abstract final class SampleData {
         id: id,
         name: name,
         category: category,
+        subcategory: sub,
         color: color,
         seasons: seasons,
         brand: brand,
@@ -110,6 +109,7 @@ abstract final class SampleData {
         ClothingCategory.outerwear,
         ClothingColor.beige,
         _transitional,
+        sub: ClothingSubcategory.coats,
         brand: 'Vero Moda',
         price: 129,
       ),
@@ -119,6 +119,7 @@ abstract final class SampleData {
         ClothingCategory.dresses,
         ClothingColor.black,
         _warm,
+        sub: ClothingSubcategory.midiDresses,
         brand: 'H&M',
         price: 39,
       ),
@@ -128,6 +129,7 @@ abstract final class SampleData {
         ClothingCategory.bags,
         ClothingColor.brown,
         _allYear,
+        sub: ClothingSubcategory.shoulderBags,
         brand: 'Louis Vuitton',
         price: 2570,
       ),
@@ -137,6 +139,7 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.beige,
         _transitional,
+        sub: ClothingSubcategory.trousers,
         brand: 'Zara',
         price: 49,
       ),
@@ -146,6 +149,7 @@ abstract final class SampleData {
         ClothingCategory.accessories,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.caps,
         brand: 'New Era',
         price: 30,
       ),
@@ -155,6 +159,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Adidas',
         price: 75,
       ),
@@ -164,6 +169,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.white,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Nike',
         price: 115,
         favorite: true,
@@ -175,6 +181,7 @@ abstract final class SampleData {
         ClothingCategory.outerwear,
         ClothingColor.blue,
         _transitional,
+        sub: ClothingSubcategory.jackets,
         brand: 'Lee',
         price: 98,
         favorite: true,
@@ -185,6 +192,7 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.jeans,
         brand: 'Acne Studios',
         price: 280,
       ),
@@ -194,6 +202,7 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.blue,
         _allYear,
+        sub: ClothingSubcategory.jeans,
         brand: 'Levi’s',
         price: 89,
         notes: 'Straight fit. Wash cold, inside out.',
@@ -204,6 +213,7 @@ abstract final class SampleData {
         ClothingCategory.tops,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.tShirts,
         brand: 'H&M',
         price: 15,
       ),
@@ -213,6 +223,7 @@ abstract final class SampleData {
         ClothingCategory.tops,
         ClothingColor.white,
         _allYear,
+        sub: ClothingSubcategory.tShirts,
         brand: 'Uniqlo',
         price: 15,
         favorite: true,
@@ -223,6 +234,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.white,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Adidas',
         price: 100,
       ),
@@ -232,6 +244,7 @@ abstract final class SampleData {
         ClothingCategory.outerwear,
         ClothingColor.black,
         _cold,
+        sub: ClothingSubcategory.zipHoodies,
         brand: 'BAPE',
         price: 435,
         favorite: true,
@@ -242,24 +255,27 @@ abstract final class SampleData {
         ClothingCategory.bottoms,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.cargos,
         brand: 'Dickies',
         price: 65,
       ),
       item(
-        _carharttHoodie,
-        'Heart Patch Zip Hoodie',
+        _boxLogoHoodie,
+        'Bandana Box Logo Hoodie',
         ClothingCategory.tops,
-        ClothingColor.grey,
+        ClothingColor.pink,
         _cold,
-        brand: 'Carhartt WIP',
-        price: 120,
+        sub: ClothingSubcategory.hoodies,
+        brand: 'Supreme',
+        price: 168,
       ),
       item(
         _stussyTee,
         'Stock Logo Long Sleeve',
         ClothingCategory.tops,
-        ClothingColor.white,
+        ClothingColor.black,
         _transitional,
+        sub: ClothingSubcategory.longSleeves,
         brand: 'Stüssy',
         price: 55,
       ),
@@ -269,6 +285,7 @@ abstract final class SampleData {
         ClothingCategory.outerwear,
         ClothingColor.beige,
         _cold,
+        sub: ClothingSubcategory.jackets,
         brand: 'The North Face',
         price: 330,
       ),
@@ -278,6 +295,7 @@ abstract final class SampleData {
         ClothingCategory.tops,
         ClothingColor.navy,
         _cold,
+        sub: ClothingSubcategory.hoodies,
         brand: 'Balenciaga',
         price: 795,
       ),
@@ -287,6 +305,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.white,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Balenciaga',
         price: 1150,
       ),
@@ -296,6 +315,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Vans',
         price: 70,
         favorite: true,
@@ -306,6 +326,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.black,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Converse',
         price: 90,
       ),
@@ -315,6 +336,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.multi,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Nike',
         price: 125,
       ),
@@ -324,6 +346,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.white,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Supreme',
         price: 150,
       ),
@@ -333,6 +356,7 @@ abstract final class SampleData {
         ClothingCategory.shoes,
         ClothingColor.red,
         _allYear,
+        sub: ClothingSubcategory.sneakers,
         brand: 'Jordan',
         price: 115,
         favorite: true,

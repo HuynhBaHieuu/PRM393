@@ -32,6 +32,11 @@ class ClothingImage extends StatelessWidget {
   /// otherwise the photo.
   final bool cutout;
 
+  /// Whether `cutout: true` shows [item] on a transparent background.
+  static bool hasCutout(ClothingItem item) =>
+      item.cutoutPath != null ||
+      (item.imagePath == null && SampleData.cutoutFor(item.id) != null);
+
   @override
   Widget build(BuildContext context) {
     final image = _buildImage(context);

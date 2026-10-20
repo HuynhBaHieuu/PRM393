@@ -10,6 +10,7 @@ import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
@@ -114,6 +115,7 @@ class _UserSessionState extends State<UserSession> {
         Provider<ImageStorageService>.value(value: deps.imageStorage),
         Provider<ImagePickerService>.value(value: deps.imagePicker),
         Provider<AiStylistService>.value(value: deps.aiStylist),
+        Provider<PayOSCheckout?>.value(value: deps.payments),
         ChangeNotifierProvider.value(value: _settings),
         ChangeNotifierProvider.value(value: _wardrobe),
         ChangeNotifierProvider.value(value: _outfits),

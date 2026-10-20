@@ -11,6 +11,7 @@ import 'package:all_fits/data/local/password_hasher.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/data/remote/weather_service.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/calendar_repository.dart';
@@ -143,6 +144,7 @@ AppDependencies testDependencies({
   bool seedSampleData = false,
   AiStylistService aiStylist = const AiStylistService(apiKey: ''),
   WeatherService weather = const FakeWeatherService(),
+  PayOSCheckout? payments,
 }) {
   return AppDependencies(
     storage: storage ?? InMemoryStorageService(),
@@ -153,8 +155,34 @@ AppDependencies testDependencies({
     seedSampleData: seedSampleData,
     aiStylist: aiStylist,
     weather: weather,
+    payments: payments,
     passwordHasher: fastPasswordHasher,
   );
+}
+
+/// payOS without a server: hands out [statuses] one check at a time and
+/// runs [onPaid] (standing in for the Edge Function) before reporting paid.
+class FakePayOSCheckout implements PayOSCheckout {
+  FakePayOSCheckout(this.statuses);
+
+  final List<PaymentStatus> statuses;
+  Future<void> Function() onPaid = () async {};
+  final List<Uri> opened = [];
+
+  static final Uri checkoutUrl = Uri.parse('https://pay.payos.vn/web/test');
+
+  @override
+  Future<PayOSOrder> create() async => (orderCode: 1, checkoutUrl: checkoutUrl);
+
+  @override
+  Future<void> open(Uri checkoutUrl) async => opened.add(checkoutUrl);
+
+  @override
+  Future<PaymentStatus> status(int orderCode) async {
+    final status = statuses.removeAt(0);
+    if (status == PaymentStatus.paid) await onPaid();
+    return status;
+  }
 }
 
 /// Cheap, synchronous hashing so tests stay fast and need no isolates.

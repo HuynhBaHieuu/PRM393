@@ -24,6 +24,7 @@ class AppSettings {
     this.hasSeededSampleData = false,
     this.plan = SubscriptionPlan.free,
     this.premiumSince,
+    this.premiumUntil,
     this.weatherLocation,
   });
 
@@ -42,6 +43,7 @@ class AppSettings {
           JsonReader.enumValue(SubscriptionPlan.values, json['plan']) ??
           SubscriptionPlan.free,
       premiumSince: JsonReader.date(json, 'premiumSince'),
+      premiumUntil: JsonReader.date(json, 'premiumUntil'),
       weatherLocation: WeatherLocation.tryFromJson(json['weatherLocation']),
     );
   }
@@ -56,6 +58,9 @@ class AppSettings {
   /// When the current Premium subscription started.
   final DateTime? premiumSince;
 
+  /// When paid Premium ends; null for the device-only demo Premium.
+  final DateTime? premiumUntil;
+
   /// City used for weather-based outfit picks.
   final WeatherLocation? weatherLocation;
 
@@ -67,6 +72,7 @@ class AppSettings {
     'hasSeededSampleData': hasSeededSampleData,
     'plan': plan.name,
     'premiumSince': premiumSince?.toIso8601String(),
+    'premiumUntil': premiumUntil?.toIso8601String(),
     'weatherLocation': weatherLocation?.toJson(),
   };
 
@@ -78,6 +84,7 @@ class AppSettings {
     bool? hasSeededSampleData,
     SubscriptionPlan? plan,
     Object? premiumSince = _unset,
+    Object? premiumUntil = _unset,
     Object? weatherLocation = _unset,
   }) {
     return AppSettings(
@@ -90,6 +97,9 @@ class AppSettings {
       premiumSince: identical(premiumSince, _unset)
           ? this.premiumSince
           : premiumSince as DateTime?,
+      premiumUntil: identical(premiumUntil, _unset)
+          ? this.premiumUntil
+          : premiumUntil as DateTime?,
       weatherLocation: identical(weatherLocation, _unset)
           ? this.weatherLocation
           : weatherLocation as WeatherLocation?,

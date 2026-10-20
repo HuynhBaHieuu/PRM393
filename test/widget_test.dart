@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 import 'package:all_fits/app/app.dart';
 import 'package:all_fits/app/app_dependencies.dart';
+import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
+import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
+import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
 import 'helpers/test_harness.dart';
@@ -335,6 +341,81 @@ void main() {
       await _openTab(tester, 'Clothes');
       expect(find.bySemanticsLabel('Alex Coat'), findsOneWidget);
     });
+  });
+
+  testWidgets('swipe rows to pick pieces, then save them as an outfit', (
+    tester,
+  ) async {
+    await _pumpApp(tester, testDependencies(seedSampleData: true));
+    await _create(tester, 'Swipe outfit');
+
+    final screen = tester.element(find.byType(SwipeOutfitScreen));
+    final wardrobe = screen.read<WardrobeController>();
+    // The builder names a new outfit "Outfit N" when the name is left empty.
+    final name = 'Outfit ${screen.read<OutfitController>().outfits.length + 1}';
+    List<ClothingItem> piecesFor(OutfitSlot slot) => [
+      for (final item in wardrobe.activeItems)
+        if (OutfitSlot.forCategory(item.category) == slot) item,
+    ];
+    final tops = piecesFor(OutfitSlot.top);
+    final bottoms = piecesFor(OutfitSlot.bottom);
+    final shoes = piecesFor(OutfitSlot.shoes);
+
+    // Swipe the top row one piece left; pick the third shoe from the tray.
+    await tester.drag(find.byType(PageView).first, const Offset(-200, 0));
+    await tester.pumpAndSettle();
+    await _tap(tester, find.widgetWithText(SelectablePill, 'Shoes'));
+    await _tap(
+      tester,
+      find.descendant(
+        of: find.byType(ListView).last,
+        matching: find.bySemanticsLabel(shoes[2].name),
+      ),
+    );
+
+    await _tap(tester, find.byTooltip('Next'));
+    expect(find.text('New outfit'), findsOneWidget);
+    await _tap(tester, find.text('Save'));
+
+    // Saving closes the swiper and shows the outfit in the Outfits tab.
+    expect(find.byType(SwipeOutfitScreen), findsNothing);
+    await _tap(tester, find.text(name));
+    expect(find.text('3 pieces'), findsWidgets);
+    expect(find.text(tops[1].name), findsOneWidget);
+    expect(find.text(bottoms[0].name), findsOneWidget);
+    expect(find.text(shoes[2].name), findsOneWidget);
+  });
+
+  testWidgets('swipe rows filter by subcategory and can be turned on', (
+    tester,
+  ) async {
+    await _pumpApp(tester, testDependencies(seedSampleData: true));
+    await _create(tester, 'Swipe outfit');
+    Finder inTray(String name) => find.descendant(
+      of: find.byType(ListView).last,
+      matching: find.bySemanticsLabel(name),
+    );
+
+    // Tops is the first row, so its pieces fill the tray.
+    expect(inTray('Black Graphic Tee'), findsOneWidget);
+    await _tap(tester, find.text('Hoodies'));
+    expect(inTray('Black Graphic Tee'), findsNothing);
+    expect(inTray('Campaign Logo Hoodie'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.text('All'),
+      find.byType(PillBar).last,
+      const Offset(200, 0),
+    );
+    await _tap(tester, find.text('All'));
+    expect(inTray('Black Graphic Tee'), findsOneWidget);
+
+    expect(find.byType(PageView), findsNWidgets(3));
+    await _tap(tester, find.byTooltip('Rows'));
+    await _tap(tester, find.widgetWithText(SwitchListTile, 'Outerwear'));
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(find.byType(PageView), findsNWidgets(4));
+    expect(find.widgetWithText(SelectablePill, 'Outerwear'), findsOneWidget);
   });
 
   group('AI stylist', () {

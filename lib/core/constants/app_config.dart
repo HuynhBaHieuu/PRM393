@@ -53,6 +53,12 @@ abstract final class AppConfig {
   /// Shown on the Premium screen. Checkout is simulated: nothing is charged.
   static const double premiumMonthlyPrice = 4.99;
 
+  /// Real Premium through payOS (with Supabase). Shown only: the price and
+  /// length charged are PREMIUM_PRICE_VND and PREMIUM_DAYS in the `payos`
+  /// Edge Function, so keep them in step.
+  static const int premiumPriceVnd = 2000;
+  static const int premiumDays = 30;
+
   /// Weather is fetched again once it is older than this.
   static const Duration weatherMaxAge = Duration(minutes: 30);
 

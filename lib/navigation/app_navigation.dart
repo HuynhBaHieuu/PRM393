@@ -202,33 +202,42 @@ Future<void> _showCreateSheet(BuildContext context) {
             AppSpacing.page,
             AppSpacing.md,
           ),
-          child: GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            mainAxisSpacing: AppSpacing.sm,
-            crossAxisSpacing: AppSpacing.sm,
-            childAspectRatio: 1.6,
-            physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _CreateOption(
-                icon: Icons.checkroom_outlined,
-                label: 'Add clothes',
-                onTap: () => go(() => AppNavigator.addClothing(context)),
+              _SwipeOption(
+                onTap: () => go(() => AppNavigator.swipeOutfit(context)),
               ),
-              _CreateOption(
-                icon: Icons.style_outlined,
-                label: 'Create outfit',
-                onTap: () => go(() => AppNavigator.createOutfit(context)),
-              ),
-              _CreateOption(
-                icon: Icons.auto_awesome_outlined,
-                label: 'AI Stylist',
-                onTap: () => go(() => AppNavigator.stylist(context)),
-              ),
-              _CreateOption(
-                icon: Icons.calendar_today_outlined,
-                label: 'Plan outfit',
-                onTap: () => go(() => shell.openCloset(ClosetTab.planner)),
+              const SizedBox(height: AppSpacing.sm),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                mainAxisSpacing: AppSpacing.sm,
+                crossAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 1.6,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _CreateOption(
+                    icon: Icons.checkroom_outlined,
+                    label: 'Add clothes',
+                    onTap: () => go(() => AppNavigator.addClothing(context)),
+                  ),
+                  _CreateOption(
+                    icon: Icons.style_outlined,
+                    label: 'Create outfit',
+                    onTap: () => go(() => AppNavigator.createOutfit(context)),
+                  ),
+                  _CreateOption(
+                    icon: Icons.auto_awesome_outlined,
+                    label: 'AI Stylist',
+                    onTap: () => go(() => AppNavigator.stylist(context)),
+                  ),
+                  _CreateOption(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Plan outfit',
+                    onTap: () => go(() => shell.openCloset(ClosetTab.planner)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -236,6 +245,54 @@ Future<void> _showCreateSheet(BuildContext context) {
       );
     },
   );
+}
+
+/// The headline option: build a look by swiping tops, bottoms and shoes.
+class _SwipeOption extends StatelessWidget {
+  const _SwipeOption({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final text = context.textTheme;
+    return Material(
+      color: palette.ink,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              Icon(Icons.swipe_outlined, color: palette.onInk),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Swipe outfit',
+                      style: text.titleMedium?.copyWith(color: palette.onInk),
+                    ),
+                    Text(
+                      'Swipe tops, bottoms and shoes to find a look',
+                      style: text.bodySmall?.copyWith(
+                        color: palette.onInk.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, color: palette.onInk),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CreateOption extends StatelessWidget {

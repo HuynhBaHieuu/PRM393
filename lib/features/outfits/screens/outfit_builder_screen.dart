@@ -129,7 +129,8 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
         await outfits.updateOutfit(editingId, draft);
       }
       _dirty = false;
-      navigator.pop();
+      // `true` tells the caller (e.g. the swipe screen) the outfit was saved.
+      navigator.pop(true);
       if (mounted) context.showSnack('“${draft.name}” saved');
     } catch (error) {
       if (mounted) {

@@ -6,6 +6,7 @@ import 'package:all_fits/data/models/app_settings.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/outfit_calendar_entry.dart';
@@ -20,6 +21,7 @@ void main() {
       name: 'Denim Jacket',
       imagePath: 'wardrobe_images/abc.jpg',
       category: ClothingCategory.outerwear,
+      subcategory: ClothingSubcategory.jackets,
       color: ClothingColor.blue,
       seasons: const [Season.spring, Season.autumn],
       brand: 'North Thread',
@@ -41,6 +43,7 @@ void main() {
       expect(decoded.name, item.name);
       expect(decoded.imagePath, item.imagePath);
       expect(decoded.category, item.category);
+      expect(decoded.subcategory, ClothingSubcategory.jackets);
       expect(decoded.color, item.color);
       expect(decoded.seasons, item.seasons);
       expect(decoded.brand, item.brand);
@@ -73,6 +76,16 @@ void main() {
       expect(decoded.price, isNull);
       expect(decoded.wearCount, 0);
       expect(decoded.isFavorite, isFalse);
+    });
+
+    test('drops a subcategory of another category', () {
+      final decoded = ClothingItem.fromJson({
+        'id': 'x',
+        'name': 'Tee',
+        'category': 'tops',
+        'subcategory': 'jeans',
+      });
+      expect(decoded.subcategory, isNull);
     });
 
     test('rejects records without an id or name', () {

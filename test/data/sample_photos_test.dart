@@ -14,6 +14,12 @@ void main() {
       expect(path, isNotNull, reason: item.name);
       final file = File(path!);
       expect(file.existsSync(), isTrue, reason: '${item.name}: $path');
+      final cutout = SampleData.cutoutFor(item.id);
+      expect(
+        File(cutout!).existsSync(),
+        isTrue,
+        reason: '${item.name}: $cutout',
+      );
       final hash = sha256.convert(file.readAsBytesSync()).toString();
       expect(
         hashes[hash],

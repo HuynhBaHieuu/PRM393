@@ -2,6 +2,7 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 
 /// User input for creating or editing a clothing item.
@@ -9,6 +10,7 @@ class ClothingDraft {
   const ClothingDraft({
     required this.name,
     required this.category,
+    this.subcategory,
     this.color,
     this.seasons = const [],
     this.brand,
@@ -20,6 +22,7 @@ class ClothingDraft {
 
   final String name;
   final ClothingCategory? category;
+  final ClothingSubcategory? subcategory;
   final ClothingColor? color;
   final List<Season> seasons;
   final String? brand;

@@ -107,13 +107,14 @@ class WardrobeQuery {
     return result;
   }
 
-  /// Matches name, brand, category and color. [query] must be lower-case.
+  /// Matches name, brand, category, subcategory and color. [query] must be lower-case.
   static bool matchesSearch(ClothingItem item, String query) {
     final fields = [
       item.name,
       item.brand ?? '',
       item.category.label,
       item.category.singularLabel,
+      item.subcategory?.label ?? '',
       item.color?.label ?? '',
     ];
     return fields.any((field) => field.toLowerCase().contains(query));

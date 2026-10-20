@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 
 const Object _unset = Object();
@@ -16,6 +17,7 @@ class ClothingItem {
     required this.updatedAt,
     this.imagePath,
     this.cutoutPath,
+    this.subcategory,
     this.color,
     this.seasons = const [],
     this.brand,
@@ -39,14 +41,20 @@ class ClothingItem {
         JsonReader.date(json, 'createdAt') ??
         DateTime.fromMillisecondsSinceEpoch(0);
     final price = JsonReader.decimal(json, 'price');
+    final category =
+        JsonReader.enumValue(ClothingCategory.values, json['category']) ??
+        ClothingCategory.other;
+    final subcategory = JsonReader.enumValue(
+      ClothingSubcategory.values,
+      json['subcategory'],
+    );
     return ClothingItem(
       id: id,
       name: name,
       imagePath: JsonReader.nonEmptyString(json, 'imagePath'),
       cutoutPath: JsonReader.nonEmptyString(json, 'cutoutPath'),
-      category:
-          JsonReader.enumValue(ClothingCategory.values, json['category']) ??
-          ClothingCategory.other,
+      category: category,
+      subcategory: subcategory?.category == category ? subcategory : null,
       color: JsonReader.enumValue(ClothingColor.values, json['color']),
       seasons: JsonReader.enumList(Season.values, json['seasons']),
       brand: JsonReader.nonEmptyString(json, 'brand'),
@@ -71,6 +79,9 @@ class ClothingItem {
   /// like [imagePath]; null until a cut-out has been made.
   final String? cutoutPath;
   final ClothingCategory category;
+
+  /// Always one of [category]'s subcategories, or null.
+  final ClothingSubcategory? subcategory;
   final ClothingColor? color;
   final List<Season> seasons;
   final String? brand;
@@ -89,6 +100,7 @@ class ClothingItem {
     'imagePath': imagePath,
     'cutoutPath': cutoutPath,
     'category': category.name,
+    'subcategory': subcategory?.name,
     'color': color?.name,
     'seasons': seasons.map((s) => s.name).toList(),
     'brand': brand,
@@ -108,6 +120,7 @@ class ClothingItem {
     Object? imagePath = _unset,
     Object? cutoutPath = _unset,
     ClothingCategory? category,
+    Object? subcategory = _unset,
     Object? color = _unset,
     List<Season>? seasons,
     Object? brand = _unset,
@@ -129,6 +142,9 @@ class ClothingItem {
           ? this.cutoutPath
           : cutoutPath as String?,
       category: category ?? this.category,
+      subcategory: identical(subcategory, _unset)
+          ? this.subcategory
+          : subcategory as ClothingSubcategory?,
       color: identical(color, _unset) ? this.color : color as ClothingColor?,
       seasons: seasons ?? this.seasons,
       brand: identical(brand, _unset) ? this.brand : brand as String?,

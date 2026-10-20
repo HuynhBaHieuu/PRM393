@@ -13,6 +13,7 @@ import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/json_collection_store.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/app_settings.dart';
+import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
@@ -118,17 +119,49 @@ class SupabaseCollectionStore<T> implements CollectionStore<T> {
       developer.log('$message ($_table)', name: 'supabase', error: error);
 }
 
-/// One `user_settings` row per user.
+/// One `user_settings` row per user. The plan comes from `subscriptions`,
+/// which only the payOS Edge Function writes, never from that row.
 class SupabaseSettingsRepository implements SettingsRepository {
-  SupabaseSettingsRepository(this._client, this._userId);
+  SupabaseSettingsRepository(
+    this._client,
+    this._userId, {
+    this._clock = systemClock,
+  });
 
   static const String table = 'user_settings';
 
   final sb.SupabaseClient _client;
   final String _userId;
+  final Clock _clock;
 
   @override
   Future<AppSettings> load() async {
+    final settings = await _loadRow();
+    JsonMap? subscription;
+    try {
+      subscription = await _client
+          .from('subscriptions')
+          .select('premium_since, premium_until')
+          .eq('user_id', _userId)
+          .maybeSingle();
+    } catch (error) {
+      // E.g. the payOS tables are not set up yet: the plan stays Free.
+      developer.log('Subscription unreadable', name: 'supabase', error: error);
+    }
+    final until = subscription == null
+        ? null
+        : JsonReader.date(subscription, 'premium_until')?.toLocal();
+    final active = until != null && until.isAfter(_clock());
+    return settings.copyWith(
+      plan: active ? SubscriptionPlan.premium : SubscriptionPlan.free,
+      premiumSince: active
+          ? JsonReader.date(subscription!, 'premium_since')?.toLocal()
+          : null,
+      premiumUntil: active ? until : null,
+    );
+  }
+
+  Future<AppSettings> _loadRow() async {
     final JsonMap? row;
     try {
       row = await _client

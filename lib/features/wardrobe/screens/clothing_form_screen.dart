@@ -18,6 +18,7 @@ import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
@@ -48,6 +49,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
 
   ClothingItem? _existing;
   ClothingCategory? _category;
+  ClothingSubcategory? _subcategory;
   ClothingColor? _color;
   final Set<Season> _seasons = {};
   bool _isFavorite = false;
@@ -69,6 +71,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     final initial = item == null ? widget.initial : null;
     _existing = item;
     _category = item?.category ?? initial?.category;
+    _subcategory = item?.subcategory ?? initial?.subcategory;
     _color = item?.color ?? initial?.color;
     _seasons.addAll(item?.seasons ?? initial?.seasons ?? const []);
     _isFavorite = item?.isFavorite ?? initial?.isFavorite ?? false;
@@ -141,6 +144,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     final draft = ClothingDraft(
       name: _name.text,
       category: _category,
+      subcategory: _subcategory,
       color: _color,
       seasons: Season.values.where(_seasons.contains).toList(),
       brand: _brand.text,
@@ -279,9 +283,28 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                           size: 16,
                           color: c == _category ? palette.onInk : palette.ink,
                         ),
-                        onToggle: (c) => _update(() => _category = c),
+                        onToggle: (c) => _update(() {
+                          _category = c;
+                          if (_subcategory?.category != c) _subcategory = null;
+                        }),
                       ),
                     ),
+                    if (_category case final category?
+                        when ClothingSubcategory.of(category).isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      LabeledSection(
+                        label: 'Type',
+                        child: PillGroup<ClothingSubcategory>(
+                          options: ClothingSubcategory.of(category),
+                          selected: {?_subcategory},
+                          labelOf: (s) => s.label,
+                          // Tapping the chosen type again clears it.
+                          onToggle: (s) => _update(
+                            () => _subcategory = s == _subcategory ? null : s,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (_showErrors && _category == null) ...[
                       const SizedBox(height: AppSpacing.xs),
                       Text(

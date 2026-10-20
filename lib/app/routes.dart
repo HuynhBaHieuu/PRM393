@@ -4,6 +4,7 @@ import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/features/insights/screens/insights_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_builder_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_detail_screen.dart';
+import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
@@ -21,6 +22,7 @@ abstract final class AppRoutes {
   static const String clothingDetail = '/clothing/detail';
   static const String outfitBuilder = '/outfits/builder';
   static const String outfitDetail = '/outfits/detail';
+  static const String swipeOutfit = '/outfits/swipe';
   static const String insights = '/insights';
   static const String favorites = '/favorites';
   static const String archived = '/archived';
@@ -47,6 +49,7 @@ abstract final class AppRoutes {
       AppRoutes.outfitDetail when args is String => OutfitDetailScreen(
         outfitId: args,
       ),
+      AppRoutes.swipeOutfit => const SwipeOutfitScreen(),
       AppRoutes.insights => const InsightsScreen(),
       AppRoutes.favorites => const FavoritesScreen(),
       AppRoutes.archived => const ArchivedItemsScreen(),
@@ -60,6 +63,7 @@ abstract final class AppRoutes {
         settings.name == AppRoutes.addClothing ||
         settings.name == AppRoutes.editClothing ||
         settings.name == AppRoutes.outfitBuilder ||
+        settings.name == AppRoutes.swipeOutfit ||
         settings.name == AppRoutes.stylist;
     return MaterialPageRoute<dynamic>(
       settings: settings,
@@ -108,6 +112,9 @@ abstract final class AppNavigator {
         AppRoutes.outfitBuilder,
         arguments: OutfitBuilderArgs(outfitId: outfitId),
       );
+
+  static Future<void> swipeOutfit(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.swipeOutfit);
 
   static Future<void> outfitDetail(BuildContext context, String outfitId) =>
       Navigator.of(context)

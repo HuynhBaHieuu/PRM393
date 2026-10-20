@@ -27,6 +27,9 @@ class SettingsController extends ChangeNotifier {
 
   bool get isPremium => _settings.plan.isPremium;
 
+  /// When paid Premium ends, or null for none or the demo Premium.
+  DateTime? get premiumUntil => _settings.premiumUntil;
+
   WeatherLocation? get weatherLocation => _settings.weatherLocation;
 
   ThemeMode get themeMode => switch (_settings.themePreference) {

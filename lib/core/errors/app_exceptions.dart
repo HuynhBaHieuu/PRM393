@@ -50,6 +50,11 @@ class PlanLimitException extends AppException {
   const PlanLimitException(super.message);
 }
 
+/// A Premium payment could not be started or checked.
+class PaymentException extends AppException {
+  const PaymentException(super.message);
+}
+
 class NotFoundException extends AppException {
   const NotFoundException([super.message = 'This item no longer exists.']);
 }
