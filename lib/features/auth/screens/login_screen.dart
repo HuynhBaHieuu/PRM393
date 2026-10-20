@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _password = TextEditingController();
 
   bool _busy = false;
+  bool _facebookBusy = false;
   String? _error;
 
   @override
@@ -62,6 +63,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithFacebook() async {
+    if (_busy) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _error = null;
+      _facebookBusy = true;
+    });
+    try {
+      // Only opens the browser; the app signs in when it comes back.
+      await context.read<AuthController>().signInWithFacebook();
+    } catch (error) {
+      if (mounted) setState(() => _error = describeError(error));
+    } finally {
+      if (mounted) setState(() => _facebookBusy = false);
+    }
+  }
+
   Future<void> _openRegister() async {
     final email = await Navigator.of(
       context,
@@ -75,7 +93,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final error = _error;
+    final auth = context.watch<AuthController>();
+    final error = _error ?? auth.externalError;
     return AuthScaffold(
       eyebrow: 'Welcome back',
       title: 'Log in',
@@ -111,6 +130,15 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: AppSpacing.md),
         ],
         AuthSubmitButton(label: 'Log in', busy: _busy, onPressed: _submit),
+        if (auth.supportsFacebook) ...[
+          const SizedBox(height: AppSpacing.md),
+          const AuthOrDivider(),
+          const SizedBox(height: AppSpacing.md),
+          FacebookLoginButton(
+            busy: _facebookBusy,
+            onPressed: _busy ? null : _signInWithFacebook,
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         AuthSwitchPrompt(
           question: 'New to All Fits?',

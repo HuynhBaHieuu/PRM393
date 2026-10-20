@@ -212,6 +212,56 @@ class AuthSubmitButton extends StatelessWidget {
   }
 }
 
+/// "or" between the email form and the social login buttons.
+class AuthOrDivider extends StatelessWidget {
+  const AuthOrDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: Text('or', style: context.textTheme.bodySmall),
+        ),
+        const Expanded(child: Divider()),
+      ],
+    );
+  }
+}
+
+/// Full-width outlined "Continue with Facebook" button.
+class FacebookLoginButton extends StatelessWidget {
+  const FacebookLoginButton({
+    super.key,
+    required this.busy,
+    required this.onPressed,
+  });
+
+  static const Color brandBlue = Color(0xFF1877F2);
+
+  final bool busy;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: busy ? null : onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(AppSizes.buttonHeight),
+      ),
+      icon: busy
+          ? const SizedBox.square(
+              dimension: AppSizes.iconSm,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.facebook, color: brandBlue),
+      label: const Text('Continue with Facebook'),
+    );
+  }
+}
+
 /// "Question? Action" row linking the two auth screens.
 class AuthSwitchPrompt extends StatelessWidget {
   const AuthSwitchPrompt({

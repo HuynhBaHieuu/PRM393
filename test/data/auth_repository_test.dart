@@ -86,6 +86,15 @@ void main() {
       );
     });
 
+    test('does not offer Facebook login on device', () async {
+      expect(repo.supportsFacebook, isFalse);
+      await expectLater(
+        repo.signInWithFacebook(),
+        throwsA(isA<AuthException>()),
+      );
+      expect(await repo.externalSignIns.isEmpty, isTrue);
+    });
+
     test('rejects a duplicate email regardless of case', () async {
       await repo.register(
         displayName: 'A',

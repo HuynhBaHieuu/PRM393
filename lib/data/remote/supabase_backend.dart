@@ -171,8 +171,17 @@ class SupabaseSettingsRepository implements SettingsRepository {
 class SupabaseAuthRepository implements AuthRepository {
   SupabaseAuthRepository(this._auth, this._storage);
 
+  /// Deep link the browser opens after Facebook login. Must be listed under
+  /// Authentication → URL Configuration → Redirect URLs, and matches the
+  /// intent filter in AndroidManifest.xml.
+  static const String oauthRedirect = 'com.example.allfits://login-callback';
+
   final sb.GoTrueClient _auth;
   final LocalStorageService _storage;
+
+  /// Set while a browser login is in flight, so password sign-ins (which also
+  /// fire `signedIn`) are not reported on [externalSignIns].
+  bool _awaitingOAuth = false;
 
   @override
   Future<AppUser?> currentUser() async {
@@ -194,6 +203,7 @@ class SupabaseAuthRepository implements AuthRepository {
         Validators.newPassword(password);
     if (error != null) throw ValidationException(error);
 
+    _awaitingOAuth = false;
     final response = await _guard(
       () => _auth.signUp(
         email: normalizedEmail,
@@ -218,6 +228,7 @@ class SupabaseAuthRepository implements AuthRepository {
     required String password,
   }) async {
     final normalizedEmail = Validators.normalizeEmail(email);
+    _awaitingOAuth = false;
     final response = await _guard(
       () =>
           _auth.signInWithPassword(email: normalizedEmail, password: password),
@@ -239,6 +250,37 @@ class SupabaseAuthRepository implements AuthRepository {
       return null;
     }
   }
+
+  @override
+  bool get supportsFacebook => true;
+
+  @override
+  Future<void> signInWithFacebook() async {
+    _awaitingOAuth = true;
+    final launched = await _guard(
+      () => _auth.signInWithOAuth(
+        sb.OAuthProvider.facebook,
+        redirectTo: oauthRedirect,
+      ),
+    );
+    if (!launched) {
+      _awaitingOAuth = false;
+      throw const AuthException('Could not open Facebook. Please try again.');
+    }
+  }
+
+  @override
+  Stream<AppUser> get externalSignIns => _auth.onAuthStateChange
+      .where(
+        (state) =>
+            _awaitingOAuth &&
+            state.event == sb.AuthChangeEvent.signedIn &&
+            state.session != null,
+      )
+      .map((state) {
+        _awaitingOAuth = false;
+        return _toAppUser(state.session!.user);
+      });
 
   Future<R> _guard<R>(Future<R> Function() request) async {
     try {
@@ -266,7 +308,13 @@ class SupabaseAuthRepository implements AuthRepository {
   static AppUser _toAppUser(sb.User user) => AppUser(
     id: user.id,
     email: user.email ?? '',
-    displayName: user.userMetadata?['display_name'] as String? ?? '',
+    // Email sign-ups store `display_name`; Facebook fills `full_name`/`name`.
+    displayName:
+        (user.userMetadata?['display_name'] ??
+                user.userMetadata?['full_name'] ??
+                user.userMetadata?['name'])
+            as String? ??
+        '',
     createdAt:
         DateTime.tryParse(user.createdAt) ??
         DateTime.fromMillisecondsSinceEpoch(0),
