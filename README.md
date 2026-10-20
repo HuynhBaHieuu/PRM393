@@ -87,6 +87,24 @@ when it is not (tests always run on device).
 }
 ```
 
+### Facebook login
+
+With Supabase configured, **Log in** also shows **Continue with Facebook**.
+It opens Facebook in the browser and returns to the app through the deep link
+`com.example.allfits://login-callback`. Without Supabase the button is hidden.
+
+1. At [developers.facebook.com](https://developers.facebook.com/apps) create
+   an app (use case *Authenticate and request data from users with Facebook
+   Login*). Under **Facebook Login → Settings → Valid OAuth Redirect URIs**
+   add `https://<project-ref>.supabase.co/auth/v1/callback`. Under
+   **Use cases → Permissions** make sure `email` is added.
+2. Copy **App ID** and **App Secret** (App settings → Basic) into Supabase
+   **Authentication → Sign In / Providers → Facebook** and enable it.
+3. In Supabase **Authentication → URL Configuration → Redirect URLs** add
+   `com.example.allfits://login-callback`.
+4. While the Facebook app is in *Development* mode, only its admins,
+   developers and testers (App roles) can log in.
+
 Data saved on the device before the switch is not uploaded. Free projects
 pause after a week without use; resume them from the dashboard.
 

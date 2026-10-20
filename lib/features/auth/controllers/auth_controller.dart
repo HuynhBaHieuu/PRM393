@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 
+import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
 
@@ -20,13 +22,32 @@ class AuthController extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unknown;
   AppUser? _user;
   String? _lastEmail;
+  String? _externalError;
+  StreamSubscription<AppUser>? _externalSignIns;
 
   AuthStatus get status => _status;
   AppUser? get user => _user;
   String? get lastEmail => _lastEmail;
+  bool get supportsFacebook => _repository.supportsFacebook;
+
+  /// Why the last browser login (Facebook) failed, for the login screen.
+  String? get externalError => _externalError;
 
   /// Restores the previous session, if any.
   Future<void> init() async {
+    _externalSignIns = _repository.externalSignIns.listen(
+      (user) {
+        _externalError = null;
+        _signedIn(user);
+      },
+      onError: (Object error) {
+        developer.log('Browser login failed', name: 'auth', error: error);
+        _externalError = error is AppException
+            ? error.message
+            : 'Facebook login failed. Please try again.';
+        notifyListeners();
+      },
+    );
     try {
       _user = await _repository.currentUser();
       _lastEmail = await _repository.lastEmail();
@@ -60,15 +81,27 @@ class AuthController extends ChangeNotifier {
     _signedIn(await _repository.signIn(email: email, password: password));
   }
 
+  /// Opens Facebook in the browser. The app signs in when it comes back.
+  Future<void> signInWithFacebook() async {
+    _externalError = null;
+    await _repository.signInWithFacebook();
+  }
+
   Future<void> signOut() async {
     await _repository.signOut();
     _user = null;
     _setStatus();
   }
 
+  @override
+  void dispose() {
+    _externalSignIns?.cancel();
+    super.dispose();
+  }
+
   void _signedIn(AppUser user) {
     _user = user;
-    _lastEmail = user.email;
+    if (user.email.isNotEmpty) _lastEmail = user.email;
     _setStatus();
   }
 

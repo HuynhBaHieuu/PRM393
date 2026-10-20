@@ -29,6 +29,16 @@ abstract interface class AuthRepository {
 
   /// The email last used to sign in on this device, for prefilling.
   Future<String?> lastEmail();
+
+  /// Whether [signInWithFacebook] works with this backend.
+  bool get supportsFacebook;
+
+  /// Opens the Facebook login page. The result arrives on [externalSignIns]
+  /// once the browser hands control back to the app.
+  Future<void> signInWithFacebook();
+
+  /// Users signed in by a browser flow such as [signInWithFacebook].
+  Stream<AppUser> get externalSignIns;
 }
 
 class LocalAuthRepository implements AuthRepository {
@@ -131,6 +141,16 @@ class LocalAuthRepository implements AuthRepository {
       return null;
     }
   }
+
+  @override
+  bool get supportsFacebook => false;
+
+  @override
+  Future<void> signInWithFacebook() async =>
+      throw const AuthException('Facebook login needs the Supabase server.');
+
+  @override
+  Stream<AppUser> get externalSignIns => const Stream.empty();
 
   Future<UserAccount?> _findByEmail(String normalizedEmail) async {
     final accounts = await _accounts.readAll();
