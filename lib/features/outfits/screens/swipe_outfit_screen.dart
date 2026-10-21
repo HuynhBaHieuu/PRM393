@@ -22,15 +22,29 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart'
 class SwipeOutfitScreen extends StatefulWidget {
   const SwipeOutfitScreen({super.key});
 
-  /// Rows from top to bottom, with each row's share of the height.
-  static const Map<OutfitSlot, int> rows = {
-    OutfitSlot.accessories: 2,
-    OutfitSlot.outerwear: 4,
-    OutfitSlot.top: 4,
-    OutfitSlot.dress: 6,
-    OutfitSlot.bottom: 5,
-    OutfitSlot.shoes: 2,
+  /// Rows from head to toe, each placed over its part of the mannequin:
+  /// top and bottom edge, and the widest a piece may be, all as fractions
+  /// of the mannequin's height (see [_MannequinPainter]).
+  static const Map<OutfitSlot, ({double top, double bottom, double width})>
+  rows = {
+    OutfitSlot.accessories: (top: 0, bottom: 0.075, width: 0.12),
+    OutfitSlot.outerwear: (top: 0.12, bottom: 0.56, width: 0.38),
+    OutfitSlot.top: (top: 0.12, bottom: 0.52, width: 0.32),
+    OutfitSlot.dress: (top: 0.12, bottom: 0.82, width: 0.34),
+    OutfitSlot.bottom: (top: 0.48, bottom: 0.93, width: 0.22),
+    OutfitSlot.shoes: (top: 0.875, bottom: 1, width: 0.24),
   };
+
+  /// Rows that overlap are stacked like clothes are worn: later ones on top,
+  /// and the top one takes the swipe where they overlap.
+  static const List<OutfitSlot> _layers = [
+    OutfitSlot.shoes,
+    OutfitSlot.bottom,
+    OutfitSlot.dress,
+    OutfitSlot.top,
+    OutfitSlot.outerwear,
+    OutfitSlot.accessories,
+  ];
 
   /// Rows shown until the user turns others on.
   static const Set<OutfitSlot> defaultRows = {
@@ -246,25 +260,41 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                     ),
                   ),
                 ),
-                Column(
-                  children: [
-                    for (final MapEntry(key: slot, value: pieces)
-                        in bySlot.entries)
-                      Expanded(
-                        // Keeps each row's state with its slot as rows come
-                        // and go; a new filter starts the row afresh.
-                        key: ValueKey((slot, _filters[slot])),
-                        flex: SwipeOutfitScreen.rows[slot]!,
-                        child: _SwipeRow(
-                          items: pieces,
-                          controller: _controllerFor(slot, pieces.length),
-                          onChanged: (index) => setState(() {
-                            _picks[slot] = index;
-                            _active = slot;
-                          }),
-                        ),
-                      ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final height = constraints.maxHeight;
+                    return Stack(
+                      children: [
+                        for (final slot in SwipeOutfitScreen._layers)
+                          if (bySlot[slot] case final pieces?)
+                            Positioned(
+                              // Keeps each row's state with its slot as
+                              // rows come and go.
+                              key: ValueKey(slot),
+                              left: 0,
+                              right: 0,
+                              top: SwipeOutfitScreen.rows[slot]!.top * height,
+                              height:
+                                  (SwipeOutfitScreen.rows[slot]!.bottom -
+                                      SwipeOutfitScreen.rows[slot]!.top) *
+                                  height,
+                              child: _SwipeRow(
+                                // A new filter starts the row afresh.
+                                key: ValueKey(_filters[slot]),
+                                items: pieces,
+                                pieceWidth:
+                                    SwipeOutfitScreen.rows[slot]!.width *
+                                    height,
+                                controller: _controllerFor(slot, pieces.length),
+                                onChanged: (index) => setState(() {
+                                  _picks[slot] = index;
+                                  _active = slot;
+                                }),
+                              ),
+                            ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -310,12 +340,17 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
 /// One endlessly looping row. Neighbours shrink, fade and blur sideways.
 class _SwipeRow extends StatelessWidget {
   const _SwipeRow({
+    super.key,
     required this.items,
+    required this.pieceWidth,
     required this.controller,
     required this.onChanged,
   });
 
   final List<ClothingItem> items;
+
+  /// The widest a piece is drawn, so it fits the mannequin.
+  final double pieceWidth;
   final PageController controller;
   final ValueChanged<int> onChanged;
 
@@ -351,27 +386,29 @@ class _SwipeRow extends StatelessWidget {
           },
           child: Semantics(
             label: item.name,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: ClothingImage.hasCutout(item)
-                  ? ClothingImage(
-                      item: item,
-                      cutout: true,
-                      fit: BoxFit.contain,
-                      decodeWidth: 320,
-                    )
-                  // A photo with its background reads as a card, not as a
-                  // piece on the mannequin.
-                  : Center(
-                      child: AspectRatio(
-                        aspectRatio: AppSizes.clothingImageAspect,
-                        child: ClothingImage(
-                          item: item,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          decodeWidth: 320,
+            child: Center(
+              child: SizedBox(
+                width: pieceWidth,
+                child: ClothingImage.hasCutout(item)
+                    ? ClothingImage(
+                        item: item,
+                        cutout: true,
+                        fit: BoxFit.contain,
+                        decodeWidth: 320,
+                      )
+                    // A photo with its background reads as a card, not as a
+                    // piece on the mannequin.
+                    : Center(
+                        child: AspectRatio(
+                          aspectRatio: AppSizes.clothingImageAspect,
+                          child: ClothingImage(
+                            item: item,
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            decodeWidth: 320,
+                          ),
                         ),
                       ),
-                    ),
+              ),
             ),
           ),
         );

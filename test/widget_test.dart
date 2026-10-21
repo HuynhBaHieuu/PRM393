@@ -362,7 +362,13 @@ void main() {
     final shoes = piecesFor(OutfitSlot.shoes);
 
     // Swipe the top row one piece left; pick the third shoe from the tray.
-    await tester.drag(find.byType(PageView).first, const Offset(-200, 0));
+    await tester.drag(
+      find.descendant(
+        of: find.byKey(const ValueKey(OutfitSlot.top)),
+        matching: find.byType(PageView),
+      ),
+      const Offset(-200, 0),
+    );
     await tester.pumpAndSettle();
     await _tap(tester, find.widgetWithText(SelectablePill, 'Shoes'));
     await _tap(
