@@ -1,0 +1,212 @@
+# Cách hoạt động của 10 chức năng sắp làm
+
+Tài liệu này mô tả 10 chức năng ALL_FITS dự định làm thêm, học theo ý tưởng của app Fits. Các chức năng này chưa có trong app. Mỗi phần kể lại người dùng sẽ làm gì, app làm gì ở phía sau, và bản miễn phí khác bản Premium thế nào.
+
+Các giới hạn miễn phí ghi ở đây là đề xuất, nhóm có thể đổi.
+
+
+## 1. AI tự nhận diện món đồ
+
+Khi bạn thêm một món đồ bằng ảnh, AI nhìn ảnh và tự điền giúp loại đồ, loại con, màu, mùa, và gợi ý tên, hãng. Bạn không phải chọn từng mục bằng tay nữa.
+
+Cách dùng:
+1. Bấm nút + ở giữa thanh dưới, chọn "Add clothes".
+2. Chụp ảnh hoặc chọn ảnh có sẵn.
+3. Dưới ảnh hiện dòng "Đang nhận diện…". Sau vài giây, các ô trong form được điền sẵn. Ô nào do AI điền có một dấu nhỏ bên cạnh.
+4. Kiểm tra lại, sửa nếu AI đoán sai. Nếu không vừa ý, bấm "Hoàn tác" để trả các ô về như trước.
+5. Bấm "Save" như bình thường.
+
+App làm gì phía sau: app thu nhỏ ảnh rồi gửi lên dịch vụ AI, nhận lại câu trả lời và điền vào form. AI chỉ điền những ô bạn còn để trống, không ghi đè thứ bạn đã gõ. Nếu bạn đổi sang ảnh khác, app nhận diện lại từ đầu.
+
+Về quyền riêng tư: chức năng này gửi ảnh của bạn lên máy chủ AI. Lần đầu dùng, app hỏi bạn có đồng ý không. Bạn có thể tắt chức năng này trong Settings bất cứ lúc nào.
+
+Miễn phí và Premium: bản miễn phí được nhận diện 5 lần mỗi tháng, Premium không giới hạn.
+
+Khi có lỗi: nếu mất mạng, AI trả lời quá lâu, hoặc ảnh không có món đồ nào, app báo "Không nhận diện được, hãy điền tay" và bạn vẫn điền form bình thường.
+
+
+## 2. Tag tùy chỉnh (Huy)
+
+Bạn tự đặt nhãn cho quần áo theo cách của mình, ví dụ "đồ đi học", "vintage", "cần giặt", rồi lọc tủ đồ theo các nhãn đó.
+
+Cách dùng:
+1. Khi thêm hoặc sửa một món đồ, tìm mục "Tags".
+2. Gõ tên tag rồi bấm Enter. Tag hiện thành một ô nhỏ, bấm dấu × để bỏ.
+3. Khi gõ, app gợi ý những tag bạn đã từng dùng.
+4. Trong tab Clothes, mở bộ lọc và chọn một hoặc nhiều tag. Chỉ những món có đủ các tag đã chọn mới hiện ra.
+5. Ô tìm kiếm cũng tìm được theo tag.
+6. Muốn đổi tên hoặc xóa một tag cho mọi món cùng lúc, vào Account, Settings, "Manage tags".
+
+App làm gì phía sau: app bỏ khoảng trắng thừa và dấu # ở đầu, và coi "Vintage" với "vintage" là một tag. Khi đổi tên một tag thành tên đã có, hai tag được gộp làm một.
+
+Miễn phí và Premium: bản miễn phí được 5 tag khác nhau, Premium không giới hạn. Nếu hết Premium, các tag đã có vẫn dùng bình thường, chỉ không tạo thêm được.
+
+
+## 3. Thêm đồ từ link web (NLGbao)
+
+Bạn thấy một món đồ trên trang bán hàng, dán link vào app, app tự lấy ảnh, tên, hãng và giá để tạo món đồ.
+
+Cách dùng:
+1. Bấm nút +, chọn "Add clothes", rồi chọn "Từ link web".
+2. Dán link sản phẩm, bấm "Lấy thông tin".
+3. Đợi một chút (tối đa khoảng 15 giây, có nút Hủy).
+4. Nếu trang có nhiều ảnh, chọn một ảnh làm ảnh chính.
+5. Form thêm đồ hiện ra với ảnh, tên, hãng, giá đã điền sẵn. Nếu có chức năng AI nhận diện ở mục 1, loại đồ và màu cũng được điền luôn.
+6. Kiểm tra lại rồi bấm "Save".
+
+App làm gì phía sau: app mở trang web, đọc phần thông tin sản phẩm mà các shop thường để sẵn cho Google và mạng xã hội, rồi tải ảnh về. Món đồ lưu kèm link gốc, nên sau này bạn có thể mở lại trang sản phẩm từ màn chi tiết. Nếu giá ghi bằng đơn vị tiền khác, app giữ nguyên con số và ghi đơn vị gốc vào phần ghi chú, không tự đổi tỷ giá.
+
+Về bản quyền: ảnh sản phẩm thuộc về shop. Ảnh lấy từ web chỉ dùng trong tủ đồ của riêng bạn, không được đăng công khai.
+
+Miễn phí và Premium: dùng miễn phí. Món thêm từ link vẫn tính vào giới hạn số món của bản miễn phí, như thêm đồ bình thường.
+
+Khi có lỗi: một số trang không đọc được, ví dụ trang bắt đăng nhập hoặc trang chặn ứng dụng. Khi đó app báo "Không đọc được trang này" và cho bạn chọn ảnh bằng tay, vẫn giữ link đã dán.
+
+
+## 4. Nhiều ảnh cho một món (quân)
+
+Ngoài ảnh chính, mỗi món đồ có thể có thêm ảnh phụ, ví dụ mặt sau, chi tiết đường may, nhãn mác.
+
+Cách dùng:
+1. Khi thêm hoặc sửa món đồ, phía trên form có một hàng ảnh: ảnh chính, các ảnh phụ, và nút +.
+2. Bấm + để chụp hoặc chọn thêm ảnh.
+3. Nhấn giữ một ảnh phụ để chọn "Đặt làm ảnh chính" hoặc "Xóa".
+4. Ở màn chi tiết món đồ, vuốt ngang để xem lần lượt các ảnh. Bấm vào ảnh để xem toàn màn hình và phóng to.
+
+App làm gì phía sau: ảnh phụ chỉ để xem. Lưới tủ đồ, màn ghép outfit và màn vuốt outfit vẫn dùng ảnh chính đã tách nền. Khi bạn đổi ảnh chính, app tách nền lại cho ảnh mới. Khi xóa món đồ, mọi ảnh của món đó đều bị xóa theo.
+
+Miễn phí và Premium: bản miễn phí chỉ có ảnh chính. Premium được thêm tối đa 4 ảnh phụ mỗi món. Hết Premium thì vẫn xem được ảnh phụ cũ, chỉ không thêm ảnh mới.
+
+
+## 5. Collections (bảo)
+
+Collection là một nhóm do bạn tự đặt, gom cả quần áo lẫn outfit, ví dụ "Đi biển", "Đồ đi làm", "Muốn mua".
+
+Cách dùng:
+1. Vào Profile, chọn tab "Collections" (nằm giữa Outfits và Planner).
+2. Bấm "New collection", đặt tên.
+3. Mở collection, bấm "Add" để chọn nhiều món đồ hoặc outfit cùng lúc.
+4. Cũng có thể thêm từ chỗ khác: ở màn chi tiết của một món đồ hoặc outfit, chọn "Add to collection" rồi tích vào một hoặc nhiều collection.
+5. Trong menu của collection, bạn đổi tên, chọn ảnh bìa, hoặc xóa collection.
+
+App làm gì phía sau: mỗi collection hiện thành một ô có ảnh bìa ghép từ 4 món, kèm số món và số outfit. Xóa collection không xóa quần áo hay outfit bên trong. Khi bạn xóa hẳn một món đồ hay outfit, nó tự biến mất khỏi mọi collection. Món đã lưu trữ vẫn nằm trong collection nhưng hiện mờ.
+
+Miễn phí và Premium: bản miễn phí được 3 collection, Premium không giới hạn.
+
+
+## 6. Danh sách đồ mang đi du lịch (nlgbao)
+
+Bạn lên outfit cho từng ngày của chuyến đi, app gom tất cả thành danh sách đồ cần xếp vào vali.
+
+Cách dùng:
+1. Vào Planner, bấm "Plan a trip".
+2. Đặt tên chuyến đi, chọn ngày đi và ngày về, nhập thành phố nếu muốn xem thời tiết.
+3. Màn tiếp theo có mỗi ngày một dòng, kèm dự báo thời tiết. Bấm vào từng ngày để chọn outfit có sẵn, tạo outfit mới, hoặc dùng màn vuốt outfit. Bạn cũng có thể nhờ AI Stylist gợi ý outfit cho cả chuyến.
+4. Mở "Packing list". App liệt kê mọi món cần mang, chia theo loại (áo, quần, giày…). Món nào mặc nhiều ngày thì ghi "mặc 3 ngày".
+5. Tích vào món đã xếp vào vali. Thanh tiến độ cho biết đã xếp bao nhiêu món.
+6. Thêm các thứ không phải quần áo, như đồ ngủ hay sạc điện thoại, bằng cách gõ chữ.
+7. Bấm "Sao chép danh sách" để dán vào ghi chú hoặc gửi cho bạn bè.
+
+App làm gì phía sau: các outfit của chuyến đi cũng được đưa vào lịch như lên lịch bình thường, nên màn Home và Planner hiện đúng outfit của ngày đó. Trên lịch, những ngày thuộc chuyến đi có một dải màu và tên chuyến. Dự báo thời tiết chỉ có cho khoảng 16 ngày tới; ngày xa hơn ghi "chưa có dự báo".
+
+Miễn phí và Premium: bản miễn phí có 1 chuyến đi chưa kết thúc tại một thời điểm, Premium không giới hạn. Phần nhờ AI gợi ý tính vào lượt AI của mục 7.
+
+Lưu ý: một chuyến đi dài tối đa 30 ngày. Nếu một ngày trong chuyến đã có outfit lên lịch từ trước, app hỏi bạn muốn giữ hay thay. Khi xóa chuyến đi, app hỏi có xóa luôn các outfit đã lên lịch cho chuyến đó không.
+
+
+## 7. AI Stylist dạng chat
+
+Thay vì điền form như hiện tại, bạn trò chuyện với một stylist ảo. Bạn hỏi "Tối nay đi hẹn hò mặc gì?", stylist trả lời và gửi kèm outfit ghép từ chính tủ đồ của bạn.
+
+Cách dùng:
+1. Bấm nút +, chọn "AI Stylist".
+2. Màn chat hiện lời chào và vài gợi ý nhanh như "Đi làm", "Hẹn hò", "Trời mưa", "Cuối tuần". Bấm một gợi ý, hoặc tự gõ câu hỏi.
+3. Tin nhắn của bạn nằm bên phải, nền đen. Câu trả lời của stylist nằm bên trái, nền xám, có thể kèm 1 đến 3 outfit.
+4. Mỗi outfit có nút "Save outfit" để lưu ngay, và "Edit" để chỉnh trước khi lưu.
+5. Bạn có thể hỏi tiếp, ví dụ "đổi giày khác" hay "ấm hơn chút", stylist sẽ sửa outfit vừa gợi ý.
+
+App làm gì phía sau: mỗi lần bạn gửi tin, app gửi kèm danh sách quần áo (chỉ thông tin chữ, không gửi ảnh) và thời tiết hôm nay nếu bạn đã chọn thành phố. Stylist chỉ được dùng đồ có trong tủ của bạn. Nếu nó nhắc tới món không có thật, app tự bỏ món đó đi. App chỉ nhớ 10 lượt nói chuyện gần nhất. Trong bản đầu, đóng màn chat là mất cuộc trò chuyện.
+
+Stylist sẽ có tên và hình đại diện riêng do nhóm thiết kế, không dùng lại nhân vật của Fits.
+
+Miễn phí và Premium: hiện AI Stylist chỉ dành cho Premium. Đề xuất cho bản miễn phí dùng thử 3 tin nhắn mỗi ngày, Premium không giới hạn.
+
+Khi có lỗi: nếu gửi không được, tin nhắn hiện thông báo lỗi và nút "Thử lại". Nếu tủ đồ còn quá ít, stylist nhắc bạn thêm đồ và có nút "Add clothes".
+
+
+## 8. Sticker, kiểu tóc và đổi nền khi ghép outfit (huy)
+
+Khi ghép outfit trên bảng, bạn có thể thêm sticker trang trí, gắn kiểu tóc, và đổi màu nền cho outfit đẹp hơn.
+
+Cách dùng:
+1. Mở màn tạo hoặc sửa outfit.
+2. Thanh dưới có ba nút: "Wardrobe" để thêm quần áo như hiện tại, "Stickers" để thêm sticker và kiểu tóc, "Background" để đổi màu nền.
+3. Bấm một sticker, nó hiện giữa bảng. Kéo để di chuyển, dùng hai ngón tay để phóng to và xoay, giống như với quần áo.
+4. Nhấn giữ sticker để đưa lên trên, đưa xuống dưới, hoặc xóa.
+5. Chọn một màu nền: trắng, kem, hồng nhạt, xanh nhạt, đen…
+
+App làm gì phía sau: outfit lưu lại vị trí sticker và màu nền, nên ở mọi nơi hiện outfit (Home, Planner, danh sách outfit, màn chi tiết) đều thấy giống hệt. Sticker không được tính vào số món của outfit.
+
+Về nguồn sticker: không dùng sticker của Fits. Nhóm tự vẽ, hoặc dùng bộ biểu tượng miễn phí có giấy phép cho phép và ghi nguồn trong màn giấy phép của app.
+
+Miễn phí và Premium: bản miễn phí có khoảng 10 sticker, 3 kiểu tóc và mọi màu nền. Premium mở toàn bộ. Hết Premium thì sticker đã đặt vẫn còn, chỉ không thêm được sticker Premium mới.
+
+
+## 9. Thử đồ bằng AI
+
+App tạo một bức ảnh người mặc outfit bạn đã ghép, để bạn hình dung khi mặc lên trông thế nào.
+
+Cách dùng:
+1. Mở một outfit, bấm "Try on".
+2. Lần đầu, app giải thích cách hoạt động và hỏi bạn có đồng ý gửi ảnh không.
+3. Chọn người mặc: ảnh của chính bạn (ảnh toàn thân, đứng thẳng, đủ sáng) hoặc một người mẫu có sẵn trong app.
+4. Đợi khoảng 20 đến 60 giây. Bạn có thể làm việc khác, khi xong app sẽ báo.
+5. Xem ảnh kết quả. Bấm "Edit" để đổi người mặc hoặc thử lại, "Lưu vào máy" để tải về, hoặc "Xóa".
+6. Các ảnh đã tạo được giữ trong mục "Try-on" của outfit đó.
+7. Ảnh toàn thân của bạn xem, thay hoặc xóa trong Account, Settings.
+
+App làm gì phía sau: ảnh được gửi tới một dịch vụ tạo ảnh bằng AI qua máy chủ của app, không gọi thẳng từ điện thoại. Nhiều dịch vụ chỉ mặc được từng món một, nên app mặc áo trước rồi tới quần. Giày và phụ kiện có thể chưa hiện trong ảnh.
+
+Về quyền riêng tư: ảnh toàn thân của bạn chỉ bạn xem được, và bạn xóa được bất cứ lúc nào. Nhóm sẽ chọn dịch vụ không dùng ảnh của người dùng để huấn luyện AI.
+
+Lưu ý: ảnh do AI tạo có thể lệch màu hoặc sai dáng so với đồ thật, nên app ghi rõ "Ảnh minh họa bằng AI".
+
+Miễn phí và Premium: mỗi ảnh tốn tiền dịch vụ, nên chức năng này dành cho Premium, ví dụ 20 ảnh mỗi tháng. Bản miễn phí được thử 1 lần. Nếu tạo ảnh thất bại thì không bị trừ lượt.
+
+
+## 10. Mạng xã hội: hồ sơ, bạn bè, khám phá 
+
+Bạn có hồ sơ riêng, chia sẻ tủ đồ với bạn bè, nhờ bạn bè phối đồ giúp, và xem outfit của người khác để lấy ý tưởng. Chức năng này lớn nên làm theo 4 bước, bước nào xong cũng dùng được ngay.
+
+Bước 1, hồ sơ:
+1. Vào Account, mở "Hồ sơ của tôi". Đặt username (không trùng với ai), tên, ảnh đại diện, lời giới thiệu.
+2. Chọn ai được xem tủ đồ: mọi người, chỉ bạn bè, hoặc chỉ mình bạn.
+3. Bấm "Chia sẻ hồ sơ" để gửi username cho bạn bè.
+4. Tìm một username để xem hồ sơ người khác: quần áo và outfit của họ. Giá tiền, ghi chú và số lần mặc luôn được ẩn.
+
+Bước 2, bạn bè:
+1. Ở hồ sơ người khác, bấm "Kết bạn".
+2. Người kia thấy lời mời trong app, chọn chấp nhận hoặc từ chối.
+3. Trong Account, mục "Bạn bè" có danh sách bạn, lời mời đã gửi và đã nhận. Từ đây bạn hủy kết bạn hoặc chặn người khác.
+
+Bước 3, phối đồ giúp bạn:
+1. Nếu bạn của bạn cho phép, hồ sơ của họ có nút "Tạo outfit cho bạn ấy".
+2. Bạn ghép outfit bằng chính tủ đồ của người đó, viết thêm lời nhắn, rồi gửi.
+3. Người nhận thấy outfit trong "Hộp thư outfit" (có số báo màu đỏ), chọn "Lưu vào outfit của tôi" hoặc "Bỏ qua".
+
+Bước 4, khám phá:
+1. Trong màn chi tiết outfit, bật "Công khai" để chia sẻ outfit lên trang khám phá.
+2. Trên Home có mục "Discover": lưới outfit công khai mới nhất, kèm ảnh đại diện người đăng.
+3. Bấm vào để xem chi tiết và lưu lại làm ý tưởng.
+4. Gặp nội dung không phù hợp thì bấm "Báo cáo" hoặc "Ẩn người này".
+
+Về quyền riêng tư và an toàn:
+1. Chuyển hồ sơ từ công khai sang riêng tư thì các outfit đã đăng cũng bị ẩn theo.
+2. Chặn một người thì hủy kết bạn, ẩn họ khỏi trang khám phá, và họ không gửi outfit cho bạn được nữa.
+3. Món đồ lấy từ link web (mục 3) không được đăng công khai, vì ảnh thuộc bản quyền của shop.
+4. Xóa tài khoản thì xóa luôn hồ sơ, bạn bè và các outfit đã chia sẻ.
+5. Username chỉ gồm chữ thường không dấu, số, dấu gạch dưới và dấu chấm, dài 3 đến 20 ký tự.
+
+Ghi chú cho nhóm: phần phân quyền ai được xem tủ đồ của ai cần một người kiểm tra thật kỹ, vì sai một chỗ là lộ tủ đồ của mọi người. Nếu app chạy ở chế độ chỉ lưu trên máy, không có tài khoản trực tuyến, thì toàn bộ mục mạng xã hội được ẩn đi.
+
+Miễn phí và Premium: đề xuất cho dùng miễn phí, vì càng nhiều người tham gia thì chức năng này càng có ích.
