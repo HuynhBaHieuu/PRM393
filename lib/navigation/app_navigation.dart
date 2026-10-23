@@ -13,6 +13,7 @@ enum AppTab { home, profile }
 enum ClosetTab {
   clothes('Clothes'),
   outfits('Outfits'),
+  collections('Collections'),
   planner('Planner');
 
   const ClosetTab(this.label);

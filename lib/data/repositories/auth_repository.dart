@@ -9,6 +9,16 @@ import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/local/password_hasher.dart';
 import 'package:all_fits/data/models/user_account.dart';
 
+/// Accounts the app can sign in with through the browser.
+enum SocialProvider {
+  google('Google'),
+  facebook('Facebook');
+
+  const SocialProvider(this.label);
+
+  final String label;
+}
+
 /// Authentication contract. The local implementation keeps accounts on the
 /// device; a Firebase or Supabase implementation can replace it later
 /// without changes to the UI.
@@ -30,14 +40,14 @@ abstract interface class AuthRepository {
   /// The email last used to sign in on this device, for prefilling.
   Future<String?> lastEmail();
 
-  /// Whether [signInWithFacebook] works with this backend.
-  bool get supportsFacebook;
+  /// Whether [signInWith] works with this backend.
+  bool get supportsSocialLogin;
 
-  /// Opens the Facebook login page. The result arrives on [externalSignIns]
-  /// once the browser hands control back to the app.
-  Future<void> signInWithFacebook();
+  /// Opens the [provider]'s login page. The result arrives on
+  /// [externalSignIns] once the browser hands control back to the app.
+  Future<void> signInWith(SocialProvider provider);
 
-  /// Users signed in by a browser flow such as [signInWithFacebook].
+  /// Users signed in by a browser flow such as [signInWith].
   Stream<AppUser> get externalSignIns;
 }
 
@@ -143,11 +153,11 @@ class LocalAuthRepository implements AuthRepository {
   }
 
   @override
-  bool get supportsFacebook => false;
+  bool get supportsSocialLogin => false;
 
   @override
-  Future<void> signInWithFacebook() async =>
-      throw const AuthException('Facebook login needs the Supabase server.');
+  Future<void> signInWith(SocialProvider provider) async =>
+      throw AuthException('${provider.label} login needs the Supabase server.');
 
   @override
   Stream<AppUser> get externalSignIns => const Stream.empty();

@@ -14,6 +14,7 @@ class ClothingSliverGrid extends StatelessWidget {
     required this.onTap,
     this.onFavorite,
     this.isSelected,
+    this.isDimmed,
     this.onLongPress,
   });
 
@@ -22,6 +23,7 @@ class ClothingSliverGrid extends StatelessWidget {
   final ValueChanged<ClothingItem>? onFavorite;
   final ValueChanged<ClothingItem>? onLongPress;
   final bool Function(ClothingItem item)? isSelected;
+  final bool Function(ClothingItem item)? isDimmed;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +46,7 @@ class ClothingSliverGrid extends StatelessWidget {
             child: ClothingTile(
               item: item,
               selected: isSelected?.call(item) ?? false,
+              dimmed: isDimmed?.call(item) ?? false,
               onTap: () => onTap(item),
               onFavorite: onFavorite == null ? null : () => onFavorite!(item),
               onLongPress: onLongPress == null

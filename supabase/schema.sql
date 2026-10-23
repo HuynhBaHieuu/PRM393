@@ -11,6 +11,7 @@ create table if not exists public.clothing_items (
 create table if not exists public.outfits (like public.clothing_items including all);
 create table if not exists public.calendar_entries (like public.clothing_items including all);
 create table if not exists public.shopping_items (like public.clothing_items including all);
+create table if not exists public.collections (like public.clothing_items including all);
 
 create table if not exists public.user_settings (
   user_id uuid primary key references auth.users on delete cascade,
@@ -21,7 +22,7 @@ create table if not exists public.user_settings (
 do $$
 declare t text;
 begin
-  foreach t in array array['clothing_items', 'outfits', 'calendar_entries', 'shopping_items', 'user_settings'] loop
+  foreach t in array array['clothing_items', 'outfits', 'calendar_entries', 'shopping_items', 'collections', 'user_settings'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "own rows" on public.%I', t);
     execute format(
@@ -37,6 +38,8 @@ alter table public.calendar_entries drop constraint if exists calendar_entries_u
   add constraint calendar_entries_user_id_fkey foreign key (user_id) references auth.users on delete cascade;
 alter table public.shopping_items drop constraint if exists shopping_items_user_id_fkey,
   add constraint shopping_items_user_id_fkey foreign key (user_id) references auth.users on delete cascade;
+alter table public.collections drop constraint if exists collections_user_id_fkey,
+  add constraint collections_user_id_fkey foreign key (user_id) references auth.users on delete cascade;
 
 -- Clothing photos: public read, upload/delete only inside your own `<user id>/` folder.
 insert into storage.buckets (id, name, public)

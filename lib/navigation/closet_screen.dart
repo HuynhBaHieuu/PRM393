@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/features/collections/screens/collections_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfits_screen.dart';
 import 'package:all_fits/features/planner/screens/planner_screen.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
@@ -11,7 +12,7 @@ import 'package:all_fits/features/wardrobe/screens/wardrobe_screen.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
 /// The Profile tab: the user's name, a menu to the account page, and the
-/// closet split into Clothes, Outfits and Planner tabs.
+/// closet split into Clothes, Outfits, Collections and Planner tabs.
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
 
@@ -90,7 +91,21 @@ class _ClosetScreenState extends State<ClosetScreen>
           ),
           TabBar(
             controller: _tabs,
-            tabs: [for (final tab in ClosetTab.values) Tab(text: tab.label)],
+            // Four tabs share a phone's width: shrink a label that would
+            // otherwise be clipped ("Collections" on small screens or with
+            // large text).
+            labelPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxs,
+            ),
+            tabs: [
+              for (final tab in ClosetTab.values)
+                Tab(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(tab.label, maxLines: 1),
+                  ),
+                ),
+            ],
           ),
           Expanded(
             child: TabBarView(
@@ -98,6 +113,7 @@ class _ClosetScreenState extends State<ClosetScreen>
               children: const [
                 WardrobeScreen(),
                 OutfitsScreen(),
+                CollectionsScreen(),
                 PlannerScreen(),
               ],
             ),

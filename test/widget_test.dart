@@ -1,20 +1,32 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:all_fits/app/app.dart';
 import 'package:all_fits/app/app_dependencies.dart';
+import 'package:all_fits/app/app_material_app.dart';
+import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
+import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/repositories/auth_repository.dart';
+import 'package:all_fits/features/auth/controllers/auth_controller.dart';
+import 'package:all_fits/features/auth/screens/login_screen.dart';
+import 'package:all_fits/features/collections/widgets/collection_cards.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
 import 'helpers/test_harness.dart';
@@ -296,6 +308,34 @@ void main() {
       await _pumpApp(tester, testDependencies(), signedIn: false);
       expect(find.text('Log in'), findsWidgets);
       expect(find.byType(AppBottomBar), findsNothing);
+      // Google and Facebook need the Supabase server.
+      expect(find.text('Continue with Google'), findsNothing);
+      expect(find.text('Continue with Facebook'), findsNothing);
+    });
+
+    testWidgets('Google login opens the browser and signs in on return', (
+      tester,
+    ) async {
+      final repository = _FakeSocialAuth();
+      final auth = AuthController(repository: repository);
+      addTearDown(auth.dispose);
+      await auth.init();
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: auth,
+          child: const AppMaterialApp(home: LoginScreen()),
+        ),
+      );
+      expect(find.text('Continue with Facebook'), findsOneWidget);
+
+      await _tap(tester, find.text('Continue with Google'));
+      expect(repository.opened, [SocialProvider.google]);
+      expect(auth.status, AuthStatus.signedOut);
+
+      repository.returnFromBrowser();
+      await tester.pumpAndSettle();
+      expect(auth.status, AuthStatus.signedIn);
+      expect(auth.user!.displayName, 'Gia Bao');
     });
 
     testWidgets('register validates input, then returns to log in', (
@@ -543,4 +583,131 @@ void main() {
       expect(find.text('AI stylist isn’t set up'), findsOneWidget);
     });
   });
+
+  group('collections', () {
+    testWidgets('create one, fill it with pieces and an outfit, delete it', (
+      tester,
+    ) async {
+      await _pumpApp(tester, testDependencies(seedSampleData: true));
+      await _openTab(tester, 'Collections');
+      expect(find.text('No collections yet'), findsOneWidget);
+
+      await _tap(tester, find.text('New collection'));
+      await tester.enterText(find.byType(TextField), 'Beach');
+      await _tap(tester, find.text('Create'));
+      // Opens the new, empty collection.
+      expect(find.widgetWithText(AppBar, 'Beach'), findsOneWidget);
+      expect(find.text('Nothing here yet'), findsOneWidget);
+
+      await _tap(tester, find.byTooltip('Add'));
+      await _tap(tester, find.byType(ClothingTile).at(0));
+      await _tap(tester, find.byType(ClothingTile).at(1));
+      await _tap(tester, find.text('Outfits (0)'));
+      await _tap(tester, find.byType(OutfitCard).first);
+      await _tap(tester, find.text('Done · 3 selected'));
+      expect(find.text('2 pieces · 1 outfit'), findsOneWidget);
+
+      await _tap(tester, find.byTooltip('Back'));
+      expect(find.widgetWithText(CollectionCard, 'Beach'), findsOneWidget);
+      expect(find.text('2 pieces · 1 outfit'), findsOneWidget);
+
+      await tester.longPress(find.widgetWithText(CollectionCard, 'Beach'));
+      await tester.pumpAndSettle();
+      await _tap(tester, find.text('Delete'));
+      await _tap(tester, find.widgetWithText(TextButton, 'Delete'));
+      expect(find.text('No collections yet'), findsOneWidget);
+
+      // Its clothes are still in the wardrobe.
+      await _openTab(tester, 'Clothes');
+      expect(find.text('25 items'), findsOneWidget);
+    });
+
+    testWidgets('add a piece to a new collection from its detail screen', (
+      tester,
+    ) async {
+      await _pumpApp(tester, testDependencies(seedSampleData: true));
+      await _openTab(tester, 'Clothes');
+      await _tap(tester, find.byType(ClothingTile).first);
+      await _tap(tester, find.byTooltip('More'));
+      await _tap(tester, find.text('Add to collection'));
+
+      await _tap(tester, find.text('New collection'));
+      await tester.enterText(find.byType(TextField), 'Wishlist');
+      await _tap(tester, find.text('Create'));
+      final tile = find.widgetWithText(CheckboxListTile, 'Wishlist');
+      expect(tester.widget<CheckboxListTile>(tile).value, isTrue);
+
+      await _tap(tester, find.text('Done'));
+      expect(find.text('In 1 collection'), findsOneWidget);
+
+      await _tap(tester, find.byTooltip('Back'));
+      await _openTab(tester, 'Collections');
+      expect(find.text('1 piece'), findsOneWidget);
+    });
+
+    testWidgets('the Free plan holds three collections', (tester) async {
+      final deps = testDependencies();
+      final user = await registerTestUser(deps);
+      await deps.storage.write(
+        '${StorageKeys.userScope(user.id)}${StorageKeys.collections}',
+        jsonEncode([
+          for (final name in ['Beach', 'Work', 'Wishlist'])
+            {'id': name, 'name': name, 'createdAt': '2026-10-01T09:00:00'},
+        ]),
+      );
+      // registerTestUser already started the session.
+      await _pumpApp(tester, deps, signedIn: false);
+      await _openTab(tester, 'Collections');
+      expect(find.text('3 of 3 collections on Free'), findsOneWidget);
+
+      await _tap(tester, find.text('New collection'));
+      expect(find.text('Collection limit reached'), findsOneWidget);
+      expect(find.text('New collection'), findsOneWidget);
+    });
+  });
+}
+
+/// Supabase-like auth whose browser login finishes on [returnFromBrowser].
+class _FakeSocialAuth implements AuthRepository {
+  final List<SocialProvider> opened = [];
+  final StreamController<AppUser> _signIns = StreamController.broadcast();
+
+  void returnFromBrowser() => _signIns.add(
+    AppUser(
+      id: 'google-user',
+      email: 'bao@example.com',
+      displayName: 'Gia Bao',
+      createdAt: testNow,
+    ),
+  );
+
+  @override
+  bool get supportsSocialLogin => true;
+
+  @override
+  Future<void> signInWith(SocialProvider provider) async =>
+      opened.add(provider);
+
+  @override
+  Stream<AppUser> get externalSignIns => _signIns.stream;
+
+  @override
+  Future<AppUser?> currentUser() async => null;
+
+  @override
+  Future<String?> lastEmail() async => null;
+
+  @override
+  Future<AppUser> register({
+    required String displayName,
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<AppUser> signIn({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() async {}
 }

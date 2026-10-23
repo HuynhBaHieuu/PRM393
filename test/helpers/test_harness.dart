@@ -13,8 +13,10 @@ import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/data/remote/weather_service.dart';
+import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/calendar_repository.dart';
+import 'package:all_fits/data/repositories/collection_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
@@ -89,10 +91,17 @@ class TestCloset {
       repository: LocalCalendarRepository(this.storage),
       idGenerator: ids,
     );
+    collections = CollectionController(
+      repository: LocalCollectionRepository(this.storage),
+      imageStorage: images,
+      idGenerator: ids,
+      clock: clock,
+    );
     closet = ClosetActions(
       wardrobe: wardrobe,
       outfits: outfits,
       planner: planner,
+      collections: collections,
       idGenerator: ids,
       clock: clock,
     );
@@ -106,12 +115,14 @@ class TestCloset {
   late final WardrobeController wardrobe;
   late final OutfitController outfits;
   late final PlannerController planner;
+  late final CollectionController collections;
   late final ClosetActions closet;
 
   Future<void> load() async {
     await wardrobe.load();
     await outfits.load();
     await planner.load();
+    await collections.load();
   }
 
   Future<String> addItem(

@@ -3,6 +3,7 @@ import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/data/models/outfit_calendar_entry.dart';
 import 'package:all_fits/data/sample/sample_data.dart';
+import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
@@ -16,6 +17,7 @@ class ClosetActions {
     required this.wardrobe,
     required this.outfits,
     required this.planner,
+    required this.collections,
     IdGenerator idGenerator = const UuidIdGenerator(),
     this._clock = systemClock,
   }) : _ids = idGenerator;
@@ -23,6 +25,7 @@ class ClosetActions {
   final WardrobeController wardrobe;
   final OutfitController outfits;
   final PlannerController planner;
+  final CollectionController collections;
   final IdGenerator _ids;
   final Clock _clock;
 
@@ -101,15 +104,19 @@ class ClosetActions {
     return planner.planOutfit(date, outfitId);
   }
 
-  /// Deletes an item and removes it from every outfit that used it.
+  /// Deletes an item and removes it from every outfit and collection that
+  /// used it.
   Future<void> deleteItemPermanently(String itemId) async {
     await outfits.removeItemReferences(itemId);
+    await collections.removeItemReferences([itemId]);
     await wardrobe.deleteItem(itemId);
   }
 
-  /// Deletes an outfit along with its plans and wear entries.
+  /// Deletes an outfit along with its plans and wear entries, and takes it
+  /// out of every collection.
   Future<void> deleteOutfit(String outfitId) async {
     await planner.removeEntriesForOutfit(outfitId);
+    await collections.removeOutfitReferences([outfitId]);
     await outfits.deleteOutfit(outfitId);
   }
 
@@ -146,10 +153,12 @@ class ClosetActions {
     for (final id in itemIds) {
       await outfits.removeItemReferences(id);
     }
+    await collections.removeItemReferences(itemIds);
     await wardrobe.deleteItems(itemIds);
   }
 
   Future<void> eraseAllData() async {
+    await collections.clearAll();
     await planner.clearAll();
     await outfits.clearAll();
     await wardrobe.clearAll();

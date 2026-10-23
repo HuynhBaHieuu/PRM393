@@ -18,9 +18,19 @@ enum SubscriptionPlan {
   int? get stylistMessagesPerDay =>
       isPremium ? null : AppConfig.freeStylistMessagesPerDay;
 
+  /// Most collections the plan can hold, or null for no limit.
+  int? get collectionLimit => isPremium ? null : AppConfig.freeCollectionLimit;
+
   /// Whether a wardrobe of [itemCount] pieces has room for one more.
   bool canAddItem(int itemCount) {
     final limit = wardrobeLimit;
     return limit == null || itemCount < limit;
+  }
+
+  /// Whether [collectionCount] collections leave room for one more. After
+  /// Premium ends, existing collections stay; only new ones are blocked.
+  bool canAddCollection(int collectionCount) {
+    final limit = collectionLimit;
+    return limit == null || collectionCount < limit;
   }
 }

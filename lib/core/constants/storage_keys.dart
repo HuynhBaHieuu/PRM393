@@ -8,6 +8,9 @@ abstract final class StorageKeys {
   static const String calendarEntries = 'calendar.entries.v1';
   static const String settings = 'settings.v1';
 
+  // Per-user; added after accounts, so never part of the legacy migration.
+  static const String collections = 'collections.v1';
+
   // Per-user, always kept on the device, even with Supabase.
   static const String stylistChats = 'stylist.chats.v1';
   static const String stylistUsage = 'stylist.usage.v1';

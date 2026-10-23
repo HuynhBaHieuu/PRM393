@@ -30,6 +30,7 @@ class OutfitCard extends StatelessWidget {
     this.onFavorite,
     this.onLongPress,
     this.subtitle,
+    this.selected = false,
   });
 
   final Outfit outfit;
@@ -40,6 +41,9 @@ class OutfitCard extends StatelessWidget {
   /// Overrides the default meta line.
   final String? subtitle;
 
+  /// Shows a selection ring and check mark (used by pickers).
+  final bool selected;
+
   static const double _overlayInset = 8;
 
   @override
@@ -48,6 +52,7 @@ class OutfitCard extends StatelessWidget {
     final text = context.textTheme;
     return Semantics(
       button: true,
+      selected: selected,
       label: outfit.name,
       child: GestureDetector(
         onTap: onTap,
@@ -71,6 +76,21 @@ class OutfitCard extends StatelessWidget {
                         onPressed: onFavorite!,
                       ),
                     ),
+                  if (selected) ...[
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: context.palette.ink,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    const Positioned(
+                      top: _overlayInset,
+                      left: _overlayInset,
+                      child: SelectionBadge(),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -102,12 +122,14 @@ class OutfitSliverGrid extends StatelessWidget {
     required this.onTap,
     this.onFavorite,
     this.onLongPress,
+    this.isSelected,
   });
 
   final List<Outfit> outfits;
   final ValueChanged<Outfit> onTap;
   final ValueChanged<Outfit>? onFavorite;
   final ValueChanged<Outfit>? onLongPress;
+  final bool Function(Outfit outfit)? isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +147,7 @@ class OutfitSliverGrid extends StatelessWidget {
           return OutfitCard(
             key: ValueKey(outfit.id),
             outfit: outfit,
+            selected: isSelected?.call(outfit) ?? false,
             onTap: () => onTap(outfit),
             onFavorite: onFavorite == null ? null : () => onFavorite!(outfit),
             onLongPress: onLongPress == null

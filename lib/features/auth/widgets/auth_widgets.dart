@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
+import 'package:all_fits/data/repositories/auth_repository.dart';
 
 /// Shared layout for the sign-in screens: brand, title and a scrollable,
 /// keyboard-safe form column capped to form width on tablets.
@@ -231,16 +234,18 @@ class AuthOrDivider extends StatelessWidget {
   }
 }
 
-/// Full-width outlined "Continue with Facebook" button.
-class FacebookLoginButton extends StatelessWidget {
-  const FacebookLoginButton({
+/// Full-width outlined "Continue with Google/Facebook" button.
+class SocialLoginButton extends StatelessWidget {
+  const SocialLoginButton({
     super.key,
+    required this.provider,
     required this.busy,
     required this.onPressed,
   });
 
-  static const Color brandBlue = Color(0xFF1877F2);
+  static const Color facebookBlue = Color(0xFF1877F2);
 
+  final SocialProvider provider;
   final bool busy;
   final VoidCallback? onPressed;
 
@@ -256,10 +261,79 @@ class FacebookLoginButton extends StatelessWidget {
               dimension: AppSizes.iconSm,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.facebook, color: brandBlue),
-      label: const Text('Continue with Facebook'),
+          : switch (provider) {
+              SocialProvider.google => const GoogleLogo(),
+              SocialProvider.facebook => const Icon(
+                Icons.facebook,
+                color: facebookBlue,
+              ),
+            },
+      label: Text('Continue with ${provider.label}'),
     );
   }
+}
+
+/// Google's four-colour "G", drawn so no image asset is needed.
+class GoogleLogo extends StatelessWidget {
+  const GoogleLogo({super.key, this.size = AppSizes.iconSm});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size.square(size), painter: _GoogleLogoPainter());
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  static const Color _blue = Color(0xFF4285F4);
+  static const Color _green = Color(0xFF34A853);
+  static const Color _yellow = Color(0xFFFBBC05);
+  static const Color _red = Color(0xFFEA4335);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = size.width * 0.2;
+    final rect = Rect.fromLTWH(
+      stroke / 2,
+      stroke / 2,
+      size.width - stroke,
+      size.height - stroke,
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke;
+    // Degrees clockwise from three o'clock, where the bar starts. The last
+    // eighth (upper right) stays open.
+    const segments = [
+      (_blue, 0, 45),
+      (_green, 45, 90),
+      (_yellow, 135, 90),
+      (_red, 225, 90),
+    ];
+    for (final (color, start, sweep) in segments) {
+      canvas.drawArc(
+        rect,
+        start * math.pi / 180,
+        sweep * math.pi / 180,
+        false,
+        paint..color = color,
+      );
+    }
+    // The bar of the G.
+    canvas.drawRect(
+      Rect.fromLTRB(
+        size.width / 2,
+        size.height / 2 - stroke / 2,
+        size.width,
+        size.height / 2 + stroke / 2,
+      ),
+      Paint()..color = _blue,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GoogleLogoPainter oldDelegate) => false;
 }
 
 /// "Question? Action" row linking the two auth screens.

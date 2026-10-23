@@ -14,6 +14,7 @@ import 'package:all_fits/core/widgets/section_header.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
+import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
@@ -22,7 +23,7 @@ import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 
-enum _OutfitMenuAction { edit, delete }
+enum _OutfitMenuAction { edit, addToCollection, delete }
 
 class OutfitDetailScreen extends StatelessWidget {
   const OutfitDetailScreen({super.key, required this.outfitId});
@@ -37,6 +38,8 @@ class OutfitDetailScreen extends StatelessWidget {
     switch (action) {
       case _OutfitMenuAction.edit:
         await AppNavigator.editOutfit(context, outfit.id);
+      case _OutfitMenuAction.addToCollection:
+        await CollectionFlows.addOutfit(context, outfit.id);
       case _OutfitMenuAction.delete:
         final navigator = Navigator.of(context);
         final deleted = await ClosetFlows.deleteOutfit(context, outfit);
@@ -93,6 +96,10 @@ class OutfitDetailScreen extends StatelessWidget {
               const PopupMenuItem(
                 value: _OutfitMenuAction.edit,
                 child: Text('Edit'),
+              ),
+              const PopupMenuItem(
+                value: _OutfitMenuAction.addToCollection,
+                child: Text('Add to collection'),
               ),
               PopupMenuItem(
                 value: _OutfitMenuAction.delete,
