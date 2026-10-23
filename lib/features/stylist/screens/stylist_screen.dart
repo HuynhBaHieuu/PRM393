@@ -1,41 +1,44 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import 'package:all_fits/app/routes.dart';
-import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
-import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
-import 'package:all_fits/core/widgets/clothing_image.dart';
-import 'package:all_fits/core/widgets/small_widgets.dart';
+import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/sample/sample_data.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
 import 'package:all_fits/features/outfits/widgets/item_picker_sheet.dart';
-import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
-import 'package:all_fits/features/stylist/stylist_history.dart';
+import 'package:all_fits/features/stylist/stylist_store.dart';
+import 'package:all_fits/features/stylist/widgets/stylist_widgets.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 
 /// Chat with the AI stylist, which answers with outfits built from the
-/// user's wardrobe. Chats are saved on the device and can be reopened from
-/// the history.
+/// user's wardrobe, packing lists, shopping ideas and try-on pictures. Chats
+/// are saved on the device and can be reopened from the history.
 class StylistScreen extends StatefulWidget {
   const StylistScreen({super.key});
 
-  /// Quick starts shown before the first message: chip label, then the
-  /// message it sends.
+  /// Quick starts that send a message: chip label, then the message.
   static const List<(String, String)> prompts = [
+    ('Packing list', 'Create a packing list for my next trip.'),
     ('Work', 'What should I wear to work today?'),
     ('Date', 'Help me pick an outfit for a date tonight.'),
     ('Rainy day', 'It’s a rainy day. What should I wear?'),
@@ -49,6 +52,8 @@ class StylistScreen extends StatefulWidget {
   /// Sent when the user attaches a photo without typing anything.
   static const String photoPrompt =
       'Pick clothes from my wardrobe that go with this photo.';
+
+  static const String ratePrompt = 'Rate my outfit.';
 
   @override
   State<StylistScreen> createState() => _StylistScreenState();
@@ -76,19 +81,25 @@ class _StylistScreenState extends State<StylistScreen> {
   /// Id of the saved chat on screen; null until the first answer.
   String? _chatId;
 
-  bool _busy = false;
+  /// Completing it stops the request in flight; null when idle.
+  Completer<void>? _cancel;
+  String _busyLabel = '';
 
-  /// Why the answer to the last user message failed, if it did.
+  /// Why the last request failed, and how to try it again.
   Object? _error;
+  VoidCallback? _retry;
+
+  bool get _busy => _cancel != null;
 
   @override
   void initState() {
     super.initState();
-    context.read<StylistHistory>().load();
+    context.read<StylistStore>().load();
   }
 
   @override
   void dispose() {
+    _cancel?.complete();
     _input.dispose();
     super.dispose();
   }
@@ -99,8 +110,59 @@ class _StylistScreenState extends State<StylistScreen> {
       (s) => s.plan.stylistMessagesPerDay,
     );
     if (limit == null) return null;
-    final used = context.select<StylistHistory, int>((h) => h.usedToday);
-    return math.max(0, limit - used);
+    final (used, bonus) = context.select<StylistStore, (int, int)>(
+      (s) => (s.usedToday, s.bonusToday),
+    );
+    return math.max(0, limit + bonus - used);
+  }
+
+  /// Runs one stylist request, showing [label] meanwhile, and adds its answer
+  /// to the chat. A stopped request is dropped quietly.
+  Future<void> _run(
+    String label,
+    Future<StylistMessage> Function(Future<void> cancel) request, {
+    required VoidCallback retry,
+  }) async {
+    final cancel = Completer<void>();
+    setState(() {
+      _cancel = cancel;
+      _busyLabel = label;
+      _error = null;
+      _retry = retry;
+    });
+    final StylistMessage answer;
+    try {
+      answer = await request(cancel.future);
+    } catch (error) {
+      if (mounted && !cancel.isCompleted) {
+        setState(() {
+          _error = error;
+          _cancel = null;
+        });
+      }
+      return;
+    }
+    if (!mounted || cancel.isCompleted) return;
+    setState(() {
+      _messages.add(answer);
+      _cancel = null;
+    });
+    final store = context.read<StylistStore>();
+    final id = _chatId ??= store.newChatId();
+    try {
+      await store.countMessage();
+      await store.save(id, _messages);
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+    }
+  }
+
+  void _stop() {
+    _cancel?.complete();
+    setState(() {
+      _cancel = null;
+      _error = null;
+    });
   }
 
   Future<void> _send(String text) async {
@@ -117,17 +179,13 @@ class _StylistScreenState extends State<StylistScreen> {
     if (message.isEmpty || _busy) return;
     String? photo;
     if (pickedPhoto != null) {
-      setState(() => _busy = true);
       try {
         // Kept in app storage so the chat history can show it later.
         photo = await context.read<ImageStorageService>().saveImage(
           pickedPhoto,
         );
       } catch (error) {
-        if (mounted) {
-          setState(() => _busy = false);
-          context.showErrorSnack(error);
-        }
+        if (mounted) context.showErrorSnack(error);
         return;
       }
       if (!mounted) return;
@@ -143,42 +201,26 @@ class _StylistScreenState extends State<StylistScreen> {
     await _answer();
   }
 
-  /// Asks for a reply to the conversation so far; also retries a failure.
-  Future<void> _answer() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    final StylistMessage reply;
-    try {
-      reply = await context.read<AiStylistService>().reply(
-        wardrobe: context.read<WardrobeController>().activeItems,
+  /// Asks for a reply to the conversation so far.
+  Future<void> _answer() {
+    final service = context.read<AiStylistService>();
+    final store = context.read<StylistStore>();
+    final wardrobe = context.read<WardrobeController>().activeItems;
+    final weather = _todayWeather();
+    final resolve = context.read<ImageStorageService>().resolvePath;
+    return _run(
+      'Styling…',
+      (cancel) => service.reply(
+        wardrobe: wardrobe,
         history: List.of(_messages),
-        weather: _todayWeather(),
-        resolvePhoto: context.read<ImageStorageService>().resolvePath,
-      );
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _error = error;
-          _busy = false;
-        });
-      }
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      _messages.add(reply);
-      _busy = false;
-    });
-    final history = context.read<StylistHistory>();
-    final id = _chatId ??= history.newChatId();
-    try {
-      await history.countMessage();
-      await history.save(id, _messages);
-    } catch (error) {
-      if (mounted) context.showErrorSnack(error);
-    }
+        weather: weather,
+        persona: store.persona,
+        notes: store.notes,
+        resolvePhoto: resolve,
+        cancel: cancel,
+      ),
+      retry: _answer,
+    );
   }
 
   /// Today's weather, when the user has picked a city and it has loaded.
@@ -188,26 +230,135 @@ class _StylistScreenState extends State<StylistScreen> {
     return city != null && report?.location == city ? report : null;
   }
 
-  void _show(StylistChat? chat) {
-    _input.clear();
-    setState(() {
-      _messages = [...?chat?.messages];
-      _chatId = chat?.id;
-      _attached = [];
-      _photo = null;
-      _saved.clear();
-      _error = null;
-    });
+  /// Draws the user wearing [outfit].
+  Future<void> _tryOn(OutfitSuggestion outfit) async {
+    if (_busy) return;
+    final store = context.read<StylistStore>();
+    final body = store.bodyPhoto ?? await _setBodyPhoto();
+    if (body == null || !mounted) return;
+    final service = context.read<AiStylistService>();
+    final images = context.read<ImageStorageService>();
+    final items = context.read<WardrobeController>().itemsByIds(outfit.itemIds);
+    await _run('Drawing your try-on…', (cancel) async {
+      final person = await AiStylistService.readImage(
+        images.resolvePath(body) ?? body,
+      );
+      if (person == null) {
+        throw const AiException(
+          'Your try-on photo could not be loaded. Choose it again in the '
+          'stylist menu.',
+        );
+      }
+      final pieces = [
+        for (final item in items.take(AiStylistService.maxTryOnPieces))
+          ?await _photoOf(item, images),
+      ];
+      if (pieces.isEmpty) {
+        throw const AiException('These clothes have no photos to try on.');
+      }
+      final picture = await service.tryOn(
+        person: person,
+        pieces: pieces,
+        cancel: cancel,
+      );
+      final extension = switch (AiStylistService.mimeOf(picture)) {
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        _ => 'jpg',
+      };
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/tryon_${DateTime.now().microsecondsSinceEpoch}.$extension',
+      );
+      await file.writeAsBytes(picture);
+      try {
+        return StylistMessage.stylist(
+          'Here’s ${outfit.name} on you ✨',
+          photo: await images.saveImage(file.path),
+        );
+      } finally {
+        await file.delete();
+      }
+    }, retry: () => _tryOn(outfit));
   }
 
-  Future<void> _openHistory() async {
-    final chat = await showModalBottomSheet<StylistChat>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => const _HistorySheet(),
+  /// The photo of [item]: the user's own, or a sample's bundled one.
+  static Future<List<int>?> _photoOf(
+    ClothingItem item,
+    ImageStorageService images,
+  ) async {
+    final reference = item.imagePath;
+    if (reference != null) {
+      final location = images.resolvePath(reference);
+      return location == null ? null : AiStylistService.readImage(location);
+    }
+    final asset = SampleData.photoFor(item.id);
+    if (asset == null) return null;
+    final data = await rootBundle.load(asset);
+    return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  }
+
+  /// Asks for the full-body photo used for try-ons; returns its reference.
+  Future<String?> _setBodyPhoto() async {
+    final source = await _choosePhotoSource(
+      title: 'Add a full-body photo of you',
+      message:
+          'It’s used to try outfits on, and sent to the AI service only '
+          'when you ask for a try-on.',
     );
-    if (chat != null && mounted) _show(chat);
+    if (source == null || !mounted) return null;
+    try {
+      final path = await context.read<ImagePickerService>().pickImage(source);
+      if (path == null || !mounted) return null;
+      final reference = await context.read<ImageStorageService>().saveImage(
+        path,
+      );
+      if (!mounted) return null;
+      await context.read<StylistStore>().setBodyPhoto(reference);
+      return reference;
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+      return null;
+    }
+  }
+
+  /// Camera or library; the library straight away without a camera.
+  Future<ImagePickSource?> _choosePhotoSource({
+    String? title,
+    String? message,
+  }) async {
+    if (!context.read<ImagePickerService>().supportsCamera && title == null) {
+      return ImagePickSource.gallery;
+    }
+    return showModalBottomSheet<ImagePickSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (title != null)
+              ListTile(
+                title: Text(title),
+                subtitle: message == null ? null : Text(message),
+              ),
+            if (context.read<ImagePickerService>().supportsCamera)
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Camera'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImagePickSource.camera),
+              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Library'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(ImagePickSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Picks a photo to send with the next message; returns whether one was
@@ -224,9 +375,10 @@ class _StylistScreenState extends State<StylistScreen> {
     }
   }
 
-  /// Sends a photo from the library straight away for matching clothes.
-  Future<void> _matchPhoto() async {
-    if (await _pickPhoto(ImagePickSource.gallery)) await _send('');
+  /// Sends a photo straight away with [prompt].
+  Future<void> _sendPhoto(String prompt) async {
+    final source = await _choosePhotoSource();
+    if (source != null && await _pickPhoto(source)) await _send(prompt);
   }
 
   Future<void> _attach() async {
@@ -304,6 +456,35 @@ class _StylistScreenState extends State<StylistScreen> {
     if (picked != null && mounted) setState(() => _attached = picked!);
   }
 
+  void _show(StylistChat? chat) {
+    _input.clear();
+    setState(() {
+      _messages = [...?chat?.messages];
+      _chatId = chat?.id;
+      _attached = [];
+      _photo = null;
+      _saved.clear();
+      _error = null;
+    });
+  }
+
+  Future<void> _openHistory() async {
+    final chat = await showModalBottomSheet<StylistChat>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const ChatHistorySheet(),
+    );
+    if (chat != null && mounted) _show(chat);
+  }
+
+  Future<void> _openPersona() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => PersonaSheet(onChangeBodyPhoto: _setBodyPhoto),
+  );
+
   Future<void> _save(OutfitSuggestion suggestion) async {
     try {
       await context.read<OutfitController>().createOutfit(
@@ -321,9 +502,44 @@ class _StylistScreenState extends State<StylistScreen> {
     }
   }
 
+  Future<void> _shop(ShoppingPick pick) async {
+    final url = Uri.https('www.google.com', '/search', {
+      'tbm': 'shop',
+      'q': pick.query,
+    });
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      context.showSnack('Could not open the browser.');
+    }
+  }
+
+  /// Shares the app; the first share each day adds Free messages.
+  Future<void> _share() async {
+    final store = context.read<StylistStore>();
+    try {
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          text:
+              'I plan my outfits with ${AppConfig.appName} and its AI '
+              'stylist. Give it a try!',
+        ),
+      );
+      if (result.status == ShareResultStatus.dismissed) return;
+      await store.grantShareBonus();
+      if (mounted) {
+        context.showSnack(
+          'Thanks! You got ${AppConfig.shareBonusMessages} more messages '
+          'today.',
+        );
+      }
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final configured = context.read<AiStylistService>().isConfigured;
+    final service = context.read<AiStylistService>();
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -332,15 +548,15 @@ class _StylistScreenState extends State<StylistScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         titleSpacing: 0,
-        title: const _StylistHeader(),
+        title: StylistHeader(onTap: _openPersona),
         actions: [
-          if (configured && _messages.isNotEmpty)
+          if (service.isConfigured && _messages.isNotEmpty)
             IconButton(
               tooltip: 'New chat',
               onPressed: _busy ? null : () => _show(null),
               icon: const Icon(Icons.add_comment_outlined),
             ),
-          if (configured)
+          if (service.isConfigured)
             IconButton(
               tooltip: 'Chat history',
               onPressed: _busy ? null : _openHistory,
@@ -348,8 +564,8 @@ class _StylistScreenState extends State<StylistScreen> {
             ),
         ],
       ),
-      body: configured
-          ? _buildChat(context)
+      body: service.isConfigured
+          ? _buildChat(context, canTryOn: service.canTryOn)
           : const AppEmptyState(
               icon: Icons.auto_awesome_outlined,
               title: 'AI stylist isn’t set up',
@@ -359,20 +575,30 @@ class _StylistScreenState extends State<StylistScreen> {
     );
   }
 
-  Widget _buildChat(BuildContext context) {
+  Widget _buildChat(BuildContext context, {required bool canTryOn}) {
     final canChat =
         context.watch<WardrobeController>().activeItems.length >= _minWardrobe;
     final left = _messagesLeft(context);
     final outOfMessages = left == 0;
+    final bonusToday = context.select<StylistStore, int>((s) => s.bonusToday);
     final error = _error;
+    final retry = _retry;
     final entries = [
       for (final message in _messages)
         message.fromUser
-            ? _UserMessage(message: message)
-            : _StylistAnswer(message: message, saved: _saved, onSave: _save),
-      if (_busy) const _Bubble(text: 'Styling…', fromUser: false),
-      if (error != null && !_busy) _ErrorNote(error: error, onRetry: _answer),
+            ? UserMessageView(message: message)
+            : StylistAnswerView(
+                message: message,
+                saved: _saved,
+                onSave: _save,
+                onTryOn: canTryOn && !outOfMessages ? _tryOn : null,
+                onShop: _shop,
+              ),
+      if (_busy) ChatBubble(text: _busyLabel, fromUser: false),
+      if (error != null && !_busy && retry != null)
+        ChatErrorNote(error: error, onRetry: retry),
     ];
+    final chipsEnabled = canChat && !outOfMessages && !_busy;
 
     return SafeArea(
       top: false,
@@ -380,7 +606,7 @@ class _StylistScreenState extends State<StylistScreen> {
         children: [
           Expanded(
             child: entries.isEmpty
-                ? _Welcome(canChat: canChat)
+                ? StylistWelcome(canChat: canChat)
                 : ListView.separated(
                     // Reversed so the newest message sits above the input.
                     reverse: true,
@@ -394,34 +620,44 @@ class _StylistScreenState extends State<StylistScreen> {
                         entries[entries.length - 1 - index],
                   ),
           ),
-          if (canChat && !outOfMessages && _messages.isEmpty)
+          if (chipsEnabled && _messages.isEmpty)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.xs),
-                    child: ActionChip(
+                  for (final chip in [
+                    ActionChip(
                       avatar: const Icon(Icons.photo_library_outlined),
                       label: const Text('Match a photo'),
-                      onPressed: _busy ? null : _matchPhoto,
+                      onPressed: () => _sendPhoto(StylistScreen.photoPrompt),
                     ),
-                  ),
-                  for (final (label, prompt) in StylistScreen.prompts)
-                    Padding(
-                      padding: const EdgeInsets.only(right: AppSpacing.xs),
-                      child: ActionChip(
+                    ActionChip(
+                      avatar: const Icon(Icons.star_outline_rounded),
+                      label: const Text('Rate my outfit'),
+                      onPressed: () => _sendPhoto(StylistScreen.ratePrompt),
+                    ),
+                    for (final (label, prompt) in StylistScreen.prompts)
+                      ActionChip(
                         label: Text(label),
                         onPressed: () => _send(prompt),
                       ),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.xs),
+                      child: chip,
                     ),
                 ],
               ),
             ),
-          if (left != null && canChat) _QuotaNote(left: left),
+          if (left != null && canChat)
+            QuotaNote(
+              left: left,
+              canEarnMore: bonusToday == 0,
+              onShare: _share,
+            ),
           if (_attached.isNotEmpty || _photo != null)
-            _Attachments(
+            PendingAttachments(
               photo: _photo,
               itemIds: _attached,
               onRemovePhoto: () => setState(() => _photo = null),
@@ -429,7 +665,7 @@ class _StylistScreenState extends State<StylistScreen> {
                 () => _attached = [..._attached.where((i) => i != id)],
               ),
             ),
-          _Composer(
+          ChatComposer(
             controller: _input,
             enabled: canChat && !outOfMessages,
             busy: _busy,
@@ -437,671 +673,7 @@ class _StylistScreenState extends State<StylistScreen> {
             maxLength: _maxMessageLength,
             onAttach: _attach,
             onSend: () => _send(_input.text),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StylistAvatar extends StatelessWidget {
-  const _StylistAvatar({this.size = 36});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: palette.ink, shape: BoxShape.circle),
-      child: Text(
-        AiStylistService.stylistName.characters.first,
-        style: TextStyle(
-          color: palette.onInk,
-          fontSize: size * 0.45,
-          fontWeight: FontWeight.w700,
-          height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _StylistHeader extends StatelessWidget {
-  const _StylistHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final text = context.textTheme;
-    return Row(
-      children: [
-        const _StylistAvatar(),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AiStylistService.stylistName,
-                style: text.titleMedium,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                'AI Stylist',
-                style: text.bodySmall,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Shown before the first message.
-class _Welcome extends StatelessWidget {
-  const _Welcome({required this.canChat});
-
-  final bool canChat;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = context.textTheme;
-    final name = context.select<SettingsController, String>(
-      (s) => s.displayName,
-    );
-    final firstName = name.split(' ').first;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.page),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _StylistAvatar(size: 56),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              canChat
-                  ? firstName.isEmpty
-                        ? 'How can I help you?'
-                        : 'How can I help you, $firstName?'
-                  : 'Add a few clothes first',
-              textAlign: TextAlign.center,
-              style: text.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              canChat
-                  ? 'Ask for an outfit or send a photo, and I’ll build the '
-                        'look from your wardrobe. Item names and colors go to '
-                        'the AI service, and a photo only when you attach one.'
-                  : 'I need at least two pieces to style an outfit.',
-              textAlign: TextAlign.center,
-              style: text.bodyMedium?.copyWith(
-                color: context.palette.textSecondary,
-              ),
-            ),
-            if (!canChat) ...[
-              const SizedBox(height: AppSpacing.md),
-              FilledButton(
-                onPressed: () => AppNavigator.addClothing(context),
-                child: const Text('Add clothes'),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Black bubble on the right for the user, grey on the left for the stylist.
-class _Bubble extends StatelessWidget {
-  const _Bubble({required this.text, required this.fromUser});
-
-  final String text;
-  final bool fromUser;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Align(
-      alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: context.screenSize.width * 0.78),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color: fromUser ? palette.ink : palette.surfaceMuted,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-          ),
-          child: Text(
-            text,
-            style: context.textTheme.bodyLarge?.copyWith(
-              color: fromUser ? palette.onInk : palette.ink,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PieceThumb extends StatelessWidget {
-  const _PieceThumb({required this.item});
-
-  final ClothingItem item;
-
-  static const double size = 48;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: item.name,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: context.palette.surfaceMuted,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: ClothingImage(
-          item: item,
-          cutout: true,
-          fit: BoxFit.contain,
-          decodeWidth: size,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-      ),
-    );
-  }
-}
-
-class _UserMessage extends StatelessWidget {
-  const _UserMessage({required this.message});
-
-  final StylistMessage message;
-
-  static const double _photoSize = 180;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = context.watch<WardrobeController>().itemsByIds(
-      message.itemIds,
-    );
-    final photo = message.photo;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        if (photo != null) ...[
-          _PhotoThumb(
-            path: context.read<ImageStorageService>().resolvePath(photo),
-            size: _photoSize,
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-        ],
-        if (items.isNotEmpty) ...[
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: AppSpacing.xxs,
-            runSpacing: AppSpacing.xxs,
-            children: [for (final item in items) _PieceThumb(item: item)],
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-        ],
-        _Bubble(text: message.text, fromUser: true),
-      ],
-    );
-  }
-}
-
-class _StylistAnswer extends StatelessWidget {
-  const _StylistAnswer({
-    required this.message,
-    required this.saved,
-    required this.onSave,
-  });
-
-  final StylistMessage message;
-  final Set<OutfitSuggestion> saved;
-  final ValueChanged<OutfitSuggestion> onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (message.text.isNotEmpty)
-          _Bubble(text: message.text, fromUser: false),
-        for (final outfit in message.outfits) ...[
-          const SizedBox(height: AppSpacing.xs),
-          _SuggestionCard(
-            suggestion: outfit,
-            saved: saved.contains(outfit),
-            onSave: () => onSave(outfit),
-            onEdit: () => AppNavigator.createOutfit(
-              context,
-              initialItemIds: outfit.itemIds,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ErrorNote extends StatelessWidget {
-  const _ErrorNote({required this.error, required this.onRetry});
-
-  final Object error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          describeError(error),
-          textAlign: TextAlign.end,
-          style: context.textTheme.bodySmall?.copyWith(
-            color: context.palette.danger,
-          ),
-        ),
-        TextButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.refresh_rounded),
-          label: const Text('Try again'),
-        ),
-      ],
-    );
-  }
-}
-
-/// Free plan: messages left today, or an upgrade offer once they run out.
-class _QuotaNote extends StatelessWidget {
-  const _QuotaNote({required this.left});
-
-  final int left;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = context.textTheme.bodySmall;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.page,
-        AppSpacing.xs,
-        AppSpacing.page,
-        0,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              left == 0
-                  ? 'You’ve used today’s free messages. Come back tomorrow '
-                        'or go Premium for unlimited chat.'
-                  : '${AppFormatters.count(left, 'free message')} left today',
-              style: style,
-            ),
-          ),
-          TextButton(
-            onPressed: () => AppNavigator.premium(context),
-            child: const Text('See Premium'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A photo and pieces waiting to be sent with the next message; tap one to
-/// remove it.
-class _Attachments extends StatelessWidget {
-  const _Attachments({
-    required this.photo,
-    required this.itemIds,
-    required this.onRemovePhoto,
-    required this.onRemove,
-  });
-
-  /// Local file path of the picked photo.
-  final String? photo;
-  final List<String> itemIds;
-  final VoidCallback onRemovePhoto;
-  final ValueChanged<String> onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final photo = this.photo;
-    final items = context.watch<WardrobeController>().itemsByIds(itemIds);
-    Widget removable(String label, VoidCallback onTap, Widget thumb) =>
-        Tooltip(
-          message: 'Remove $label',
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Stack(
-              children: [
-                thumb,
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: Icon(
-                    Icons.cancel_rounded,
-                    size: AppSizes.iconSm,
-                    color: context.palette.ink,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-    return SizedBox(
-      height: _PieceThumb.size + AppSpacing.sm,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.page,
-          AppSpacing.sm,
-          AppSpacing.page,
-          0,
-        ),
-        children: [
-          if (photo != null)
-            removable(
-              'photo',
-              onRemovePhoto,
-              _PhotoThumb(path: photo, size: _PieceThumb.size),
-            ),
-          for (final item in items)
-            Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.xs),
-              child: removable(
-                item.name,
-                () => onRemove(item.id),
-                _PieceThumb(item: item),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A photo from [path], a file path or `https` URL, or a placeholder when it
-/// can't be loaded.
-class _PhotoThumb extends StatelessWidget {
-  const _PhotoThumb({required this.path, required this.size});
-
-  final String? path;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final path = this.path;
-    final placeholder = ColoredBox(
-      color: context.palette.surfaceMuted,
-      child: Icon(Icons.image_outlined, color: context.palette.textTertiary),
-    );
-    return Semantics(
-      container: true,
-      image: true,
-      label: 'Photo',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: SizedBox.square(
-          dimension: size,
-          child: path == null
-              ? placeholder
-              : Image(
-                  image: ResizeImage.resizeIfNeeded(
-                    (size * 3).round(),
-                    null,
-                    path.startsWith('https://')
-                        ? NetworkImage(path)
-                        : FileImage(File(path)),
-                  ),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => placeholder,
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Composer extends StatelessWidget {
-  const _Composer({
-    required this.controller,
-    required this.enabled,
-    required this.busy,
-    required this.hasAttachments,
-    required this.maxLength,
-    required this.onAttach,
-    required this.onSend,
-  });
-
-  final TextEditingController controller;
-  final bool enabled;
-  final bool busy;
-  final bool hasAttachments;
-  final int maxLength;
-  final VoidCallback onAttach;
-  final VoidCallback onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.page,
-        AppSpacing.sm,
-        AppSpacing.page,
-        AppSpacing.sm,
-      ),
-      padding: const EdgeInsets.all(AppSpacing.xxs),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            tooltip: 'Attach',
-            onPressed: enabled && !busy ? onAttach : null,
-            icon: const Icon(Icons.add_rounded),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              enabled: enabled,
-              maxLength: maxLength,
-              minLines: 1,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Ask anything',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                filled: false,
-                counterText: '',
-              ),
-            ),
-          ),
-          ValueListenableBuilder(
-            valueListenable: controller,
-            builder: (context, value, _) => IconButton.filled(
-              tooltip: 'Send',
-              onPressed:
-                  enabled &&
-                      !busy &&
-                      (hasAttachments || value.text.trim().isNotEmpty)
-                  ? onSend
-                  : null,
-              icon: const Icon(Icons.arrow_upward_rounded),
-              style: IconButton.styleFrom(
-                backgroundColor: palette.ink,
-                foregroundColor: palette.onInk,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Past chats, newest first. Resolves to the chat to reopen.
-class _HistorySheet extends StatelessWidget {
-  const _HistorySheet();
-
-  @override
-  Widget build(BuildContext context) {
-    final history = context.watch<StylistHistory>();
-    final chats = history.chats;
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) => Column(
-        children: [
-          const SheetHeader(title: 'Chat history'),
-          Expanded(
-            child: chats.isEmpty
-                ? SingleChildScrollView(
-                    controller: scrollController,
-                    child: const AppEmptyState(
-                      compact: true,
-                      icon: Icons.history_rounded,
-                      title: 'No chats yet',
-                      message: 'Your conversations with the stylist show up '
-                          'here.',
-                    ),
-                  )
-                : ListView.builder(
-                    controller: scrollController,
-                    itemCount: chats.length,
-                    itemBuilder: (context, index) {
-                      final chat = chats[index];
-                      return ListTile(
-                        title: Text(
-                          chat.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(AppFormatters.relativeDay(chat.updatedAt)),
-                        onTap: () => Navigator.of(context).pop(chat),
-                        trailing: IconButton(
-                          tooltip: 'Delete chat',
-                          icon: const Icon(Icons.delete_outline_rounded),
-                          onPressed: () async {
-                            try {
-                              await history.delete(chat.id);
-                            } catch (error) {
-                              if (context.mounted) {
-                                context.showErrorSnack(error);
-                              }
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SuggestionCard extends StatelessWidget {
-  const _SuggestionCard({
-    required this.suggestion,
-    required this.saved,
-    required this.onSave,
-    required this.onEdit,
-  });
-
-  final OutfitSuggestion suggestion;
-  final bool saved;
-  final VoidCallback onSave;
-  final VoidCallback onEdit;
-
-  static const double _previewWidth = 112;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final text = context.textTheme;
-    final items = context.watch<WardrobeController>().itemsByIds(
-      suggestion.itemIds,
-    );
-    final compactButton = ButtonStyle(
-      minimumSize: WidgetStateProperty.all(
-        const Size(0, AppSizes.compactButtonHeight),
-      ),
-    );
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: _previewWidth,
-            child: AspectRatio(
-              aspectRatio: AppSizes.outfitImageAspect,
-              child: OutfitCanvas(items: items),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(suggestion.name, style: text.titleMedium),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  items.map((item) => item.name).join(' · '),
-                  style: text.bodySmall,
-                ),
-                if (suggestion.reason.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(suggestion.reason, style: text.bodyMedium),
-                ],
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    FilledButton(
-                      onPressed: saved ? null : onSave,
-                      style: compactButton,
-                      child: Text(saved ? 'Saved' : 'Save outfit'),
-                    ),
-                    OutlinedButton(
-                      onPressed: onEdit,
-                      style: compactButton,
-                      child: const Text('Edit'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            onStop: _stop,
           ),
         ],
       ),

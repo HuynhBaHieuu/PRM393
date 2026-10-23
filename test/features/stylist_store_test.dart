@@ -3,8 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
+import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
-import 'package:all_fits/features/stylist/stylist_history.dart';
+import 'package:all_fits/features/stylist/stylist_store.dart';
+
+import '../helpers/test_harness.dart';
 
 class _Counter implements IdGenerator {
   int _n = 0;
@@ -17,7 +20,7 @@ void main() {
   test('chats and the daily count survive a reload', () async {
     final storage = InMemoryStorageService();
     var now = DateTime(2026, 10, 23, 9);
-    StylistHistory open() => StylistHistory(
+    StylistStore open() => StylistStore(
       storage: storage,
       idGenerator: _Counter(),
       clock: () => now,
@@ -62,9 +65,45 @@ void main() {
     expect(reopened.chats, isEmpty);
   });
 
+  test(
+    'remembers the stylist, notes and try-on photo; shares add once a day',
+    () async {
+      final storage = InMemoryStorageService();
+      final images = FakeImageStorageService();
+      StylistStore open() => StylistStore(
+        storage: storage,
+        idGenerator: _Counter(),
+        images: images,
+        clock: () => DateTime(2026, 10, 23, 9),
+      );
+
+      final store = open();
+      await store.load();
+      expect(store.persona, StylistPersona.kai);
+      await store.setPersona(StylistPersona.mila);
+      await store.setNotes('  I run cold ');
+      await store.setBodyPhoto('images/me.jpg');
+      await store.setBodyPhoto('images/me2.jpg');
+      expect(images.deleted, ['images/me.jpg']);
+
+      await store.countMessage();
+      await store.grantShareBonus();
+      await store.grantShareBonus();
+      expect(store.bonusToday, AppConfig.shareBonusMessages);
+
+      final reopened = open();
+      await reopened.load();
+      expect(reopened.persona, StylistPersona.mila);
+      expect(reopened.notes, 'I run cold');
+      expect(reopened.bodyPhoto, 'images/me2.jpg');
+      expect(reopened.usedToday, 1);
+      expect(reopened.bonusToday, AppConfig.shareBonusMessages);
+    },
+  );
+
   test('keeps only the newest chats', () async {
     var minute = 0;
-    final history = StylistHistory(
+    final history = StylistStore(
       storage: InMemoryStorageService(),
       idGenerator: _Counter(),
       clock: () => DateTime(2026, 10, 23).add(Duration(minutes: minute++)),

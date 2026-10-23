@@ -17,7 +17,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
-import 'package:all_fits/features/stylist/stylist_history.dart';
+import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -45,7 +45,7 @@ class _UserSessionState extends State<UserSession> {
   late final OutfitController _outfits;
   late final PlannerController _planner;
   late final WeatherController _weather;
-  late final StylistHistory _stylist;
+  late final StylistStore _stylist;
   late final ClosetActions _closet;
   late final ShellController _shell;
   late final AppBootstrap _bootstrap;
@@ -77,7 +77,7 @@ class _UserSessionState extends State<UserSession> {
       idGenerator: deps.idGenerator,
     );
     _weather = WeatherController(service: deps.weather, clock: deps.clock);
-    _stylist = StylistHistory(
+    _stylist = StylistStore(
       storage: ScopedStorageService(
         deps.storage,
         StorageKeys.userScope(widget.user.id),

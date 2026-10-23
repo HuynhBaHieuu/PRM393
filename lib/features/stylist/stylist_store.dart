@@ -10,6 +10,7 @@ import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/json_collection_store.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
+import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 
 /// One saved conversation with the AI stylist.
@@ -57,12 +58,13 @@ class StylistChat {
   };
 }
 
-/// Past AI Stylist chats and today's message count for one user.
+/// One user's AI Stylist data: past chats, their chosen stylist and notes,
+/// their try-on photo, and today's message count.
 ///
 /// ponytail: kept on the device, so the Free daily limit resets with the app
 /// data; enforce it server-side once the AI calls go through a backend.
-class StylistHistory extends ChangeNotifier {
-  StylistHistory({
+class StylistStore extends ChangeNotifier {
+  StylistStore({
     required LocalStorageService storage,
     required this._idGenerator,
     this._images,
@@ -87,6 +89,10 @@ class StylistHistory extends ChangeNotifier {
   List<StylistChat> _chats = const [];
   String _usageDay = '';
   int _usageCount = 0;
+  int _usageBonus = 0;
+  StylistPersona _persona = StylistPersona.kai;
+  String _notes = '';
+  String? _bodyPhoto;
   Future<void>? _loading;
 
   /// Newest first.
@@ -94,6 +100,17 @@ class StylistHistory extends ChangeNotifier {
 
   /// Messages sent today.
   int get usedToday => _usageDay == _today ? _usageCount : 0;
+
+  /// Extra Free messages earned today by sharing the app.
+  int get bonusToday => _usageDay == _today ? _usageBonus : 0;
+
+  StylistPersona get persona => _persona;
+
+  /// What the user wants the stylist to know about them.
+  String get notes => _notes;
+
+  /// Image storage reference of the full-body photo used for try-ons.
+  String? get bodyPhoto => _bodyPhoto;
 
   String get _today {
     final now = _clock();
@@ -106,17 +123,58 @@ class StylistHistory extends ChangeNotifier {
     _chats = await _store.readAll()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     try {
-      final raw = await _storage.read(StorageKeys.stylistUsage);
-      if (jsonDecode(raw ?? '{}') case {
-        'day': final String day,
-        'count': final int count,
-      }) {
+      final usage = await _storage.read(StorageKeys.stylistUsage);
+      if (jsonDecode(usage ?? '{}')
+          case {'day': final String day, 'count': final int count} &&
+              final Map json) {
         _usageDay = day;
         _usageCount = count;
+        _usageBonus = json['bonus'] is int ? json['bonus'] as int : 0;
+      }
+      final prefs = await _storage.read(StorageKeys.stylistPrefs);
+      if (jsonDecode(prefs ?? '{}') case final Map json) {
+        final map = Map<String, dynamic>.from(json);
+        _persona =
+            JsonReader.enumValue(StylistPersona.values, map['persona']) ??
+            StylistPersona.kai;
+        _notes = JsonReader.nonEmptyString(map, 'notes') ?? '';
+        _bodyPhoto = JsonReader.nonEmptyString(map, 'bodyPhoto');
       }
     } catch (error) {
-      developer.log('Stylist usage unreadable', name: 'storage', error: error);
+      developer.log('Stylist data unreadable', name: 'storage', error: error);
     }
+    notifyListeners();
+  }
+
+  Future<void> setPersona(StylistPersona persona) =>
+      _savePrefs(persona, _notes, _bodyPhoto);
+
+  Future<void> setNotes(String notes) =>
+      _savePrefs(_persona, notes.trim(), _bodyPhoto);
+
+  /// Replaces the try-on photo, deleting the old one.
+  Future<void> setBodyPhoto(String reference) async {
+    final old = _bodyPhoto;
+    await _savePrefs(_persona, _notes, reference);
+    if (old != null && old != reference) await _images?.deleteImage(old);
+  }
+
+  Future<void> _savePrefs(
+    StylistPersona persona,
+    String notes,
+    String? bodyPhoto,
+  ) async {
+    await _storage.write(
+      StorageKeys.stylistPrefs,
+      jsonEncode({
+        'persona': persona.name,
+        'notes': notes,
+        'bodyPhoto': bodyPhoto,
+      }),
+    );
+    _persona = persona;
+    _notes = notes;
+    _bodyPhoto = bodyPhoto;
     notifyListeners();
   }
 
@@ -159,15 +217,23 @@ class StylistHistory extends ChangeNotifier {
   }
 
   /// Records one message sent today.
-  Future<void> countMessage() async {
+  Future<void> countMessage() => _saveUsage(usedToday + 1, bonusToday);
+
+  /// Adds today's share bonus; only once a day.
+  Future<void> grantShareBonus() async {
+    if (bonusToday > 0) return;
+    await _saveUsage(usedToday, AppConfig.shareBonusMessages);
+  }
+
+  Future<void> _saveUsage(int count, int bonus) async {
     final day = _today;
-    final count = usedToday + 1;
     await _storage.write(
       StorageKeys.stylistUsage,
-      jsonEncode({'day': day, 'count': count}),
+      jsonEncode({'day': day, 'count': count, 'bonus': bonus}),
     );
     _usageDay = day;
     _usageCount = count;
+    _usageBonus = bonus;
     notifyListeners();
   }
 }

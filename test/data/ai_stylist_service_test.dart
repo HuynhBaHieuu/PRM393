@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,6 +8,7 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 
@@ -23,14 +25,25 @@ ClothingItem _item(String id, String name, ClothingCategory category) {
   );
 }
 
+/// The first bytes of a WebP file.
+final List<int> _webp = [...'RIFF0000WEBP'.codeUnits, 7];
+
 void main() {
   // A local stand-in for the chat completions endpoint, so the real HTTP
   // path is exercised without a network or an API key.
   late HttpServer server;
   late int status;
   late String reply;
+
+  /// Sent as is instead of a chat completion, when set.
+  String? rawResponse;
+
+  /// When set, the server waits for it before answering.
+  Completer<void>? hold;
   Map<String, dynamic>? sentBody;
   String? sentAuth;
+  String? sentPath;
+  String? sentGoogleKey;
 
   final wardrobe = [
     _item('uuid-tee', 'White Tee', ClothingCategory.tops),
@@ -52,33 +65,43 @@ void main() {
   setUp(() async {
     status = HttpStatus.ok;
     reply = outfits([]);
+    rawResponse = null;
+    hold = null;
     sentBody = null;
     sentAuth = null;
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       // Photos uploaded to cloud storage are fetched by URL.
       if (request.method == 'GET') {
-        request.response.add([7, 7]);
+        request.response.add(_webp);
         await request.response.close();
         return;
       }
       sentAuth = request.headers.value(HttpHeaders.authorizationHeader);
+      sentGoogleKey = request.headers.value('x-goog-api-key');
+      sentPath = request.uri.path;
       sentBody = jsonDecode(
         await utf8.decoder.bind(request).join(),
       ) as Map<String, dynamic>;
-      request.response
-        ..statusCode = status
-        ..headers.contentType = ContentType.json
-        ..write(
-          jsonEncode({
-            'choices': [
-              {
-                'message': {'content': reply},
-              },
-            ],
-          }),
-        );
-      await request.response.close();
+      await hold?.future;
+      try {
+        request.response
+          ..statusCode = status
+          ..headers.contentType = ContentType.json
+          ..write(
+            rawResponse ??
+                jsonEncode({
+                  'choices': [
+                    {
+                      'message': {'content': reply},
+                    },
+                  ],
+                }),
+          );
+        await request.response.close();
+      } on Object {
+        // The client went away (a cancelled request).
+      }
     });
   });
 
@@ -207,6 +230,8 @@ void main() {
           'reason': 'Clean.',
         },
       ],
+      'packingList': <String>[],
+      'shopping': <Object>[],
     });
   });
 
@@ -232,7 +257,8 @@ void main() {
   test('sends only the newest photo, as a data URL', () async {
     final dir = await Directory.systemTemp.createTemp('stylist');
     addTearDown(() => dir.delete(recursive: true));
-    final newer = File('${dir.path}/new.png')..writeAsBytesSync([1, 2, 3]);
+    final newer = File('${dir.path}/new.png')
+      ..writeAsBytesSync([0x89, 0x50, 0x4E, 0x47, 1, 2]);
     File('${dir.path}/old.jpg').writeAsBytesSync([9]);
 
     await service().reply(
@@ -252,7 +278,8 @@ void main() {
       {
         'type': 'image_url',
         'image_url': {
-          'url': 'data:image/png;base64,${base64Encode(newer.readAsBytesSync())}',
+          'url':
+              'data:image/png;base64,${base64Encode(newer.readAsBytesSync())}',
         },
       },
     ]);
@@ -275,8 +302,149 @@ void main() {
     final content = (sentBody!['messages'] as List).last['content'] as List;
     expect(
       content.last['image_url']['url'],
-      'data:image/webp;base64,${base64Encode([7, 7])}',
+      'data:image/webp;base64,${base64Encode(_webp)}',
     );
+  });
+
+  test(
+    'speaks as the chosen stylist and keeps packing and shopping lists',
+    () async {
+      reply = jsonEncode({
+        'reply': 'Packed! 🧳',
+        'outfits': [],
+        'packingList': ['1', '2', '1', '99'],
+        'shopping': [
+          {
+            'name': 'Rain jacket',
+            'query': 'black rain jacket',
+            'reason': 'Wet.',
+          },
+          {'name': '', 'query': 'x', 'reason': ''},
+        ],
+      });
+      final result = await service().reply(
+        wardrobe: wardrobe,
+        history: ask,
+        persona: StylistPersona.theo,
+        notes: ' 1m80, no shorts ',
+      );
+      expect(result.text, 'Packed! 🧳');
+      expect(result.packingList, ['uuid-tee', 'uuid-jeans']);
+      expect(result.shopping.single.query, 'black rain jacket');
+
+      final messages = sentBody!['messages'] as List;
+      expect(messages[0]['content'], contains('You are Theo'));
+      expect(messages[0]['content'], contains(StylistPersona.theo.direction));
+      final context = jsonDecode(messages[1]['content'] as String) as Map;
+      expect(context['aboutUser'], '1m80, no shorts');
+
+      // The JSON survives a save and reload.
+      final copy = StylistMessage.fromJson(
+        jsonDecode(jsonEncode(result.toJson())) as Map<String, dynamic>,
+      );
+      expect(copy.packingList, result.packingList);
+      expect(copy.shopping.single.name, 'Rain jacket');
+    },
+  );
+
+  test('a cancelled request stops at once', () async {
+    hold = Completer<void>();
+    final cancel = Completer<void>();
+    final call = service().reply(
+      wardrobe: wardrobe,
+      history: ask,
+      cancel: cancel.future,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    cancel.complete();
+    await expectLater(call, throwsA(isA<AiException>()));
+    hold!.complete();
+  });
+
+  group('try-on', () {
+    AiStylistService gemini() => AiStylistService(
+      apiKey: 'test-key',
+      baseUrl: 'http://127.0.0.1:${server.port}/v1beta/openai',
+      imageModel: 'image-model',
+    );
+
+    test(
+      'sends the person and pieces to Gemini and returns the picture',
+      () async {
+        final picture = [0x89, 0x50, 0x4E, 0x47, 9];
+        rawResponse = jsonEncode({
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  {'text': 'Here you go'},
+                  {
+                    'inlineData': {
+                      'mimeType': 'image/png',
+                      'data': base64Encode(picture),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        });
+
+        expect(service().canTryOn, isFalse);
+        final result = await gemini().tryOn(
+          person: [0xFF, 0xD8, 1],
+          pieces: [
+            for (var i = 0; i < 6; i++) [0xFF, 0xD8, i],
+          ],
+        );
+
+        expect(result, picture);
+        expect(sentPath, '/v1beta/models/image-model:generateContent');
+        expect(sentGoogleKey, 'test-key');
+        final parts = sentBody!['contents'][0]['parts'] as List;
+        // The prompt, the person, then at most four pieces.
+        expect(parts, hasLength(2 + AiStylistService.maxTryOnPieces));
+        expect(parts[1]['inline_data'], {
+          'mime_type': 'image/jpeg',
+          'data': base64Encode([0xFF, 0xD8, 1]),
+        });
+        expect(sentBody!['generationConfig'], {
+          'responseModalities': ['IMAGE'],
+        });
+      },
+    );
+
+    test('explains a plan without image generation', () async {
+      status = HttpStatus.tooManyRequests;
+      rawResponse = '{"error": {"message": "Quota exceeded, limit: 0"}}';
+      await expectLater(
+        gemini().tryOn(
+          person: [1],
+          pieces: [
+            [2],
+          ],
+        ),
+        throwsA(
+          isA<AiException>().having(
+            (e) => e.message,
+            'message',
+            contains('billing'),
+          ),
+        ),
+      );
+
+      status = HttpStatus.ok;
+      rawResponse = '{"candidates": []}';
+      await expectLater(
+        gemini().tryOn(
+          person: [1],
+          pieces: [
+            [2],
+          ],
+        ),
+        throwsA(isA<AiException>()),
+      );
+    });
   });
 
   test('reads JSON wrapped in a code fence', () async {

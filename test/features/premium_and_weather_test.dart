@@ -13,6 +13,7 @@ import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/user_account.dart';
+import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
@@ -68,7 +69,10 @@ class _EchoStylist extends AiStylistService {
     required List<ClothingItem> wardrobe,
     required List<StylistMessage> history,
     WeatherReport? weather,
+    StylistPersona persona = StylistPersona.kai,
+    String notes = '',
     String? Function(String photo)? resolvePhoto,
+    Future<void>? cancel,
   }) async => StylistMessage.stylist('Answer to ${history.last.text}');
 }
 

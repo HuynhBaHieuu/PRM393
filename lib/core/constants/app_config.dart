@@ -54,6 +54,9 @@ abstract final class AppConfig {
   /// limit.
   static const int freeStylistMessagesPerDay = 3;
 
+  /// Extra Free AI Stylist messages for sharing the app, once a day.
+  static const int shareBonusMessages = 3;
+
   /// Past AI Stylist chats kept on the device, newest first.
   static const int stylistChatsKept = 30;
 
