@@ -86,12 +86,14 @@ void main() {
       );
     });
 
-    test('does not offer Facebook login on device', () async {
-      expect(repo.supportsFacebook, isFalse);
-      await expectLater(
-        repo.signInWithFacebook(),
-        throwsA(isA<AuthException>()),
-      );
+    test('does not offer Google or Facebook login on device', () async {
+      expect(repo.supportsSocialLogin, isFalse);
+      for (final provider in SocialProvider.values) {
+        await expectLater(
+          repo.signInWith(provider),
+          throwsA(isA<AuthException>()),
+        );
+      }
       expect(await repo.externalSignIns.isEmpty, isTrue);
     });
 

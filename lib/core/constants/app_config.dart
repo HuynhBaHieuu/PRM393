@@ -50,6 +50,9 @@ abstract final class AppConfig {
   /// Clothing items a Free account can hold; Premium has no limit.
   static const int freeWardrobeLimit = 30;
 
+  /// Collections a Free account can create; Premium has no limit.
+  static const int freeCollectionLimit = 3;
+
   /// AI Stylist messages a Free account can send per day; Premium has no
   /// limit.
   static const int freeStylistMessagesPerDay = 3;

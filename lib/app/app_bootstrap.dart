@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:all_fits/data/models/user_account.dart';
+import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
@@ -16,6 +17,7 @@ class AppBootstrap {
     required this.wardrobe,
     required this.outfits,
     required this.planner,
+    required this.collections,
     required this.closet,
     required this.seedSampleData,
   });
@@ -25,6 +27,7 @@ class AppBootstrap {
   final WardrobeController wardrobe;
   final OutfitController outfits;
   final PlannerController planner;
+  final CollectionController collections;
   final ClosetActions closet;
   final bool seedSampleData;
 
@@ -34,6 +37,7 @@ class AppBootstrap {
       wardrobe.load(),
       outfits.load(),
       planner.load(),
+      collections.load(),
     ]);
     if (settings.displayName.isEmpty && settings.username.isEmpty) {
       // A new account starts with the name and handle given at sign-up.

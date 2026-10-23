@@ -10,6 +10,7 @@ import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
+import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
@@ -95,6 +96,14 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                   context,
                   () => outfits.toggleFavorite(outfit.id),
                 );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.collections_bookmark_outlined),
+              title: const Text('Add to collection'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                CollectionFlows.addOutfit(context, outfit.id);
               },
             ),
             ListTile(

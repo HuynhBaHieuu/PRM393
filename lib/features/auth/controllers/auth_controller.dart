@@ -28,9 +28,10 @@ class AuthController extends ChangeNotifier {
   AuthStatus get status => _status;
   AppUser? get user => _user;
   String? get lastEmail => _lastEmail;
-  bool get supportsFacebook => _repository.supportsFacebook;
+  bool get supportsSocialLogin => _repository.supportsSocialLogin;
 
-  /// Why the last browser login (Facebook) failed, for the login screen.
+  /// Why the last browser login (Google, Facebook) failed, for the login
+  /// screen.
   String? get externalError => _externalError;
 
   /// Restores the previous session, if any.
@@ -44,7 +45,7 @@ class AuthController extends ChangeNotifier {
         developer.log('Browser login failed', name: 'auth', error: error);
         _externalError = error is AppException
             ? error.message
-            : 'Facebook login failed. Please try again.';
+            : 'Login failed. Please try again.';
         notifyListeners();
       },
     );
@@ -81,10 +82,10 @@ class AuthController extends ChangeNotifier {
     _signedIn(await _repository.signIn(email: email, password: password));
   }
 
-  /// Opens Facebook in the browser. The app signs in when it comes back.
-  Future<void> signInWithFacebook() async {
+  /// Opens [provider] in the browser. The app signs in when it comes back.
+  Future<void> signInWith(SocialProvider provider) async {
     _externalError = null;
-    await _repository.signInWithFacebook();
+    await _repository.signInWith(provider);
   }
 
   Future<void> signOut() async {
