@@ -164,8 +164,9 @@ abstract final class PremiumFlows {
       title: 'Cancel Premium?',
       message:
           'You’ll move to the Free plan. Your clothes and outfits stay, '
-          'but the AI Stylist locks and you can’t add clothes past '
-          '${AppConfig.freeWardrobeLimit} pieces.',
+          'but the AI Stylist drops to '
+          '${AppConfig.freeStylistMessagesPerDay} messages a day and you '
+          'can’t add clothes past ${AppConfig.freeWardrobeLimit} pieces.',
       confirmLabel: 'Cancel Premium',
       cancelLabel: 'Keep Premium',
       destructive: true,

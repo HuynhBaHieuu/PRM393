@@ -5,9 +5,11 @@ import 'package:all_fits/app/app_bootstrap.dart';
 import 'package:all_fits/app/app_dependencies.dart';
 import 'package:all_fits/app/app_material_app.dart';
 import 'package:all_fits/app/routes.dart';
+import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
+import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
@@ -15,6 +17,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/features/stylist/stylist_history.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -42,6 +45,7 @@ class _UserSessionState extends State<UserSession> {
   late final OutfitController _outfits;
   late final PlannerController _planner;
   late final WeatherController _weather;
+  late final StylistHistory _stylist;
   late final ClosetActions _closet;
   late final ShellController _shell;
   late final AppBootstrap _bootstrap;
@@ -73,6 +77,15 @@ class _UserSessionState extends State<UserSession> {
       idGenerator: deps.idGenerator,
     );
     _weather = WeatherController(service: deps.weather, clock: deps.clock);
+    _stylist = StylistHistory(
+      storage: ScopedStorageService(
+        deps.storage,
+        StorageKeys.userScope(widget.user.id),
+      ),
+      idGenerator: deps.idGenerator,
+      images: deps.imageStorage,
+      clock: deps.clock,
+    );
     _closet = ClosetActions(
       wardrobe: _wardrobe,
       outfits: _outfits,
@@ -100,6 +113,7 @@ class _UserSessionState extends State<UserSession> {
     _outfits.dispose();
     _planner.dispose();
     _weather.dispose();
+    _stylist.dispose();
     _shell.dispose();
     super.dispose();
   }
@@ -121,6 +135,7 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _outfits),
         ChangeNotifierProvider.value(value: _planner),
         ChangeNotifierProvider.value(value: _weather),
+        ChangeNotifierProvider.value(value: _stylist),
         ChangeNotifierProvider.value(value: _shell),
         Provider.value(value: _closet),
       ],

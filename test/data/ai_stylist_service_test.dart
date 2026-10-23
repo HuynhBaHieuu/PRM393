@@ -7,7 +7,7 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
-import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 
 ClothingItem _item(String id, String name, ClothingCategory category) {
@@ -44,8 +44,10 @@ void main() {
     model: 'test-model',
   );
 
-  String outfits(List<Map<String, Object?>> list) =>
-      jsonEncode({'outfits': list});
+  String outfits(List<Map<String, Object?>> list, {String text = 'Here!'}) =>
+      jsonEncode({'reply': text, 'outfits': list});
+
+  const ask = [StylistMessage.user('Trời mưa, mặc gì đi làm?')];
 
   setUp(() async {
     status = HttpStatus.ok;
@@ -54,6 +56,12 @@ void main() {
     sentAuth = null;
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
+      // Photos uploaded to cloud storage are fetched by URL.
+      if (request.method == 'GET') {
+        request.response.add([7, 7]);
+        await request.response.close();
+        return;
+      }
       sentAuth = request.headers.value(HttpHeaders.authorizationHeader);
       sentBody = jsonDecode(
         await utf8.decoder.bind(request).join(),
@@ -79,7 +87,7 @@ void main() {
   test(
     'sends wardrobe metadata and maps the reply back to real items',
     () async {
-      reply = outfits([
+      reply = outfits(text: 'Two rainy-day looks ☔', [
         {
           'name': 'Weekend',
           'itemIds': ['1', '2', '3', '2'],
@@ -98,28 +106,49 @@ void main() {
         },
       ]);
 
-      final result = await service().suggest(
+      final result = await service().reply(
         wardrobe: wardrobe,
-        occasion: Occasion.work,
-        note: 'Trời mưa',
+        history: ask,
+        weather: WeatherReport(
+          location: const WeatherLocation(
+            name: 'Hanoi',
+            latitude: 21,
+            longitude: 105.8,
+          ),
+          temperature: 24,
+          high: 26.4,
+          low: 21.6,
+          condition: WeatherCondition.rain,
+          rainChance: 80,
+          fetchedAt: DateTime(2026, 10, 1),
+        ),
       );
 
-      expect(result, hasLength(2));
-      expect(result[0].name, 'Weekend');
-      expect(result[0].itemIds, ['uuid-tee', 'uuid-jeans', 'uuid-shoes']);
-      expect(result[0].reason, 'Relaxed and clean.');
-      expect(result[1].name, 'AI outfit');
+      expect(result.fromUser, isFalse);
+      expect(result.text, 'Two rainy-day looks ☔');
+      final looks = result.outfits;
+      expect(looks, hasLength(2));
+      expect(looks[0].name, 'Weekend');
+      expect(looks[0].itemIds, ['uuid-tee', 'uuid-jeans', 'uuid-shoes']);
+      expect(looks[0].reason, 'Relaxed and clean.');
+      expect(looks[1].name, 'AI outfit');
 
       expect(sentAuth, 'Bearer test-key');
       expect(sentBody!['model'], 'test-model');
       expect(sentBody!['response_format']['json_schema']['strict'], isTrue);
       final messages = sentBody!['messages'] as List;
-      final userContent = messages.last['content'] as String;
-      final request = jsonDecode(userContent) as Map<String, dynamic>;
-      expect(request['occasion'], 'Work');
-      expect(request['note'], 'Trời mưa');
-      expect(request['wardrobe'], hasLength(3));
-      expect(request['wardrobe'][0], {
+      expect(messages.last, {'role': 'user', 'content': ask.single.text});
+      final contextJson = messages[1]['content'] as String;
+      final context = jsonDecode(contextJson) as Map<String, dynamic>;
+      expect(context['weather'], {
+        'city': 'Hanoi',
+        'condition': 'Rain',
+        'highC': 26,
+        'lowC': 22,
+        'rainChance': 80,
+      });
+      expect(context['wardrobe'], hasLength(3));
+      expect(context['wardrobe'][0], {
         'id': '1',
         'name': 'White Tee',
         'category': 'tops',
@@ -127,10 +156,59 @@ void main() {
         'wears': 0,
       });
       // Photos and real ids stay on the device.
-      expect(userContent, isNot(contains('images/')));
-      expect(userContent, isNot(contains('uuid-')));
+      expect(contextJson, isNot(contains('images/')));
+      expect(contextJson, isNot(contains('uuid-')));
     },
   );
+
+  test('sends earlier outfits back with short ids and keeps the last '
+      '${AiStylistService.maxHistory} messages', () async {
+    reply = outfits([], text: 'Sure!');
+    final history = [
+      for (var i = 0; i < AiStylistService.maxHistory; i++)
+        const StylistMessage.user('filler'),
+      const StylistMessage.stylist(
+        'Try this',
+        outfits: [
+          OutfitSuggestion(
+            name: 'Look',
+            itemIds: ['uuid-tee', 'uuid-gone', 'uuid-shoes'],
+            reason: 'Clean.',
+          ),
+        ],
+      ),
+      const StylistMessage.user(
+        'Other shoes please',
+        itemIds: ['uuid-shoes', 'uuid-gone'],
+      ),
+    ];
+
+    final result = await service().reply(wardrobe: wardrobe, history: history);
+    expect(result.text, 'Sure!');
+    expect(result.outfits, isEmpty);
+
+    final messages = sentBody!['messages'] as List;
+    // Persona, context, then the newest messages only.
+    expect(messages, hasLength(2 + AiStylistService.maxHistory));
+    // Attached pieces are named by their short ids.
+    expect(
+      messages.last['content'],
+      'Other shoes please\n(Attached pieces, by id: 3)',
+    );
+    final earlier = messages[messages.length - 2];
+    expect(earlier['role'], 'assistant');
+    expect(jsonDecode(earlier['content'] as String), {
+      'reply': 'Try this',
+      'outfits': [
+        {
+          'name': 'Look',
+          // An item no longer in the wardrobe is left out.
+          'itemIds': ['1', '3'],
+          'reason': 'Clean.',
+        },
+      ],
+    });
+  });
 
   test('reads its settings from the config file contents', () {
     final gemini = AiStylistService.fromConfig(
@@ -151,6 +229,56 @@ void main() {
     }
   });
 
+  test('sends only the newest photo, as a data URL', () async {
+    final dir = await Directory.systemTemp.createTemp('stylist');
+    addTearDown(() => dir.delete(recursive: true));
+    final newer = File('${dir.path}/new.png')..writeAsBytesSync([1, 2, 3]);
+    File('${dir.path}/old.jpg').writeAsBytesSync([9]);
+
+    await service().reply(
+      wardrobe: wardrobe,
+      history: const [
+        StylistMessage.user('Old look', photo: 'old.jpg'),
+        StylistMessage.stylist('Nice'),
+        StylistMessage.user('Match this', photo: 'new.png'),
+      ],
+      resolvePhoto: (photo) => '${dir.path}/$photo',
+    );
+
+    final messages = sentBody!['messages'] as List;
+    expect(messages[2]['content'], 'Old look');
+    expect(messages.last['content'], [
+      {'type': 'text', 'text': 'Match this'},
+      {
+        'type': 'image_url',
+        'image_url': {
+          'url': 'data:image/png;base64,${base64Encode(newer.readAsBytesSync())}',
+        },
+      },
+    ]);
+
+    // A photo that is gone leaves just the text.
+    await service().reply(
+      wardrobe: wardrobe,
+      history: const [StylistMessage.user('Match this', photo: 'gone.jpg')],
+      resolvePhoto: (photo) => '${dir.path}/$photo',
+    );
+    expect((sentBody!['messages'] as List).last['content'], 'Match this');
+
+    // Photos kept in cloud storage are downloaded first.
+    final url = 'http://127.0.0.1:${server.port}/u/photo.webp?v=1';
+    await service().reply(
+      wardrobe: wardrobe,
+      history: [StylistMessage.user('Cloud', photo: url)],
+      resolvePhoto: (photo) => photo,
+    );
+    final content = (sentBody!['messages'] as List).last['content'] as List;
+    expect(
+      content.last['image_url']['url'],
+      'data:image/webp;base64,${base64Encode([7, 7])}',
+    );
+  });
+
   test('reads JSON wrapped in a code fence', () async {
     final json = outfits([
       {
@@ -160,59 +288,48 @@ void main() {
       },
     ]);
     reply = 'Here you go:\n```json\n$json\n```';
-    final result = await service().suggest(wardrobe: wardrobe);
-    expect(result.single.name, 'Fenced');
+    final result = await service().reply(wardrobe: wardrobe, history: ask);
+    expect(result.outfits.single.name, 'Fenced');
   });
 
   test('turns failures into user-facing errors', () async {
-    Future<String> messageOf(Future<Object?> call) async {
+    Future<String> messageOf(AiStylistService stylist) async {
       try {
-        await call;
+        await stylist.reply(wardrobe: wardrobe, history: ask);
       } on AiException catch (error) {
         return error.message;
       }
       fail('Expected an AiException');
     }
 
-    // No usable outfits in the reply.
-    expect(
-      await messageOf(service().suggest(wardrobe: wardrobe)),
-      contains('No outfits'),
-    );
+    // Neither text nor a usable outfit.
+    reply = outfits([
+      {
+        'name': 'Ghost',
+        'itemIds': ['98', '99'],
+        'reason': '',
+      },
+    ], text: ' ');
+    expect(await messageOf(service()), contains('could not be read'));
 
     reply = 'not json at all';
-    expect(
-      await messageOf(service().suggest(wardrobe: wardrobe)),
-      contains('could not be read'),
-    );
+    expect(await messageOf(service()), contains('could not be read'));
 
     status = HttpStatus.unauthorized;
-    expect(
-      await messageOf(service().suggest(wardrobe: wardrobe)),
-      contains('API key'),
-    );
+    expect(await messageOf(service()), contains('API key'));
 
     status = HttpStatus.serviceUnavailable;
-    expect(
-      await messageOf(service().suggest(wardrobe: wardrobe)),
-      contains('busy right now'),
-    );
+    expect(await messageOf(service()), contains('busy right now'));
 
     // Without a key no request is made at all.
     sentBody = null;
     final unconfigured = service(apiKey: '');
     expect(unconfigured.isConfigured, isFalse);
-    expect(
-      await messageOf(unconfigured.suggest(wardrobe: wardrobe)),
-      contains('not set up'),
-    );
+    expect(await messageOf(unconfigured), contains('not set up'));
     expect(sentBody, isNull);
 
     final offline = service();
     await server.close(force: true);
-    expect(
-      await messageOf(offline.suggest(wardrobe: wardrobe)),
-      contains('Could not reach'),
-    );
+    expect(await messageOf(offline), contains('Could not reach'));
   });
 }

@@ -50,6 +50,13 @@ abstract final class AppConfig {
   /// Clothing items a Free account can hold; Premium has no limit.
   static const int freeWardrobeLimit = 30;
 
+  /// AI Stylist messages a Free account can send per day; Premium has no
+  /// limit.
+  static const int freeStylistMessagesPerDay = 3;
+
+  /// Past AI Stylist chats kept on the device, newest first.
+  static const int stylistChatsKept = 30;
+
   /// Shown on the Premium screen. Checkout is simulated: nothing is charged.
   static const double premiumMonthlyPrice = 4.99;
 

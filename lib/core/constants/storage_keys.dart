@@ -8,6 +8,10 @@ abstract final class StorageKeys {
   static const String calendarEntries = 'calendar.entries.v1';
   static const String settings = 'settings.v1';
 
+  // Per-user, always kept on the device, even with Supabase.
+  static const String stylistChats = 'stylist.chats.v1';
+  static const String stylistUsage = 'stylist.usage.v1';
+
   static const List<String> userDataKeys = [
     clothingItems,
     outfits,

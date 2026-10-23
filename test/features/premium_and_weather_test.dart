@@ -14,6 +14,7 @@ import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/models/weather.dart';
+import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
 import 'package:all_fits/features/home/screens/home_screen.dart';
@@ -58,6 +59,19 @@ WeatherReport _report(double temperature, WeatherCondition condition) =>
       fetchedAt: testNow,
     );
 
+/// Repeats the question back.
+class _EchoStylist extends AiStylistService {
+  const _EchoStylist() : super(apiKey: 'fake');
+
+  @override
+  Future<StylistMessage> reply({
+    required List<ClothingItem> wardrobe,
+    required List<StylistMessage> history,
+    WeatherReport? weather,
+    String? Function(String photo)? resolvePhoto,
+  }) async => StylistMessage.stylist('Answer to ${history.last.text}');
+}
+
 void main() {
   group('plans', () {
     test('Free holds a limited wardrobe, Premium does not', () {
@@ -65,8 +79,11 @@ void main() {
       expect(SubscriptionPlan.free.canAddItem(limit - 1), isTrue);
       expect(SubscriptionPlan.free.canAddItem(limit), isFalse);
       expect(SubscriptionPlan.premium.canAddItem(limit * 10), isTrue);
-      expect(SubscriptionPlan.free.hasAiStylist, isFalse);
-      expect(SubscriptionPlan.premium.hasAiStylist, isTrue);
+      expect(
+        SubscriptionPlan.free.stylistMessagesPerDay,
+        AppConfig.freeStylistMessagesPerDay,
+      );
+      expect(SubscriptionPlan.premium.stylistMessagesPerDay, isNull);
     });
 
     test('upgrading and cancelling persist', () async {
@@ -195,21 +212,38 @@ void main() {
       await tap(tester, find.text(option));
     }
 
-    testWidgets('the AI Stylist unlocks after upgrading', (tester) async {
-      await pumpApp(tester, testDependencies());
+    testWidgets('Free gets a few stylist messages a day, Premium unlimited', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        testDependencies(aiStylist: const _EchoStylist()),
+        items: 3,
+      );
       await create(tester, 'AI Stylist');
-      expect(find.text('AI Stylist is a Premium feature'), findsOneWidget);
+      const limit = AppConfig.freeStylistMessagesPerDay;
+      expect(find.text('$limit free messages left today'), findsOneWidget);
+
+      for (var i = 1; i <= limit; i++) {
+        await tester.enterText(find.byType(TextField), 'Question $i');
+        await tap(tester, find.byTooltip('Send'));
+        expect(find.text('Answer to Question $i'), findsOneWidget);
+      }
+      expect(find.textContaining('used today’s free messages'), findsOneWidget);
+      final send = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.arrow_upward_rounded),
+      );
+      expect(send.onPressed, isNull);
 
       await tap(tester, find.text('See Premium'));
-      expect(find.text('All Fits Premium'), findsOneWidget);
       expect(find.text('Current plan'), findsOneWidget);
       await tap(tester, find.textContaining('Upgrade for'));
       await tap(tester, find.text('Start Premium'));
-      expect(find.text('Cancel Premium'), findsOneWidget);
-
       await tap(tester, find.byTooltip('Back'));
-      // Unlocked: without an API key the stylist explains its setup.
-      expect(find.text('AI stylist isn’t set up'), findsOneWidget);
+
+      // Unlimited now: no count, and the chat is still there.
+      expect(find.textContaining('free message'), findsNothing);
+      expect(find.text('Answer to Question $limit'), findsOneWidget);
     });
 
     testWidgets('payOS checkout starts Premium once the payment arrives', (
@@ -235,8 +269,9 @@ void main() {
         );
       };
 
-      await create(tester, 'AI Stylist');
-      await tap(tester, find.text('See Premium'));
+      await tapNav(tester, 'Profile');
+      await tap(tester, find.byTooltip('Account'));
+      await tap(tester, find.text('All Fits Premium'));
       expect(find.text(PremiumFlows.payOSPrice), findsOneWidget);
       // The wait dialog spins until paid, so pump by hand instead of settling.
       await tester.tap(find.textContaining('Upgrade for'));

@@ -21,14 +21,17 @@ class PremiumScreen extends StatelessWidget {
     (true, 'Up to ${AppConfig.freeWardrobeLimit} clothing items'),
     (true, 'Outfits, planner and insights'),
     (true, 'Weather outfit picks'),
-    (false, 'AI Stylist outfit ideas'),
+    (
+      true,
+      'AI Stylist: ${AppConfig.freeStylistMessagesPerDay} messages a day',
+    ),
   ];
 
   static const List<(bool, String)> _premiumFeatures = [
     (true, 'Unlimited clothing items'),
     (true, 'Outfits, planner and insights'),
     (true, 'Weather outfit picks'),
-    (true, 'AI Stylist outfit ideas'),
+    (true, 'Unlimited AI Stylist chat'),
   ];
 
   @override
@@ -83,8 +86,8 @@ class PremiumScreen extends StatelessWidget {
                 Text(
                   isPremium
                       ? 'You have every feature unlocked.'
-                      : 'Unlock the AI Stylist and room for your whole '
-                            'wardrobe.',
+                      : 'Chat with the AI Stylist as much as you like and '
+                            'make room for your whole wardrobe.',
                   style: text.bodyLarge?.copyWith(color: palette.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.lg),

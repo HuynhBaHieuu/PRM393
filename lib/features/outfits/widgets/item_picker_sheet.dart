@@ -9,14 +9,15 @@ import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
 
-/// Lets the user pick wardrobe items for one outfit slot.
+/// Lets the user pick wardrobe items for one outfit slot, or from the whole
+/// wardrobe when [slot] is null.
 ///
 /// In multi-select mode resolves to the full selection for the slot; in
 /// [single] mode (replacing a piece) resolves to a one-element list.
 /// Resolves to null when dismissed.
 Future<List<String>?> showItemPickerSheet(
   BuildContext context, {
-  required OutfitSlot slot,
+  required OutfitSlot? slot,
   Set<String> selected = const {},
   bool single = false,
   VoidCallback? onAddClothing,
@@ -42,7 +43,7 @@ class _ItemPickerSheet extends StatefulWidget {
     this.onAddClothing,
   });
 
-  final OutfitSlot slot;
+  final OutfitSlot? slot;
   final Set<String> initialSelection;
   final bool single;
   final VoidCallback? onAddClothing;
@@ -66,14 +67,14 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final slot = widget.slot;
     final items = context
         .watch<WardrobeController>()
         .activeItems
-        .where((item) => widget.slot.categories.contains(item.category))
+        .where((item) => slot?.categories.contains(item.category) ?? true)
         .toList();
-    final title = widget.single
-        ? 'Replace ${widget.slot.label.toLowerCase()}'
-        : 'Choose ${widget.slot.label.toLowerCase()}';
+    final what = slot?.label.toLowerCase() ?? 'pieces';
+    final title = widget.single ? 'Replace $what' : 'Choose $what';
 
     return DraggableScrollableSheet(
       expand: false,
@@ -92,8 +93,8 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
                       icon: Icons.checkroom_outlined,
                       title: 'Nothing here yet',
                       message:
-                          'Add ${widget.slot.label.toLowerCase()} to your '
-                          'wardrobe to use them in outfits.',
+                          'Add $what to your wardrobe to use them in '
+                          'outfits.',
                       actionLabel: widget.onAddClothing == null
                           ? null
                           : 'Add Clothing',

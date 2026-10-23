@@ -2,10 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
-import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
 
@@ -19,29 +17,6 @@ class PremiumBadge extends StatelessWidget {
     inverted: true,
     icon: Icons.workspace_premium_outlined,
   );
-}
-
-/// Full-page placeholder for a feature the user's plan doesn't include.
-class PremiumLockedView extends StatelessWidget {
-  const PremiumLockedView({
-    super.key,
-    required this.title,
-    required this.message,
-  });
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppEmptyState(
-      icon: Icons.lock_outline_rounded,
-      title: title,
-      message: message,
-      actionLabel: 'See Premium',
-      onAction: () => AppNavigator.premium(context),
-    );
-  }
 }
 
 /// One plan on the Premium screen: name, price and what it includes.

@@ -14,7 +14,9 @@ enum SubscriptionPlan {
   /// Most clothing items the plan can hold, or null for no limit.
   int? get wardrobeLimit => isPremium ? null : AppConfig.freeWardrobeLimit;
 
-  bool get hasAiStylist => isPremium;
+  /// AI Stylist messages the plan can send per day, or null for no limit.
+  int? get stylistMessagesPerDay =>
+      isPremium ? null : AppConfig.freeStylistMessagesPerDay;
 
   /// Whether a wardrobe of [itemCount] pieces has room for one more.
   bool canAddItem(int itemCount) {

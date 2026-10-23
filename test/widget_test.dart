@@ -4,14 +4,16 @@ import 'package:provider/provider.dart';
 
 import 'package:all_fits/app/app.dart';
 import 'package:all_fits/app/app_dependencies.dart';
+import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
-import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
+import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
+import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
@@ -80,22 +82,46 @@ Future<void> _addClothing(
   await _tap(tester, find.text('Save'));
 }
 
-/// Answers instantly with one outfit made of the first three items.
+/// Answers instantly with one outfit made of the first three items, and
+/// fails once when asked to.
 class _FakeStylist extends AiStylistService {
-  const _FakeStylist() : super(apiKey: 'fake');
+  _FakeStylist() : super(apiKey: 'fake');
+
+  bool failNext = false;
 
   @override
-  Future<List<OutfitSuggestion>> suggest({
+  Future<StylistMessage> reply({
     required List<ClothingItem> wardrobe,
-    Occasion? occasion,
-    String note = '',
-  }) async => [
-    OutfitSuggestion(
-      name: 'Rainy Monday',
-      itemIds: [for (final item in wardrobe.take(3)) item.id],
-      reason: 'Picked for ${occasion?.label}: $note',
-    ),
-  ];
+    required List<StylistMessage> history,
+    WeatherReport? weather,
+    String? Function(String photo)? resolvePhoto,
+  }) async {
+    if (failNext) {
+      failNext = false;
+      throw const AiException('The AI service is busy right now.');
+    }
+    final asked = history.last;
+    if (asked.photo != null) {
+      return StylistMessage.stylist('Nice photo: ${asked.text}');
+    }
+    if (asked.itemIds.isNotEmpty) {
+      final names = [
+        for (final item in wardrobe)
+          if (asked.itemIds.contains(item.id)) item.name,
+      ];
+      return StylistMessage.stylist('Attached: ${names.join(', ')}');
+    }
+    return StylistMessage.stylist(
+      'You said: ${asked.text}',
+      outfits: [
+        OutfitSuggestion(
+          name: 'Rainy Monday',
+          itemIds: [for (final item in wardrobe.take(3)) item.id],
+          reason: 'Message ${history.length} of the chat.',
+        ),
+      ],
+    );
+  }
 }
 
 void main() {
@@ -425,27 +451,88 @@ void main() {
   });
 
   group('AI stylist', () {
-    testWidgets('suggests an outfit that can be saved', (tester) async {
+    testWidgets('chats, retries a failed message and saves an outfit', (
+      tester,
+    ) async {
+      final stylist = _FakeStylist();
       await _pumpApp(
         tester,
-        testDependencies(seedSampleData: true, aiStylist: const _FakeStylist()),
+        testDependencies(seedSampleData: true, aiStylist: stylist),
         premium: true,
       );
       await _create(tester, 'AI Stylist');
+      expect(find.textContaining('How can I help you'), findsOneWidget);
 
-      await _tap(tester, find.text('Work'));
-      await tester.enterText(find.byType(TextField), 'light rain');
-      await _tap(tester, find.text('Suggest outfits'));
-
+      // A quick start sends its question.
+      final (_, workPrompt) = StylistScreen.prompts.first;
+      await _tap(tester, find.widgetWithText(ActionChip, 'Work'));
+      expect(find.text(workPrompt), findsOneWidget);
+      expect(find.text('You said: $workPrompt'), findsOneWidget);
       expect(find.text('Rainy Monday'), findsOneWidget);
-      expect(find.text('Picked for Work: light rain'), findsOneWidget);
+      expect(find.byType(ActionChip), findsNothing);
 
-      await _tap(tester, find.text('Save outfit'));
+      // A follow-up carries the whole conversation; a failure can be retried.
+      stylist.failNext = true;
+      await tester.enterText(find.byType(TextField), 'Other shoes');
+      await _tap(tester, find.byTooltip('Send'));
+      expect(find.text('The AI service is busy right now.'), findsOneWidget);
+      await _tap(tester, find.text('Try again'));
+      expect(find.text('You said: Other shoes'), findsOneWidget);
+      expect(find.text('Message 3 of the chat.'), findsOneWidget);
+
+      // Attached pieces go with the next message.
+      await _tap(tester, find.byTooltip('Attach'));
+      await _tap(tester, find.text('Clothes'));
+      final wardrobe = tester
+          .element(find.byType(StylistScreen))
+          .read<WardrobeController>();
+      final piece = wardrobe.activeItems.first;
+      await _tap(tester, find.bySemanticsLabel(piece.name).last);
+      await _tap(tester, find.textContaining('Done'));
+      expect(find.byTooltip('Remove ${piece.name}'), findsOneWidget);
+      await _tap(tester, find.byTooltip('Send'));
+      expect(find.text(StylistScreen.attachPrompt), findsOneWidget);
+      expect(find.text('Attached: ${piece.name}'), findsOneWidget);
+
+      // So does a photo; it shows in the chat.
+      await _tap(tester, find.byTooltip('Attach'));
+      await _tap(tester, find.text('Library'));
+      expect(find.byTooltip('Remove photo'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Match this');
+      await _tap(tester, find.byTooltip('Send'));
+      expect(find.text('Nice photo: Match this'), findsOneWidget);
+      expect(find.bySemanticsLabel('Photo'), findsOneWidget);
+
+      // A new chat starts empty; the history reopens the old one.
+      await _tap(tester, find.byTooltip('New chat'));
+      expect(find.textContaining('How can I help you'), findsOneWidget);
+      await _tap(tester, find.byTooltip('Chat history'));
+      expect(find.text(workPrompt), findsOneWidget);
+      await _tap(tester, find.text(workPrompt));
+      expect(find.text('You said: Other shoes'), findsOneWidget);
+
+      await _tap(tester, find.text('Save outfit').last);
       expect(find.text('Saved'), findsOneWidget);
 
-      await _tap(tester, find.byTooltip('Close'));
+      await _tap(tester, find.byTooltip('Back'));
       await _openTab(tester, 'Outfits');
       expect(find.text('Rainy Monday'), findsOneWidget);
+    });
+
+    testWidgets('asks for more clothes when the wardrobe is too small', (
+      tester,
+    ) async {
+      await _pumpApp(
+        tester,
+        testDependencies(aiStylist: _FakeStylist()),
+        premium: true,
+      );
+      await _create(tester, 'AI Stylist');
+      expect(find.text('Add a few clothes first'), findsOneWidget);
+      expect(find.byType(ActionChip), findsNothing);
+
+      await _tap(tester, find.text('Add clothes'));
+      expect(find.text('Add clothing'), findsOneWidget);
     });
 
     testWidgets('explains how to turn it on when there is no API key', (

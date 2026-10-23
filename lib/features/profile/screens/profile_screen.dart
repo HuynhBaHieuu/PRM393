@@ -66,7 +66,7 @@ class ProfileScreen extends StatelessWidget {
                   title: 'All Fits Premium',
                   subtitle: settings.isPremium
                       ? 'Unlimited wardrobe and AI Stylist'
-                      : 'Unlock the AI Stylist and unlimited space',
+                      : 'Unlimited AI Stylist chat and space',
                   trailingText: settings.plan.label,
                   onTap: () => AppNavigator.premium(context),
                 ),
