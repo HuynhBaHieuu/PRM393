@@ -42,6 +42,23 @@ class FavoriteOverlayButton extends StatelessWidget {
   }
 }
 
+/// Round check mark on a selected tile (used by pickers).
+class SelectionBadge extends StatelessWidget {
+  const SelectionBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return DecoratedBox(
+      decoration: BoxDecoration(color: palette.ink, shape: BoxShape.circle),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(Icons.check_rounded, size: 16, color: palette.onInk),
+      ),
+    );
+  }
+}
+
 /// Small label, e.g. "Archived" or an occasion.
 class TagLabel extends StatelessWidget {
   const TagLabel(this.text, {super.key, this.inverted = false, this.icon});

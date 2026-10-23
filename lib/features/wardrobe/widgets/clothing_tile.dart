@@ -16,6 +16,7 @@ class ClothingTile extends StatelessWidget {
     this.onFavorite,
     this.onLongPress,
     this.selected = false,
+    this.dimmed = false,
     this.decodeWidth = 260,
   });
 
@@ -26,9 +27,13 @@ class ClothingTile extends StatelessWidget {
 
   /// Shows a selection ring and check mark (used by pickers).
   final bool selected;
+
+  /// Fades the photo, e.g. for archived pieces inside a collection.
+  final bool dimmed;
   final double decodeWidth;
 
   static const double _overlayInset = 6;
+  static const double _dimmedOpacity = 0.4;
 
   static String metaLine(ClothingItem item) =>
       [item.category.singularLabel, ?item.brand].join(' · ');
@@ -58,14 +63,17 @@ class ClothingTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.xxs),
-                child: ClothingImage(
-                  item: item,
-                  cutout: true,
-                  fit: BoxFit.contain,
-                  borderRadius: radius,
-                  decodeWidth: decodeWidth,
+              Opacity(
+                opacity: dimmed ? _dimmedOpacity : 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xxs),
+                  child: ClothingImage(
+                    item: item,
+                    cutout: true,
+                    fit: BoxFit.contain,
+                    borderRadius: radius,
+                    decodeWidth: decodeWidth,
+                  ),
                 ),
               ),
               if (onFavorite != null && item.isFavorite)
@@ -84,23 +92,10 @@ class ClothingTile extends StatelessWidget {
                   child: TagLabel('Archived', inverted: true),
                 ),
               if (selected)
-                Positioned(
+                const Positioned(
                   top: _overlayInset,
                   left: _overlayInset,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: palette.ink,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: palette.onInk,
-                      ),
-                    ),
-                  ),
+                  child: SelectionBadge(),
                 ),
             ],
           ),

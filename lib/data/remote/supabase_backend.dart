@@ -204,7 +204,7 @@ class SupabaseSettingsRepository implements SettingsRepository {
 class SupabaseAuthRepository implements AuthRepository {
   SupabaseAuthRepository(this._auth, this._storage);
 
-  /// Deep link the browser opens after Facebook login. Must be listed under
+  /// Deep link the browser opens after Google or Facebook login. Must be listed under
   /// Authentication → URL Configuration → Redirect URLs, and matches the
   /// intent filter in AndroidManifest.xml.
   static const String oauthRedirect = 'com.example.allfits://login-callback';
@@ -285,20 +285,29 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  bool get supportsFacebook => true;
+  bool get supportsSocialLogin => true;
 
   @override
-  Future<void> signInWithFacebook() async {
+  Future<void> signInWith(SocialProvider provider) async {
     _awaitingOAuth = true;
     final launched = await _guard(
       () => _auth.signInWithOAuth(
-        sb.OAuthProvider.facebook,
+        switch (provider) {
+          SocialProvider.google => sb.OAuthProvider.google,
+          SocialProvider.facebook => sb.OAuthProvider.facebook,
+        },
         redirectTo: oauthRedirect,
+        // Lets people with several Google accounts choose one each time.
+        queryParams: provider == SocialProvider.google
+            ? const {'prompt': 'select_account'}
+            : null,
       ),
     );
     if (!launched) {
       _awaitingOAuth = false;
-      throw const AuthException('Could not open Facebook. Please try again.');
+      throw AuthException(
+        'Could not open ${provider.label}. Please try again.',
+      );
     }
   }
 
@@ -341,7 +350,8 @@ class SupabaseAuthRepository implements AuthRepository {
   static AppUser _toAppUser(sb.User user) => AppUser(
     id: user.id,
     email: user.email ?? '',
-    // Email sign-ups store `display_name`; Facebook fills `full_name`/`name`.
+    // Email sign-ups store `display_name`; Google and Facebook fill
+    // `full_name`/`name`.
     displayName:
         (user.userMetadata?['display_name'] ??
                 user.userMetadata?['full_name'] ??

@@ -14,13 +14,14 @@ import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
-enum _ItemMenuAction { edit, archive, delete }
+enum _ItemMenuAction { edit, addToCollection, archive, delete }
 
 class ClothingDetailScreen extends StatelessWidget {
   const ClothingDetailScreen({super.key, required this.itemId});
@@ -39,6 +40,8 @@ class ClothingDetailScreen extends StatelessWidget {
     switch (action) {
       case _ItemMenuAction.edit:
         await AppNavigator.editClothing(context, item.id);
+      case _ItemMenuAction.addToCollection:
+        await CollectionFlows.addItem(context, item.id);
       case _ItemMenuAction.archive:
         await _setArchived(context, wardrobe, item, archived: !item.isArchived);
       case _ItemMenuAction.delete:
@@ -126,6 +129,10 @@ class ClothingDetailScreen extends StatelessWidget {
                     const PopupMenuItem(
                       value: _ItemMenuAction.edit,
                       child: Text('Edit'),
+                    ),
+                    const PopupMenuItem(
+                      value: _ItemMenuAction.addToCollection,
+                      child: Text('Add to collection'),
                     ),
                     PopupMenuItem(
                       value: _ItemMenuAction.archive,

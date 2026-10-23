@@ -73,7 +73,8 @@ when it is not (tests always run on device).
 1. Create a free project at supabase.com.
 2. **SQL Editor:** paste [`supabase/schema.sql`](supabase/schema.sql) and run
    it. This creates the tables, row-level security and the `wardrobe-images`
-   photo bucket.
+   photo bucket. It is safe to run again, which you need to do on an
+   existing project when a table is added (for example `collections`).
 3. **Authentication → Sign In / Providers → Email:** turn off *Confirm email*
    so new accounts can sign in straight away (with it on, the app asks the user
    to confirm by email first).
@@ -86,6 +87,29 @@ when it is not (tests always run on device).
   "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
 }
 ```
+
+### Google login
+
+With Supabase configured, **Log in** also shows **Continue with Google**. Like
+Facebook below, it opens Google in the browser and comes back through
+`com.example.allfits://login-callback`. Without Supabase the button is hidden.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/) pick or create
+   a project. Under **APIs & Services → OAuth consent screen** set it up as
+   *External* and add your Gmail accounts as **Test users** while it is in
+   *Testing*.
+2. Under **APIs & Services → Credentials → Create credentials → OAuth client
+   ID** choose **Web application** (not Android: Supabase does the exchange).
+   Under **Authorized redirect URIs** add
+   `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. Copy **Client ID** and **Client secret** into Supabase **Authentication →
+   Sign In / Providers → Google** and enable it.
+4. In Supabase **Authentication → URL Configuration → Redirect URLs** add
+   `com.example.allfits://login-callback` (already there if Facebook is set
+   up).
+
+Signing in with Google and with Facebook under the same email gives one
+account, as long as both emails are verified.
 
 ### Facebook login
 

@@ -26,7 +26,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Facebook login (Supabase OAuth) returns here; see
+            <!-- Google and Facebook login (Supabase OAuth) return here; see
                  SupabaseAuthRepository.oauthRedirect. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
@@ -60,7 +60,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Lets url_launcher open the Facebook login page (Android 11+). -->
+        <!-- Lets url_launcher open the Google/Facebook login pages (Android 11+). -->
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>

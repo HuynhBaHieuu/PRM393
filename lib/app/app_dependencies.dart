@@ -19,10 +19,12 @@ import 'package:all_fits/data/remote/supabase_backend.dart';
 import 'package:all_fits/data/remote/weather_service.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/data/repositories/calendar_repository.dart';
+import 'package:all_fits/data/repositories/collection_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/collection.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/outfit_calendar_entry.dart';
 
@@ -146,6 +148,14 @@ class AppDependencies {
             (e) => e.id,
           ),
         ),
+        collections: LocalCollectionRepository.fromStore(
+          store(
+            'collections',
+            Collection.fromJson,
+            (c) => c.toJson(),
+            (c) => c.id,
+          ),
+        ),
         settings: SupabaseSettingsRepository(client, userId),
       );
     }
@@ -154,6 +164,7 @@ class AppDependencies {
       wardrobe: LocalWardrobeRepository(scoped),
       outfits: LocalOutfitRepository(scoped),
       calendar: LocalCalendarRepository(scoped),
+      collections: LocalCollectionRepository(scoped),
       settings: LocalSettingsRepository(scoped),
     );
   }
@@ -184,11 +195,13 @@ class UserRepositories {
     required this.wardrobe,
     required this.outfits,
     required this.calendar,
+    required this.collections,
     required this.settings,
   });
 
   final WardrobeRepository wardrobe;
   final OutfitRepository outfits;
   final CalendarRepository calendar;
+  final CollectionRepository collections;
   final SettingsRepository settings;
 }

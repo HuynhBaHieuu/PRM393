@@ -9,6 +9,7 @@ import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_dialogs.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
+import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
@@ -29,8 +30,41 @@ abstract final class PremiumFlows {
     return plan.canAddItem(context.read<WardrobeController>().allItems.length);
   }
 
+  /// Whether the user's plan has room for another collection.
+  static bool canAddCollection(BuildContext context) {
+    final plan = context.read<SettingsController>().plan;
+    return plan.canAddCollection(
+      context.read<CollectionController>().collections.length,
+    );
+  }
+
   /// Explains the Free wardrobe limit and offers Premium.
-  static Future<void> showWardrobeLimit(BuildContext context) {
+  static Future<void> showWardrobeLimit(BuildContext context) => _showLimit(
+    context,
+    title: 'Your wardrobe is full',
+    message:
+        'The Free plan holds '
+        '${AppFormatters.count(AppConfig.freeWardrobeLimit, 'piece')}, '
+        'archived ones included. Go Premium for unlimited '
+        'space, or delete pieces you no longer wear.',
+  );
+
+  /// Explains the Free collection limit and offers Premium.
+  static Future<void> showCollectionLimit(BuildContext context) => _showLimit(
+    context,
+    title: 'Collection limit reached',
+    message:
+        'The Free plan holds '
+        '${AppFormatters.count(AppConfig.freeCollectionLimit, 'collection')}. '
+        'Go Premium for unlimited collections, or delete one you no '
+        'longer need.',
+  );
+
+  static Future<void> _showLimit(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
     final text = context.textTheme;
     final palette = context.palette;
     return showModalBottomSheet<void>(
@@ -43,7 +77,7 @@ abstract final class PremiumFlows {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SheetHeader(title: 'Your wardrobe is full'),
+              SheetHeader(title: title),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.page,
@@ -52,10 +86,7 @@ abstract final class PremiumFlows {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'The Free plan holds '
-                      '${AppFormatters.count(AppConfig.freeWardrobeLimit, 'piece')}, '
-                      'archived ones included. Go Premium for unlimited '
-                      'space, or delete pieces you no longer wear.',
+                      message,
                       style: text.bodyMedium?.copyWith(
                         color: palette.textSecondary,
                       ),
@@ -166,7 +197,8 @@ abstract final class PremiumFlows {
           'You’ll move to the Free plan. Your clothes and outfits stay, '
           'but the AI Stylist drops to '
           '${AppConfig.freeStylistMessagesPerDay} messages a day and you '
-          'can’t add clothes past ${AppConfig.freeWardrobeLimit} pieces.',
+          'can’t add clothes past ${AppConfig.freeWardrobeLimit} pieces '
+          'or collections past ${AppConfig.freeCollectionLimit}.',
       confirmLabel: 'Cancel Premium',
       cancelLabel: 'Keep Premium',
       destructive: true,

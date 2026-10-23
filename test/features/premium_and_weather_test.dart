@@ -274,6 +274,8 @@ void main() {
       await tap(tester, find.text('All Fits Premium'));
       expect(find.text(PremiumFlows.payOSPrice), findsOneWidget);
       // The wait dialog spins until paid, so pump by hand instead of settling.
+      await tester.ensureVisible(find.textContaining('Upgrade for'));
+      await tester.pump();
       await tester.tap(find.textContaining('Upgrade for'));
       await tester.pump();
       await tester.pump();

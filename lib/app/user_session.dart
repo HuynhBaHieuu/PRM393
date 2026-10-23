@@ -13,6 +13,7 @@ import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
+import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
@@ -44,6 +45,7 @@ class _UserSessionState extends State<UserSession> {
   late final WardrobeController _wardrobe;
   late final OutfitController _outfits;
   late final PlannerController _planner;
+  late final CollectionController _collections;
   late final WeatherController _weather;
   late final StylistHistory _stylist;
   late final ClosetActions _closet;
@@ -76,6 +78,12 @@ class _UserSessionState extends State<UserSession> {
       repository: repositories.calendar,
       idGenerator: deps.idGenerator,
     );
+    _collections = CollectionController(
+      repository: repositories.collections,
+      imageStorage: deps.imageStorage,
+      idGenerator: deps.idGenerator,
+      clock: deps.clock,
+    );
     _weather = WeatherController(service: deps.weather, clock: deps.clock);
     _stylist = StylistHistory(
       storage: ScopedStorageService(
@@ -90,6 +98,7 @@ class _UserSessionState extends State<UserSession> {
       wardrobe: _wardrobe,
       outfits: _outfits,
       planner: _planner,
+      collections: _collections,
       idGenerator: deps.idGenerator,
       clock: deps.clock,
     );
@@ -100,6 +109,7 @@ class _UserSessionState extends State<UserSession> {
       wardrobe: _wardrobe,
       outfits: _outfits,
       planner: _planner,
+      collections: _collections,
       closet: _closet,
       seedSampleData: deps.seedSampleData,
     );
@@ -112,6 +122,7 @@ class _UserSessionState extends State<UserSession> {
     _wardrobe.dispose();
     _outfits.dispose();
     _planner.dispose();
+    _collections.dispose();
     _weather.dispose();
     _stylist.dispose();
     _shell.dispose();
@@ -134,6 +145,7 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _wardrobe),
         ChangeNotifierProvider.value(value: _outfits),
         ChangeNotifierProvider.value(value: _planner),
+        ChangeNotifierProvider.value(value: _collections),
         ChangeNotifierProvider.value(value: _weather),
         ChangeNotifierProvider.value(value: _stylist),
         ChangeNotifierProvider.value(value: _shell),

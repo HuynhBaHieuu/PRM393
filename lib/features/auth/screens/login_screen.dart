@@ -5,6 +5,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/validators.dart';
+import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/features/auth/controllers/auth_controller.dart';
 import 'package:all_fits/features/auth/screens/register_screen.dart';
 import 'package:all_fits/features/auth/widgets/auth_widgets.dart';
@@ -22,7 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _password = TextEditingController();
 
   bool _busy = false;
-  bool _facebookBusy = false;
+
+  /// The provider whose browser login is being opened.
+  SocialProvider? _socialBusy;
   String? _error;
 
   @override
@@ -63,20 +66,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInWithFacebook() async {
-    if (_busy) return;
+  Future<void> _signInWith(SocialProvider provider) async {
+    if (_busy || _socialBusy != null) return;
     FocusScope.of(context).unfocus();
     setState(() {
       _error = null;
-      _facebookBusy = true;
+      _socialBusy = provider;
     });
     try {
       // Only opens the browser; the app signs in when it comes back.
-      await context.read<AuthController>().signInWithFacebook();
+      await context.read<AuthController>().signInWith(provider);
     } catch (error) {
       if (mounted) setState(() => _error = describeError(error));
     } finally {
-      if (mounted) setState(() => _facebookBusy = false);
+      if (mounted) setState(() => _socialBusy = null);
     }
   }
 
@@ -130,14 +133,19 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: AppSpacing.md),
         ],
         AuthSubmitButton(label: 'Log in', busy: _busy, onPressed: _submit),
-        if (auth.supportsFacebook) ...[
+        if (auth.supportsSocialLogin) ...[
           const SizedBox(height: AppSpacing.md),
           const AuthOrDivider(),
-          const SizedBox(height: AppSpacing.md),
-          FacebookLoginButton(
-            busy: _facebookBusy,
-            onPressed: _busy ? null : _signInWithFacebook,
-          ),
+          for (final provider in SocialProvider.values) ...[
+            const SizedBox(height: AppSpacing.md),
+            SocialLoginButton(
+              provider: provider,
+              busy: _socialBusy == provider,
+              onPressed: _busy || _socialBusy != null
+                  ? null
+                  : () => _signInWith(provider),
+            ),
+          ],
         ],
         const SizedBox(height: AppSpacing.md),
         AuthSwitchPrompt(

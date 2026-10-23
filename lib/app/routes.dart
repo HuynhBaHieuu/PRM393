@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/widgets/feedback_views.dart';
+import 'package:all_fits/features/collections/screens/collection_detail_screen.dart';
 import 'package:all_fits/features/insights/screens/insights_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_builder_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_detail_screen.dart';
@@ -23,6 +24,7 @@ abstract final class AppRoutes {
   static const String outfitBuilder = '/outfits/builder';
   static const String outfitDetail = '/outfits/detail';
   static const String swipeOutfit = '/outfits/swipe';
+  static const String collectionDetail = '/collections/detail';
   static const String insights = '/insights';
   static const String favorites = '/favorites';
   static const String archived = '/archived';
@@ -50,6 +52,9 @@ abstract final class AppRoutes {
         outfitId: args,
       ),
       AppRoutes.swipeOutfit => const SwipeOutfitScreen(),
+      AppRoutes.collectionDetail when args is String => CollectionDetailScreen(
+        collectionId: args,
+      ),
       AppRoutes.insights => const InsightsScreen(),
       AppRoutes.favorites => const FavoritesScreen(),
       AppRoutes.archived => const ArchivedItemsScreen(),
@@ -119,6 +124,13 @@ abstract final class AppNavigator {
   static Future<void> outfitDetail(BuildContext context, String outfitId) =>
       Navigator.of(context)
           .pushNamed(AppRoutes.outfitDetail, arguments: outfitId);
+
+  static Future<void> collectionDetail(
+    BuildContext context,
+    String collectionId,
+  ) =>
+      Navigator.of(context)
+          .pushNamed(AppRoutes.collectionDetail, arguments: collectionId);
 
   static Future<void> insights(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.insights);
