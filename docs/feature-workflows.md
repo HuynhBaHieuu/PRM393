@@ -174,39 +174,40 @@ Lưu ý: ảnh do AI tạo có thể lệch màu hoặc sai dáng so với đồ
 Miễn phí và Premium: mỗi ảnh tốn tiền dịch vụ, nên chức năng này dành cho Premium, ví dụ 20 ảnh mỗi tháng. Bản miễn phí được thử 1 lần. Nếu tạo ảnh thất bại thì không bị trừ lượt.
 
 
-## 10. Mạng xã hội: hồ sơ, bạn bè, khám phá 
+## 10. Mạng xã hội: hồ sơ, theo dõi, khám phá
 
-Bạn có hồ sơ riêng, chia sẻ tủ đồ với bạn bè, nhờ bạn bè phối đồ giúp, và xem outfit của người khác để lấy ý tưởng. Chức năng này lớn nên làm theo 4 bước, bước nào xong cũng dùng được ngay.
+Bạn có hồ sơ riêng, theo dõi (Follow) người khác như trên Fits, phối đồ giúp nhau, và xem outfit của người khác để lấy ý tưởng. Chức năng này lớn nên làm theo 4 bước, bước nào xong cũng dùng được ngay. Giao diện và chữ trong app theo đúng Fits (đã soi app Fits thật trên máy ảo).
 
 Bước 1, hồ sơ:
-1. Vào Account, mở "Hồ sơ của tôi". Đặt username (không trùng với ai), tên, ảnh đại diện, lời giới thiệu.
-2. Chọn ai được xem tủ đồ: mọi người, chỉ bạn bè, hoặc chỉ mình bạn.
-3. Bấm "Chia sẻ hồ sơ" để gửi username cho bạn bè.
-4. Tìm một username để xem hồ sơ người khác: quần áo và outfit của họ. Giá tiền, ghi chú và số lần mặc luôn được ẩn.
+1. Ở tab Profile, bấm "Create profile" (hoặc Account, "My profile"). Đặt username (không trùng với ai, app báo "Username is available" ngay khi gõ), tên, ảnh đại diện, bio.
+2. Bật "Private account" nếu chỉ muốn người theo dõi đã được bạn duyệt xem tủ đồ. Tắt thì ai cũng xem được.
+3. Bấm "Share profile" để gửi username cho bạn bè.
+4. Bấm biểu tượng kính lúp trên Home, tìm username để mở hồ sơ người khác: tab Clothes và Outfits của họ. Giá tiền, ghi chú và số lần mặc luôn được ẩn.
 
-Bước 2, bạn bè:
-1. Ở hồ sơ người khác, bấm "Kết bạn".
-2. Người kia thấy lời mời trong app, chọn chấp nhận hoặc từ chối.
-3. Trong Account, mục "Bạn bè" có danh sách bạn, lời mời đã gửi và đã nhận. Từ đây bạn hủy kết bạn hoặc chặn người khác.
+Bước 2, theo dõi:
+1. Ở hồ sơ người khác, bấm "Follow". Tài khoản công khai thì thành "Following" ngay; tài khoản riêng tư thì thành "Requested" chờ duyệt.
+2. Người kia thấy yêu cầu ở chuông thông báo trên Home (có số báo màu đỏ), chọn "Accept" hoặc bấm × để từ chối.
+3. Bấm số Followers / Following trên tab Profile (hoặc Account, "Followers & following") để xem người theo dõi, người bạn theo dõi, và yêu cầu đã gửi/đã nhận. Từ đây bạn bỏ theo dõi hoặc xóa người theo dõi.
+4. Nút "…" trên hồ sơ người khác có "Copy username", "Report" và "Block".
 
-Bước 3, phối đồ giúp bạn:
-1. Nếu bạn của bạn cho phép, hồ sơ của họ có nút "Tạo outfit cho bạn ấy".
-2. Bạn ghép outfit bằng chính tủ đồ của người đó, viết thêm lời nhắn, rồi gửi.
-3. Người nhận thấy outfit trong "Hộp thư outfit" (có số báo màu đỏ), chọn "Lưu vào outfit của tôi" hoặc "Bỏ qua".
+Bước 3, phối đồ giúp nhau ("Styled together"):
+1. Nếu người kia bật "Let others style me" và bạn xem được tủ đồ của họ, hồ sơ có nút "Style <username>".
+2. Chọn đồ từ chính tủ đồ của người đó, bấm "Next", xếp đồ trên khung, viết lời nhắn rồi bấm gửi.
+3. Người nhận thấy outfit ở chuông thông báo và trong Account, "Styled together" (tab For you / By you), chọn "Save to my outfits" hoặc "Dismiss".
 
 Bước 4, khám phá:
-1. Trong màn chi tiết outfit, bật "Công khai" để chia sẻ outfit lên trang khám phá.
-2. Trên Home có mục "Discover": lưới outfit công khai mới nhất, kèm ảnh đại diện người đăng.
-3. Bấm vào để xem chi tiết và lưu lại làm ý tưởng.
-4. Gặp nội dung không phù hợp thì bấm "Báo cáo" hoặc "Ẩn người này".
+1. Trong màn chi tiết outfit, bật "Public" để chia sẻ outfit lên Discover.
+2. Trên Home có mục "Discover": lưới outfit công khai mới nhất, kèm ảnh đại diện người đăng. "See all" mở trang Discover với bộ lọc Latest / Following / Saved.
+3. Bấm vào để xem chi tiết, bấm biểu tượng bookmark để lưu làm ý tưởng (xem lại ở bộ lọc Saved).
+4. Gặp nội dung không phù hợp thì bấm "…", chọn "Report" hoặc "Block".
 
 Về quyền riêng tư và an toàn:
-1. Chuyển hồ sơ từ công khai sang riêng tư thì các outfit đã đăng cũng bị ẩn theo.
-2. Chặn một người thì hủy kết bạn, ẩn họ khỏi trang khám phá, và họ không gửi outfit cho bạn được nữa.
-3. Món đồ lấy từ link web (mục 3) không được đăng công khai, vì ảnh thuộc bản quyền của shop.
-4. Xóa tài khoản thì xóa luôn hồ sơ, bạn bè và các outfit đã chia sẻ.
-5. Username chỉ gồm chữ thường không dấu, số, dấu gạch dưới và dấu chấm, dài 3 đến 20 ký tự.
+1. Chuyển sang "Private account" thì outfit đã đăng rời khỏi Latest; chỉ người theo dõi đã duyệt thấy chúng ở Following. Chuyển lại công khai thì các yêu cầu đang chờ được duyệt luôn.
+2. Chặn một người thì hai bên hết theo dõi nhau, họ biến khỏi Discover và tìm kiếm, không gửi outfit cho bạn được nữa, và outfit họ đã gửi mà bạn chưa trả lời bị xóa. Họ không nhận được thông báo. Bỏ chặn ở Account, "Blocked users".
+3. Món đồ lấy từ link web (mục 3) không được đăng công khai, vì ảnh thuộc bản quyền của shop. Mục 3 chưa làm; khi làm thì loại các món đó trong hàm public_item ở supabase/schema.sql.
+4. Xóa tài khoản thì xóa luôn hồ sơ, lượt theo dõi và các outfit đã chia sẻ (khóa ngoại on delete cascade).
+5. Username chỉ gồm chữ thường không dấu, số, dấu gạch dưới và dấu chấm, dài 3 đến 20 ký tự (kiểm tra cả trong app lẫn trong database).
 
-Ghi chú cho nhóm: phần phân quyền ai được xem tủ đồ của ai cần một người kiểm tra thật kỹ, vì sai một chỗ là lộ tủ đồ của mọi người. Nếu app chạy ở chế độ chỉ lưu trên máy, không có tài khoản trực tuyến, thì toàn bộ mục mạng xã hội được ẩn đi.
+Ghi chú cho nhóm: phần phân quyền nằm hết trong supabase/schema.sql (đoạn "Social"). Các bảng gốc chỉ chủ nhân đọc được; người khác chỉ thấy dữ liệu qua các hàm profile_summary, profile_closet, discover_feed…, và các hàm này chỉ chép những trường được liệt kê sẵn (không bao giờ có giá, ghi chú, số lần mặc). Ai sửa đoạn này cần một người khác kiểm tra lại, vì sai một chỗ là lộ tủ đồ của mọi người. Nhớ chạy lại schema.sql trong SQL Editor sau khi kéo code mới. Nếu app chạy ở chế độ chỉ lưu trên máy, không có tài khoản trực tuyến, thì toàn bộ mục mạng xã hội được ẩn đi.
 
-Miễn phí và Premium: đề xuất cho dùng miễn phí, vì càng nhiều người tham gia thì chức năng này càng có ích.
+Miễn phí và Premium: cho dùng miễn phí, vì càng nhiều người tham gia thì chức năng này càng có ích.

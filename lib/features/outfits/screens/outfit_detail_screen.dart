@@ -20,6 +20,8 @@ import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/features/social/social_controller.dart';
+import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 
@@ -214,6 +216,8 @@ class OutfitDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (context.watch<SocialController?>() case final social?)
+                  _PublicSwitch(social: social, outfitId: outfit.id),
                 const SizedBox(height: AppSpacing.xl),
                 SectionHeader(
                   title: 'Pieces',
@@ -291,6 +295,43 @@ class _PieceRow extends StatelessWidget {
             const Icon(Icons.chevron_right_rounded),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shares the outfit on Discover.
+class _PublicSwitch extends StatelessWidget {
+  const _PublicSwitch({required this.social, required this.outfitId});
+
+  final SocialController social;
+  final String outfitId;
+
+  Future<void> _set(BuildContext context, bool posted) async {
+    if (posted && !await SocialFlows.requireProfile(context)) return;
+    if (!context.mounted) return;
+    await ClosetFlows.guard(
+      context,
+      () => social.setPosted(outfitId, posted: posted),
+      successMessage: posted ? 'Shared on Discover' : 'Removed from Discover',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        secondary: const Icon(Icons.public_rounded),
+        title: const Text('Public'),
+        subtitle: Text(
+          social.me?.isPrivate ?? false
+              ? 'Your account is private: only followers you approve see it.'
+              : 'Show this outfit on Discover.',
+        ),
+        value: social.isPosted(outfitId),
+        onChanged: (value) => _set(context, value),
       ),
     );
   }

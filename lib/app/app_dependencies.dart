@@ -22,6 +22,7 @@ import 'package:all_fits/data/repositories/calendar_repository.dart';
 import 'package:all_fits/data/repositories/collection_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
+import 'package:all_fits/data/repositories/social_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/collection.dart';
@@ -157,6 +158,7 @@ class AppDependencies {
           ),
         ),
         settings: SupabaseSettingsRepository(client, userId),
+        social: SupabaseSocialRepository(client, userId),
       );
     }
     final scoped = ScopedStorageService(storage, StorageKeys.userScope(userId));
@@ -197,6 +199,7 @@ class UserRepositories {
     required this.calendar,
     required this.collections,
     required this.settings,
+    this.social,
   });
 
   final WardrobeRepository wardrobe;
@@ -204,4 +207,7 @@ class UserRepositories {
   final CalendarRepository calendar;
   final CollectionRepository collections;
   final SettingsRepository settings;
+
+  /// The community needs an online account; null when data stays on device.
+  final SocialRepository? social;
 }

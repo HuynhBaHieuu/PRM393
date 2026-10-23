@@ -13,6 +13,7 @@ import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/profile/widgets/profile_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
+import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -30,6 +31,7 @@ class ProfileScreen extends StatelessWidget {
     final favoriteCount =
         wardrobe.favoriteItems.length + outfits.favorites.length;
     final archivedCount = wardrobe.archivedItems.length;
+    final social = context.watch<SocialController?>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
@@ -70,6 +72,39 @@ class ProfileScreen extends StatelessWidget {
                   trailingText: settings.plan.label,
                   onTap: () => AppNavigator.premium(context),
                 ),
+                if (social != null) ...[
+                  ProfileMenuTile(
+                    icon: Icons.account_circle_outlined,
+                    title: 'My profile',
+                    subtitle: social.me == null
+                        ? 'Pick a username so friends can find you'
+                        : '@${social.me!.username} · '
+                              '${social.me!.isPrivate ? 'Private' : 'Public'}',
+                    onTap: () => AppNavigator.editProfile(context),
+                  ),
+                  ProfileMenuTile(
+                    icon: Icons.people_outline_rounded,
+                    title: 'Followers & following',
+                    trailingText: social.incomingRequests.isEmpty
+                        ? null
+                        : '${social.incomingRequests.length} requests',
+                    onTap: () => AppNavigator.connections(context),
+                  ),
+                  ProfileMenuTile(
+                    icon: Icons.style_outlined,
+                    title: 'Styled together',
+                    subtitle: 'Outfits made for you and by you',
+                    trailingText: social.unansweredStyledCount == 0
+                        ? null
+                        : '${social.unansweredStyledCount} new',
+                    onTap: () => AppNavigator.styledTogether(context),
+                  ),
+                  ProfileMenuTile(
+                    icon: Icons.block_rounded,
+                    title: 'Blocked users',
+                    onTap: () => AppNavigator.blockedUsers(context),
+                  ),
+                ],
                 ProfileMenuTile(
                   icon: Icons.insights_outlined,
                   title: 'Wardrobe Insights',

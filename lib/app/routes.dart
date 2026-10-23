@@ -11,7 +11,14 @@ import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
 import 'package:all_fits/features/profile/screens/favorites_screen.dart';
 import 'package:all_fits/features/profile/screens/profile_screen.dart';
+import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
+import 'package:all_fits/features/social/screens/discover_screen.dart';
+import 'package:all_fits/features/social/screens/edit_profile_screen.dart';
+import 'package:all_fits/features/social/screens/people_screens.dart';
+import 'package:all_fits/features/social/screens/style_outfit_screen.dart';
+import 'package:all_fits/features/social/screens/styled_together_screen.dart';
+import 'package:all_fits/features/social/screens/user_profile_screen.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
@@ -32,6 +39,17 @@ abstract final class AppRoutes {
   static const String stylist = '/stylist';
   static const String premium = '/premium';
   static const String account = '/account';
+  static const String editProfile = '/profile/edit';
+  static const String connections = '/profile/connections';
+  static const String blockedUsers = '/profile/blocked';
+  static const String notifications = '/notifications';
+  static const String userSearch = '/users/search';
+  static const String userProfile = '/users/profile';
+  static const String styleFor = '/users/style';
+  static const String styledTogether = '/styled';
+  static const String styledOutfit = '/styled/detail';
+  static const String discover = '/discover';
+  static const String publicOutfit = '/discover/outfit';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -62,6 +80,26 @@ abstract final class AppRoutes {
       AppRoutes.stylist => const StylistScreen(),
       AppRoutes.premium => const PremiumScreen(),
       AppRoutes.account => const ProfileScreen(),
+      AppRoutes.editProfile => const EditProfileScreen(),
+      AppRoutes.connections => ConnectionsScreen(
+        initialTab: args is ConnectionsTab ? args : ConnectionsTab.followers,
+      ),
+      AppRoutes.blockedUsers => const BlockedUsersScreen(),
+      AppRoutes.notifications => const NotificationsScreen(),
+      AppRoutes.userSearch => const UserSearchScreen(),
+      AppRoutes.userProfile when args is String => UserProfileScreen(
+        userId: args,
+      ),
+      AppRoutes.styleFor when args is SocialProfile => StyleOutfitScreen(
+        recipient: args,
+      ),
+      AppRoutes.styledTogether => StyledTogetherScreen(showByYou: args == true),
+      AppRoutes.styledOutfit when args is String => StyledOutfitScreen(
+        styledId: args,
+      ),
+      AppRoutes.discover => const DiscoverScreen(),
+      AppRoutes.publicOutfit when args is (FeedPost, bool) =>
+        PublicOutfitScreen(post: args.$1, fromFeed: args.$2),
       _ => const NotFoundView(),
     };
     final isModalForm =
@@ -152,4 +190,52 @@ abstract final class AppNavigator {
 
   static Future<void> account(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.account);
+
+  static Future<void> editProfile(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.editProfile);
+
+  static Future<void> connections(
+    BuildContext context, [
+    ConnectionsTab tab = ConnectionsTab.followers,
+  ]) => Navigator.of(context).pushNamed(AppRoutes.connections, arguments: tab);
+
+  static Future<void> blockedUsers(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.blockedUsers);
+
+  static Future<void> notifications(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.notifications);
+
+  static Future<void> userSearch(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.userSearch);
+
+  static Future<void> userProfile(BuildContext context, String userId) =>
+      Navigator.of(context).pushNamed(AppRoutes.userProfile, arguments: userId);
+
+  static Future<void> styleFor(BuildContext context, SocialProfile recipient) =>
+      Navigator.of(context).pushNamed(AppRoutes.styleFor, arguments: recipient);
+
+  static Future<void> styledTogether(
+    BuildContext context, {
+    bool showByYou = false,
+  }) =>
+      Navigator.of(context)
+          .pushNamed(AppRoutes.styledTogether, arguments: showByYou);
+
+  static Future<void> styledOutfit(BuildContext context, String id) =>
+      Navigator.of(context).pushNamed(AppRoutes.styledOutfit, arguments: id);
+
+  static Future<void> discover(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.discover);
+
+  /// Resolves to true when the post changed (saved, unsaved, owner blocked).
+  static Future<bool> publicOutfit(
+    BuildContext context,
+    FeedPost post, {
+    bool fromFeed = true,
+  }) async {
+    final result = await Navigator.of(
+      context,
+    ).pushNamed<Object?>(AppRoutes.publicOutfit, arguments: (post, fromFeed));
+    return result == true;
+  }
 }

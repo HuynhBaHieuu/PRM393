@@ -18,6 +18,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
@@ -50,6 +51,9 @@ class _UserSessionState extends State<UserSession> {
   late final StylistStore _stylist;
   late final ClosetActions _closet;
   late final ShellController _shell;
+
+  /// Null without an online account: every community feature is hidden.
+  SocialController? _social;
   late final AppBootstrap _bootstrap;
   late Future<void> _startup;
 
@@ -103,6 +107,13 @@ class _UserSessionState extends State<UserSession> {
       clock: deps.clock,
     );
     _shell = ShellController();
+    final social = repositories.social;
+    if (social != null) {
+      _social = SocialController(
+        repository: social,
+        imageStorage: deps.imageStorage,
+      )..load();
+    }
     _bootstrap = AppBootstrap(
       user: widget.user,
       settings: _settings,
@@ -126,6 +137,7 @@ class _UserSessionState extends State<UserSession> {
     _weather.dispose();
     _stylist.dispose();
     _shell.dispose();
+    _social?.dispose();
     super.dispose();
   }
 
@@ -149,6 +161,7 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _weather),
         ChangeNotifierProvider.value(value: _stylist),
         ChangeNotifierProvider.value(value: _shell),
+        ChangeNotifierProvider<SocialController?>.value(value: _social),
         Provider.value(value: _closet),
       ],
       child: Selector<SettingsController, ThemeMode>(

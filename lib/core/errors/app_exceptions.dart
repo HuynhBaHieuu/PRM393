@@ -55,6 +55,11 @@ class PaymentException extends AppException {
   const PaymentException(super.message);
 }
 
+/// A community action (profile, follow, Discover…) failed.
+class SocialException extends AppException {
+  const SocialException(super.message);
+}
+
 class NotFoundException extends AppException {
   const NotFoundException([super.message = 'This item no longer exists.']);
 }

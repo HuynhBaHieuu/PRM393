@@ -33,6 +33,10 @@ void main() {
   // path is exercised without a network or an API key.
   late HttpServer server;
   late int status;
+
+  /// Status for requests to the Muse stand-in under /muse.
+  late int museStatus;
+  late List<String> paths;
   late String reply;
 
   /// Sent as is instead of a chat completion, when set.
@@ -64,6 +68,8 @@ void main() {
 
   setUp(() async {
     status = HttpStatus.ok;
+    museStatus = HttpStatus.ok;
+    paths = [];
     reply = outfits([]);
     rawResponse = null;
     hold = null;
@@ -80,13 +86,14 @@ void main() {
       sentAuth = request.headers.value(HttpHeaders.authorizationHeader);
       sentGoogleKey = request.headers.value('x-goog-api-key');
       sentPath = request.uri.path;
+      paths.add(request.uri.path);
       sentBody = jsonDecode(
         await utf8.decoder.bind(request).join(),
       ) as Map<String, dynamic>;
       await hold?.future;
       try {
         request.response
-          ..statusCode = status
+          ..statusCode = sentPath!.startsWith('/muse') ? museStatus : status
           ..headers.contentType = ContentType.json
           ..write(
             rawResponse ??
@@ -230,7 +237,7 @@ void main() {
           'reason': 'Clean.',
         },
       ],
-      'packingList': <String>[],
+      'packingItemIds': <String>[],
       'shopping': <Object>[],
     });
   });
@@ -248,6 +255,16 @@ void main() {
     expect(keyOnly.isConfigured, isTrue);
     expect(keyOnly.baseUrl, AiStylistService.defaultBaseUrl);
     expect(keyOnly.model, AiStylistService.defaultModel);
+
+    final muse = AiStylistService.fromConfig('{"MUSE_API_KEY": "m"}');
+    expect(muse.isConfigured, isTrue);
+    expect(muse.canTryOn, isFalse);
+    expect(muse.primary, (
+      apiKey: 'm',
+      baseUrl: AiStylistService.museBaseUrl,
+      model: AiStylistService.museModel,
+    ));
+    expect(keyOnly.primary, isNull);
 
     for (final broken in ['', 'not json', '[]', '{"OPENAI_API_KEY": 5}']) {
       expect(AiStylistService.fromConfig(broken).isConfigured, isFalse);
@@ -312,7 +329,7 @@ void main() {
       reply = jsonEncode({
         'reply': 'Packed! 🧳',
         'outfits': [],
-        'packingList': ['1', '2', '1', '99'],
+        'packingItemIds': ['1', '2', '1', '99'],
         'shopping': [
           {
             'name': 'Rain jacket',
@@ -458,6 +475,56 @@ void main() {
     reply = 'Here you go:\n```json\n$json\n```';
     final result = await service().reply(wardrobe: wardrobe, history: ask);
     expect(result.outfits.single.name, 'Fenced');
+  });
+
+  test('asks Muse first and falls back when it runs out of quota', () async {
+    AiStylistService both({String apiKey = 'gemini-key'}) => AiStylistService(
+      apiKey: apiKey,
+      baseUrl: 'http://127.0.0.1:${server.port}',
+      model: 'gemini-model',
+      primary: (
+        apiKey: 'muse-key',
+        baseUrl: 'http://127.0.0.1:${server.port}/muse',
+        model: 'muse-model',
+      ),
+    );
+    Future<Object> send(AiStylistService stylist) async {
+      try {
+        return await stylist.reply(wardrobe: wardrobe, history: ask);
+      } on AiException catch (error) {
+        return error.message;
+      }
+    }
+
+    expect(await send(both()), isA<StylistMessage>());
+    expect(paths, ['/muse/chat/completions']);
+    expect(sentAuth, 'Bearer muse-key');
+    expect(sentBody!['model'], 'muse-model');
+
+    for (final outOfQuota in [
+      HttpStatus.paymentRequired,
+      HttpStatus.tooManyRequests,
+    ]) {
+      paths.clear();
+      museStatus = outOfQuota;
+      expect(await send(both()), isA<StylistMessage>());
+      expect(paths, ['/muse/chat/completions', '/chat/completions']);
+      expect(sentAuth, 'Bearer gemini-key');
+      expect(sentBody!['model'], 'gemini-model');
+    }
+
+    // Other failures are not a reason to switch.
+    paths.clear();
+    museStatus = HttpStatus.unauthorized;
+    expect(await send(both()), contains('API key'));
+    expect(paths, ['/muse/chat/completions']);
+
+    // Without a Gemini key, Muse's error is shown.
+    museStatus = HttpStatus.paymentRequired;
+    final museOnly = both(apiKey: '');
+    expect(museOnly.isConfigured, isTrue);
+    expect(museOnly.canTryOn, isFalse);
+    expect(await send(museOnly), contains('out of credits'));
   });
 
   test('turns failures into user-facing errors', () async {

@@ -134,6 +134,7 @@ class AiStylistService {
     this.baseUrl = defaultBaseUrl,
     this.model = defaultModel,
     this.imageModel = defaultImageModel,
+    this.primary,
   });
 
   /// Builds the service from the contents of [configAsset]. Anything missing
@@ -148,11 +149,19 @@ class AiStylistService {
               : null;
         }
 
+        final museKey = read('MUSE_API_KEY');
         return AiStylistService(
           apiKey: read('OPENAI_API_KEY') ?? '',
           baseUrl: read('AI_BASE_URL') ?? defaultBaseUrl,
           model: read('AI_MODEL') ?? defaultModel,
           imageModel: read('AI_IMAGE_MODEL') ?? defaultImageModel,
+          primary: museKey == null
+              ? null
+              : (
+                  apiKey: museKey,
+                  baseUrl: read('MUSE_BASE_URL') ?? museBaseUrl,
+                  model: read('MUSE_MODEL') ?? museModel,
+                ),
         );
       }
     } on FormatException {
@@ -168,6 +177,8 @@ class AiStylistService {
   static const String defaultBaseUrl = 'https://api.openai.com/v1';
   static const String defaultModel = 'gpt-4o';
   static const String defaultImageModel = 'gemini-2.5-flash-image';
+  static const String museBaseUrl = 'https://api.meta.ai/v1';
+  static const String museModel = 'muse-spark-1.3';
 
   static const int maxOutfits = 3;
   static const int maxShopping = 3;
@@ -211,7 +222,7 @@ class AiStylistService {
       '6. Asked to rate an outfit: give a kind, honest score out of 10 in '
       '"reply" and suggest better swaps from the wardrobe.\n'
       '7. Packing list: if you don\'t know where and for how many days yet, '
-      'only ask that and leave every list empty. Once you know, "packingList" '
+      'only ask that and leave every list empty. Once you know, "packingItemIds" '
       'MUST hold the id of every piece to pack, and "outfits" a few looks '
       'made from those pieces.\n'
       '8. "shopping" holds up to 3 pieces to buy, only when a look needs '
@@ -235,7 +246,11 @@ class AiStylistService {
   /// Gemini model that draws try-on pictures.
   final String imageModel;
 
-  bool get isConfigured => apiKey.isNotEmpty;
+  /// Chat endpoint tried first, such as Meta's Muse Spark; the one above
+  /// takes over when it runs out of credits or quota.
+  final ({String apiKey, String baseUrl, String model})? primary;
+
+  bool get isConfigured => apiKey.isNotEmpty || primary != null;
 
   /// The native Gemini API behind Gemini's OpenAI-compatible [baseUrl];
   /// null for other providers.
@@ -244,7 +259,7 @@ class AiStylistService {
       : null;
 
   /// Whether [tryOn] can work with this provider.
-  bool get canTryOn => isConfigured && _geminiRoot != null;
+  bool get canTryOn => apiKey.isNotEmpty && _geminiRoot != null;
 
   /// Answers the last message in [history], which the user just sent, as
   /// [persona]. [notes] is what the user told the stylist about themselves.
@@ -286,82 +301,75 @@ class AiStylistService {
     final photoUrl = photoMessage == null
         ? null
         : await _dataUrl(resolvePhoto?.call(photoMessage.photo!));
-    final text = await _request(
-      Uri.parse('$baseUrl/chat/completions'),
-      {
-        'model': model,
-        'messages': [
-          {'role': 'system', 'content': _systemPrompt(persona)},
-          {
-            'role': 'system',
-            'content': jsonEncode({
-              if (notes.trim().isNotEmpty) 'aboutUser': notes.trim(),
-              if (weather != null)
-                'weather': {
-                  'city': weather.location.name,
-                  'condition': weather.condition.label,
-                  'highC': weather.high.round(),
-                  'lowC': weather.low.round(),
-                  'rainChance': weather.rainChance,
-                },
-              'wardrobe': [
-                for (final MapEntry(key: id, value: item) in byShortId.entries)
-                  {
-                    'id': id,
-                    'name': item.name,
-                    'category': item.category.name,
-                    'brand': ?item.brand,
-                    'color': ?item.color?.name,
-                    if (item.seasons.isNotEmpty)
-                      'seasons': [for (final s in item.seasons) s.name],
-                    'wears': item.wearCount,
-                  },
-              ],
-            }),
-          },
-          for (final message in recent)
-            if (message.fromUser)
-              {
-                'role': 'user',
-                'content': identical(message, photoMessage) && photoUrl != null
-                    ? [
-                        {
-                          'type': 'text',
-                          'text': _userContent(message, shortIdOf),
-                        },
-                        {
-                          'type': 'image_url',
-                          'image_url': {'url': photoUrl},
-                        },
-                      ]
-                    : _userContent(message, shortIdOf),
-              }
-            else
-              // Earlier answers go back as JSON so follow-ups like "other
-              // shoes" can refer to the outfits by their ids.
-              {
-                'role': 'assistant',
-                'content': jsonEncode({
-                  'reply': message.text,
-                  'outfits': [
-                    for (final outfit in message.outfits)
-                      {
-                        'name': outfit.name,
-                        'itemIds': shortIds(outfit.itemIds),
-                        'reason': outfit.reason,
-                      },
-                  ],
-                  'packingList': shortIds(message.packingList),
-                  'shopping': [for (final s in message.shopping) s.toJson()],
-                }),
+    final text = await _chat({
+      'messages': [
+        {'role': 'system', 'content': _systemPrompt(persona)},
+        {
+          'role': 'system',
+          'content': jsonEncode({
+            if (notes.trim().isNotEmpty) 'aboutUser': notes.trim(),
+            if (weather != null)
+              'weather': {
+                'city': weather.location.name,
+                'condition': weather.condition.label,
+                'highC': weather.high.round(),
+                'lowC': weather.low.round(),
+                'rainChance': weather.rainChance,
               },
-        ],
-        'response_format': _responseFormat,
-      },
-      headers: {HttpHeaders.authorizationHeader: 'Bearer $apiKey'},
-      modelName: model,
-      cancel: cancel,
-    );
+            'wardrobe': [
+              for (final MapEntry(key: id, value: item) in byShortId.entries)
+                {
+                  'id': id,
+                  'name': item.name,
+                  'category': item.category.name,
+                  'brand': ?item.brand,
+                  'color': ?item.color?.name,
+                  if (item.seasons.isNotEmpty)
+                    'seasons': [for (final s in item.seasons) s.name],
+                  'wears': item.wearCount,
+                },
+            ],
+          }),
+        },
+        for (final message in recent)
+          if (message.fromUser)
+            {
+              'role': 'user',
+              'content': identical(message, photoMessage) && photoUrl != null
+                  ? [
+                      {
+                        'type': 'text',
+                        'text': _userContent(message, shortIdOf),
+                      },
+                      {
+                        'type': 'image_url',
+                        'image_url': {'url': photoUrl},
+                      },
+                    ]
+                  : _userContent(message, shortIdOf),
+            }
+          else
+            // Earlier answers go back as JSON so follow-ups like "other
+            // shoes" can refer to the outfits by their ids.
+            {
+              'role': 'assistant',
+              'content': jsonEncode({
+                'reply': message.text,
+                'outfits': [
+                  for (final outfit in message.outfits)
+                    {
+                      'name': outfit.name,
+                      'itemIds': shortIds(outfit.itemIds),
+                      'reason': outfit.reason,
+                    },
+                ],
+                'packingItemIds': shortIds(message.packingList),
+                'shopping': [for (final s in message.shopping) s.toJson()],
+              }),
+            },
+      ],
+      'response_format': _responseFormat,
+    }, cancel);
     final content = switch (_decode(text)) {
       {'choices': [{'message': {'content': final String content}}, ...]} =>
         content,
@@ -378,7 +386,7 @@ class AiStylistService {
     Future<void>? cancel,
   }) async {
     final root = _geminiRoot;
-    if (!isConfigured || root == null) {
+    if (apiKey.isEmpty || root == null) {
       throw const AiException('Virtual try-on needs a Gemini API key.');
     }
     Map<String, Object?> inline(List<int> bytes) => {
@@ -427,6 +435,26 @@ class AiStylistService {
     }
   }
 
+  /// Sends the chat completions [body] to [primary] first, then to the main
+  /// endpoint when [primary] is out of credits or quota.
+  Future<String> _chat(Map<String, Object?> body, Future<void>? cancel) async {
+    Future<String> send(String key, String base, String model) => _request(
+      Uri.parse('$base/chat/completions'),
+      {'model': model, ...body},
+      headers: {HttpHeaders.authorizationHeader: 'Bearer $key'},
+      modelName: model,
+      cancel: cancel,
+    );
+    if (primary case final first?) {
+      try {
+        return await send(first.apiKey, first.baseUrl, first.model);
+      } on _OutOfQuota {
+        if (apiKey.isEmpty) rethrow;
+      }
+    }
+    return send(apiKey, baseUrl, model);
+  }
+
   /// Posts [body] as JSON to [url] and returns the response text.
   Future<String> _request(
     Uri url,
@@ -447,9 +475,11 @@ class AiStylistService {
         headers,
       ).timeout(timeout);
       if (status != HttpStatus.ok) {
-        throw AiException(switch (status) {
+        final message = switch (status) {
           HttpStatus.unauthorized ||
           HttpStatus.forbidden => 'The AI service rejected the API key.',
+          HttpStatus.paymentRequired =>
+            'The AI service is out of credits. Top up the API account.',
           // Gemini's free tier gives some models a quota of zero.
           HttpStatus.tooManyRequests when text.contains('limit: 0') =>
             'Your AI plan doesn’t include this feature. Turn on billing for '
@@ -460,7 +490,11 @@ class AiStylistService {
           >= HttpStatus.internalServerError =>
             'The AI service is busy right now. Try again in a moment.',
           _ => 'The AI service returned an error ($status).',
-        });
+        };
+        throw status == HttpStatus.paymentRequired ||
+                status == HttpStatus.tooManyRequests
+            ? _OutOfQuota(message)
+            : AiException(message);
       }
       return text;
     } on AiException {
@@ -604,7 +638,7 @@ class AiStylistService {
               reason: _clip(pick['reason'], Validators.maxNotesLength),
             ),
     ].take(maxShopping).toList();
-    final packingList = known(decoded['packingList']);
+    final packingList = known(decoded['packingItemIds']);
     final reply = _clip(decoded['reply'], _maxReplyLength);
     if (reply.isEmpty &&
         suggestions.isEmpty &&
@@ -653,7 +687,7 @@ class AiStylistService {
               'additionalProperties': false,
             },
           },
-          'packingList': _stringArray,
+          'packingItemIds': _stringArray,
           'shopping': {
             'type': 'array',
             'items': {
@@ -668,9 +702,14 @@ class AiStylistService {
             },
           },
         },
-        'required': ['reply', 'outfits', 'packingList', 'shopping'],
+        'required': ['reply', 'outfits', 'packingItemIds', 'shopping'],
         'additionalProperties': false,
       },
     },
   };
+}
+
+/// The provider has no credits or quota left; another one may take over.
+class _OutOfQuota extends AiException {
+  const _OutOfQuota(super.message);
 }

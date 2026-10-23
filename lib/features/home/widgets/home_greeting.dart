@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/features/social/social_controller.dart';
+import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
 class HomeGreeting extends StatelessWidget {
@@ -22,6 +25,7 @@ class HomeGreeting extends StatelessWidget {
     final text = context.textTheme;
     final firstName = name.split(' ').first;
     final greeting = AppFormatters.greeting(now);
+    final social = context.watch<SocialController?>();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -54,7 +58,18 @@ class HomeGreeting extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          _AvatarButton(initials: AppFormatters.initials(name)),
+          if (social != null) ...[
+            IconButton(
+              tooltip: 'Search people',
+              onPressed: () => AppNavigator.userSearch(context),
+              icon: const Icon(Icons.search_rounded),
+            ),
+            NotificationBell(
+              count: social.notificationCount,
+              onPressed: () => AppNavigator.notifications(context),
+            ),
+          ],
+          _AvatarButton(name: name, photoUrl: social?.me?.avatarUrl),
         ],
       ),
     );
@@ -62,33 +77,22 @@ class HomeGreeting extends StatelessWidget {
 }
 
 class _AvatarButton extends StatelessWidget {
-  const _AvatarButton({required this.initials});
+  const _AvatarButton({required this.name, this.photoUrl});
 
-  final String initials;
+  final String name;
+  final String? photoUrl;
 
   static const double _size = 44;
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
     return Semantics(
       button: true,
       label: 'Open profile',
       child: InkWell(
         onTap: () => context.read<ShellController>().select(AppTab.profile),
         customBorder: const CircleBorder(),
-        child: Container(
-          width: _size,
-          height: _size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: palette.surfaceMuted,
-            shape: BoxShape.circle,
-          ),
-          child: initials.isEmpty
-              ? const Icon(Icons.person_outline_rounded)
-              : Text(initials, style: context.textTheme.titleSmall),
-        ),
+        child: UserAvatar(name: name, url: photoUrl, size: _size),
       ),
     );
   }

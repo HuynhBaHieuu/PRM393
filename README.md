@@ -153,6 +153,11 @@ the stylist screen explains how to set it up.
 - **Provider:** any OpenAI-compatible chat completions API. The example
   above is Google Gemini. Leave out `AI_BASE_URL` and `AI_MODEL` to use
   OpenAI with `gpt-4o`.
+- **Muse Spark first (optional):** add `MUSE_API_KEY` from
+  [dev.meta.ai](https://dev.meta.ai) (and optionally `MUSE_MODEL`, default
+  `muse-spark-1.3`). Chat then goes to Meta's Muse Spark first and switches
+  to the Gemini settings above whenever Muse is out of credits (402) or
+  quota (429). Try-on pictures always use Gemini.
 - **What is sent:** item names, brands, categories, colors, seasons and wear counts,
   plus the occasion and note you type. Photos are never sent.
 - **API key:** the file is bundled into the app, so use it for development

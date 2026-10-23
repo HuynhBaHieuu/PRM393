@@ -7,12 +7,18 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/features/collections/screens/collections_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfits_screen.dart';
 import 'package:all_fits/features/planner/screens/planner_screen.dart';
+import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
+import 'package:all_fits/features/social/screens/people_screens.dart';
+import 'package:all_fits/features/social/social_controller.dart';
+import 'package:all_fits/features/social/social_flows.dart';
+import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/screens/wardrobe_screen.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
-/// The Profile tab: the user's name, a menu to the account page, and the
-/// closet split into Clothes, Outfits, Collections and Planner tabs.
+/// The Profile tab: the user's name, a menu to the account page, their
+/// community profile when online, and the closet split into Clothes,
+/// Outfits, Collections and Planner tabs.
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
 
@@ -54,6 +60,7 @@ class _ClosetScreenState extends State<ClosetScreen>
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
+    final social = context.watch<SocialController?>();
     final title = settings.username.isNotEmpty
         ? settings.username
         : settings.displayName.isNotEmpty
@@ -89,6 +96,8 @@ class _ClosetScreenState extends State<ClosetScreen>
               ],
             ),
           ),
+          if (social != null)
+            _CommunityHeader(social: social, settings: settings),
           TabBar(
             controller: _tabs,
             // Four tabs share a phone's width: shrink a label that would
@@ -117,6 +126,69 @@ class _ClosetScreenState extends State<ClosetScreen>
                 PlannerScreen(),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fits' profile header: photo, name, follower counts, and Edit / Share
+/// profile. Before a profile exists it offers to create one.
+class _CommunityHeader extends StatelessWidget {
+  const _CommunityHeader({required this.social, required this.settings});
+
+  final SocialController social;
+  final SettingsController settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final me = social.me;
+    final style = profileButtonStyle(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        AppSpacing.xs,
+        AppSpacing.page,
+        AppSpacing.md,
+      ),
+      child: Column(
+        children: [
+          ProfileHeaderRow(
+            profile:
+                me ??
+                SocialProfile(
+                  userId: '',
+                  username: settings.username,
+                  displayName: settings.displayName,
+                ),
+            followers: social.followers.length,
+            following: social.following.length,
+            onFollowers: () => AppNavigator.connections(context),
+            onFollowing: () =>
+                AppNavigator.connections(context, ConnectionsTab.following),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => AppNavigator.editProfile(context),
+                  style: style,
+                  child: Text(me == null ? 'Create profile' : 'Edit profile'),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: FilledButton(
+                  onPressed: me == null
+                      ? () => AppNavigator.userSearch(context)
+                      : () => SocialFlows.shareProfile(context, me.username),
+                  style: style,
+                  child: Text(me == null ? 'Find friends' : 'Share profile'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

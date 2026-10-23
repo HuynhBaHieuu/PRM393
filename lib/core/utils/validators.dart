@@ -56,6 +56,26 @@ abstract final class Validators {
     return null;
   }
 
+  static const int minUsernameLength = 3;
+  static const int maxUsernameLength = 20;
+  static const int maxBioLength = 150;
+  static final RegExp _usernamePattern = RegExp(r'^[a-z0-9_.]+$');
+
+  /// Same rule as the `profiles.username` check in supabase/schema.sql.
+  static String? username(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.length < minUsernameLength) {
+      return 'Use at least $minUsernameLength characters';
+    }
+    if (text.length > maxUsernameLength) {
+      return 'Keep it under ${maxUsernameLength + 1} characters';
+    }
+    if (!_usernamePattern.hasMatch(text)) {
+      return 'Use lowercase letters, numbers, _ and . only';
+    }
+    return null;
+  }
+
   static String? optionalName(String? value) {
     final text = value?.trim() ?? '';
     if (text.length > maxNameLength) {
