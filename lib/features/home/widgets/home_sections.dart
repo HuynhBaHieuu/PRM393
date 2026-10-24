@@ -9,6 +9,7 @@ import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
+import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -41,10 +42,65 @@ class QuickActions extends StatelessWidget {
           child: _QuickAction(
             icon: Icons.event_outlined,
             label: 'Plan Outfit',
-            onTap: () => context.read<ShellController>().openCloset(ClosetTab.planner),
+            onTap: () =>
+                context.read<ShellController>().openCloset(ClosetTab.planner),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Opens AI try-on, showing the credits left.
+class TryOnShortcut extends StatelessWidget {
+  const TryOnShortcut({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final text = context.textTheme;
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        onTap: () => TryOnFlows.start(context),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: palette.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome_outlined, size: AppSizes.icon),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('AI Try On', style: text.titleMedium),
+                    Text(
+                      'See an outfit on you before you wear it',
+                      style: text.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                TryOnFlows.creditsLabel(context),
+                style: text.labelMedium?.copyWith(color: palette.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

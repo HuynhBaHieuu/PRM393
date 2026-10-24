@@ -26,6 +26,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
+import 'package:all_fits/features/try_on/screens/try_on_clothes_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -639,6 +640,75 @@ void main() {
       await _pumpApp(tester, testDependencies(), premium: true);
       await _create(tester, 'AI Stylist');
       expect(find.text('AI stylist isn’t set up'), findsOneWidget);
+    });
+  });
+
+  group('AI try-on', () {
+    testWidgets('asks for consent, then picks clothes and a background', (
+      tester,
+    ) async {
+      await _pumpApp(
+        tester,
+        testDependencies(
+          seedSampleData: true,
+          aiStylist: const AiStylistService(
+            apiKey: 'fake',
+            baseUrl: 'https://fake.test/openai',
+          ),
+        ),
+      );
+      await _tap(tester, find.text('AI Try On'));
+      expect(
+        find.text('Set up your profile to try on clothes virtually'),
+        findsOneWidget,
+      );
+      // Continue needs a photo; an AI model needs none.
+      final continueButton = find.widgetWithText(FilledButton, 'Continue');
+      expect(tester.widget<FilledButton>(continueButton).onPressed, isNull);
+      await _tap(tester, find.text('Use an AI model instead'));
+
+      expect(find.text('Select clothes to try on'), findsOneWidget);
+      final wardrobe = tester
+          .element(find.byType(TryOnClothesScreen))
+          .read<WardrobeController>();
+      final pieces = wardrobe.activeItems.take(3).toList();
+      for (final item in pieces) {
+        await _tap(tester, find.bySemanticsLabel(item.name).last);
+      }
+      expect(find.text('3 selected'), findsOneWidget);
+      await _tap(tester, find.bySemanticsLabel('Remove ${pieces.last.name}'));
+      expect(find.text('2 selected'), findsOneWidget);
+      await _tap(tester, find.text('Next'));
+
+      expect(find.text('Generate image'), findsOneWidget);
+      expect(find.text('Your free try-on'), findsOneWidget);
+      expect(find.text('1 free try-on'), findsOneWidget);
+      expect(find.text('AI model'), findsOneWidget);
+
+      await _tap(tester, find.bySemanticsLabel(RegExp('^Background')));
+      await _tap(tester, find.bySemanticsLabel('NYC Subway'));
+      expect(find.bySemanticsLabel('Background, NYC Subway'), findsOneWidget);
+      await _tap(tester, find.bySemanticsLabel('Fast'));
+      expect(find.bySemanticsLabel('Quality, 2x slower'), findsOneWidget);
+    });
+
+    testWidgets('outfits open try-on with their pieces', (tester) async {
+      await _pumpApp(
+        tester,
+        testDependencies(
+          seedSampleData: true,
+          aiStylist: const AiStylistService(
+            apiKey: 'fake',
+            baseUrl: 'https://fake.test/openai',
+          ),
+        ),
+      );
+      await _openTab(tester, 'Outfits');
+      await _tap(tester, find.byType(OutfitCard).first);
+      await _tap(tester, find.widgetWithText(OutlinedButton, 'Try on'));
+      await _tap(tester, find.text('Use an AI model instead'));
+      expect(find.text('Generate image'), findsOneWidget);
+      expect(find.text('Select clothes to try on'), findsNothing);
     });
   });
 

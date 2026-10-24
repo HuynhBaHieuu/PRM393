@@ -65,41 +65,34 @@ void main() {
     expect(reopened.chats, isEmpty);
   });
 
-  test(
-    'remembers the stylist, notes and try-on photo; shares add once a day',
-    () async {
-      final storage = InMemoryStorageService();
-      final images = FakeImageStorageService();
-      StylistStore open() => StylistStore(
-        storage: storage,
-        idGenerator: _Counter(),
-        images: images,
-        clock: () => DateTime(2026, 10, 23, 9),
-      );
+  test('remembers the stylist and notes; shares add once a day', () async {
+    final storage = InMemoryStorageService();
+    final images = FakeImageStorageService();
+    StylistStore open() => StylistStore(
+      storage: storage,
+      idGenerator: _Counter(),
+      images: images,
+      clock: () => DateTime(2026, 10, 23, 9),
+    );
 
-      final store = open();
-      await store.load();
-      expect(store.persona, StylistPersona.kai);
-      await store.setPersona(StylistPersona.mila);
-      await store.setNotes('  I run cold ');
-      await store.setBodyPhoto('images/me.jpg');
-      await store.setBodyPhoto('images/me2.jpg');
-      expect(images.deleted, ['images/me.jpg']);
+    final store = open();
+    await store.load();
+    expect(store.persona, StylistPersona.kai);
+    await store.setPersona(StylistPersona.mila);
+    await store.setNotes('  I run cold ');
 
-      await store.countMessage();
-      await store.grantShareBonus();
-      await store.grantShareBonus();
-      expect(store.bonusToday, AppConfig.shareBonusMessages);
+    await store.countMessage();
+    await store.grantShareBonus();
+    await store.grantShareBonus();
+    expect(store.bonusToday, AppConfig.shareBonusMessages);
 
-      final reopened = open();
-      await reopened.load();
-      expect(reopened.persona, StylistPersona.mila);
-      expect(reopened.notes, 'I run cold');
-      expect(reopened.bodyPhoto, 'images/me2.jpg');
-      expect(reopened.usedToday, 1);
-      expect(reopened.bonusToday, AppConfig.shareBonusMessages);
-    },
-  );
+    final reopened = open();
+    await reopened.load();
+    expect(reopened.persona, StylistPersona.mila);
+    expect(reopened.notes, 'I run cold');
+    expect(reopened.usedToday, 1);
+    expect(reopened.bonusToday, AppConfig.shareBonusMessages);
+  });
 
   test('keeps only the newest chats', () async {
     var minute = 0;

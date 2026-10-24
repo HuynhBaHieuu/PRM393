@@ -22,6 +22,9 @@ import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
+import 'package:all_fits/features/try_on/try_on_controller.dart';
+import 'package:all_fits/features/try_on/try_on_flows.dart';
+import 'package:all_fits/features/try_on/widgets/try_on_widgets.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 
@@ -216,8 +219,21 @@ class OutfitDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  onPressed: items.isEmpty
+                      ? null
+                      : () => TryOnFlows.start(
+                          context,
+                          itemIds: [for (final item in items) item.id],
+                          outfitId: outfit.id,
+                        ),
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: const Text('Try on'),
+                ),
                 if (context.watch<SocialController?>() case final social?)
                   _PublicSwitch(social: social, outfitId: outfit.id),
+                _TryOnStrip(outfitId: outfit.id),
                 const SizedBox(height: AppSpacing.xl),
                 SectionHeader(
                   title: 'Pieces',
@@ -253,6 +269,59 @@ class OutfitDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// AI try-on pictures made from this outfit.
+class _TryOnStrip extends StatelessWidget {
+  const _TryOnStrip({required this.outfitId});
+
+  final String outfitId;
+
+  static const double _width = 96;
+
+  @override
+  Widget build(BuildContext context) {
+    final results = context.watch<TryOnController>().resultsForOutfit(outfitId);
+    if (results.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        const SectionHeader(
+          title: 'Try-on',
+          subtitle: 'AI-generated images',
+          padding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          height: _width * 4 / 3,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: results.length,
+            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
+            itemBuilder: (context, index) => Semantics(
+              button: true,
+              label: 'Try-on picture ${index + 1}',
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => TryOnFlows.open(context, results[index]),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: SizedBox(
+                    width: _width,
+                    child: StoredPhoto(
+                      reference: results[index].photo,
+                      decodeWidth: _width,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

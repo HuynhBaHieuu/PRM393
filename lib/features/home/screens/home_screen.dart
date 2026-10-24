@@ -10,6 +10,7 @@ import 'package:all_fits/features/home/widgets/today_outfit_section.dart';
 import 'package:all_fits/features/home/widgets/weather_section.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/widgets/discover_section.dart';
+import 'package:all_fits/features/try_on/try_on_controller.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     const padded = EdgeInsets.symmetric(horizontal: AppSpacing.page);
     final online = context.select<SocialController?, bool>((s) => s != null);
+    final tryOn = context.select<TryOnController, bool>((t) => t.isAvailable);
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -37,6 +39,18 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (tryOn)
+            const ResponsiveCenter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.sm,
+                  AppSpacing.page,
+                  0,
+                ),
+                child: TryOnShortcut(),
+              ),
+            ),
           const SizedBox(height: AppSpacing.xl),
           const RecentlyAddedSection(),
           if (online) ...[

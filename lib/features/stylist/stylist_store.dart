@@ -59,7 +59,7 @@ class StylistChat {
 }
 
 /// One user's AI Stylist data: past chats, their chosen stylist and notes,
-/// their try-on photo, and today's message count.
+/// and today's message count.
 ///
 /// ponytail: kept on the device, so the Free daily limit resets with the app
 /// data; enforce it server-side once the AI calls go through a backend.
@@ -92,7 +92,6 @@ class StylistStore extends ChangeNotifier {
   int _usageBonus = 0;
   StylistPersona _persona = StylistPersona.kai;
   String _notes = '';
-  String? _bodyPhoto;
   Future<void>? _loading;
 
   /// Newest first.
@@ -108,9 +107,6 @@ class StylistStore extends ChangeNotifier {
 
   /// What the user wants the stylist to know about them.
   String get notes => _notes;
-
-  /// Image storage reference of the full-body photo used for try-ons.
-  String? get bodyPhoto => _bodyPhoto;
 
   String get _today {
     final now = _clock();
@@ -138,7 +134,6 @@ class StylistStore extends ChangeNotifier {
             JsonReader.enumValue(StylistPersona.values, map['persona']) ??
             StylistPersona.kai;
         _notes = JsonReader.nonEmptyString(map, 'notes') ?? '';
-        _bodyPhoto = JsonReader.nonEmptyString(map, 'bodyPhoto');
       }
     } catch (error) {
       developer.log('Stylist data unreadable', name: 'storage', error: error);
@@ -147,34 +142,17 @@ class StylistStore extends ChangeNotifier {
   }
 
   Future<void> setPersona(StylistPersona persona) =>
-      _savePrefs(persona, _notes, _bodyPhoto);
+      _savePrefs(persona, _notes);
 
-  Future<void> setNotes(String notes) =>
-      _savePrefs(_persona, notes.trim(), _bodyPhoto);
+  Future<void> setNotes(String notes) => _savePrefs(_persona, notes.trim());
 
-  /// Replaces the try-on photo, deleting the old one.
-  Future<void> setBodyPhoto(String reference) async {
-    final old = _bodyPhoto;
-    await _savePrefs(_persona, _notes, reference);
-    if (old != null && old != reference) await _images?.deleteImage(old);
-  }
-
-  Future<void> _savePrefs(
-    StylistPersona persona,
-    String notes,
-    String? bodyPhoto,
-  ) async {
+  Future<void> _savePrefs(StylistPersona persona, String notes) async {
     await _storage.write(
       StorageKeys.stylistPrefs,
-      jsonEncode({
-        'persona': persona.name,
-        'notes': notes,
-        'bodyPhoto': bodyPhoto,
-      }),
+      jsonEncode({'persona': persona.name, 'notes': notes}),
     );
     _persona = persona;
     _notes = notes;
-    _bodyPhoto = bodyPhoto;
     notifyListeners();
   }
 

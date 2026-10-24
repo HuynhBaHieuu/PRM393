@@ -1,0 +1,39 @@
+AI try-on background thumbnails
+
+These photos come from Unsplash and are used under the Unsplash License
+(https://unsplash.com/license), which allows free use without attribution.
+Each one was cropped and resized to 360 x 480 pixels for this app. They are
+only shown as thumbnails; the try-on scene itself is drawn by the AI from a
+text description.
+
+Brick wall (brick-wall.jpg)
+Photo by Alex Quezada on Unsplash.
+https://images.unsplash.com/photo-1614620304006-504b0d4b37e3
+
+NYC Subway (subway.jpg)
+Photo by Andre Benz on Unsplash.
+https://images.unsplash.com/photo-1491001224967-2c0ee18a7c42
+
+Tokyo Night (tokyo-night.jpg)
+Photo by Valentin Beauvais on Unsplash.
+https://images.unsplash.com/photo-1601042879364-f3947d3f9c16
+
+Skatepark (skatepark.jpg)
+Photo by Juan Pablo on Unsplash.
+https://images.unsplash.com/photo-1764876176888-7fe10c03f3e7
+
+Café (cafe.jpg)
+Photo by Jonathan Borba on Unsplash.
+https://images.unsplash.com/photo-1545418314-7ce0b9b53901
+
+Paris (paris.jpg)
+Photo by Diogo Fagundes on Unsplash.
+https://images.unsplash.com/photo-1609971757431-439cf7b4141b
+
+Old town (old-town.jpg)
+Photo by Yehor Tulinov on Unsplash.
+https://images.unsplash.com/photo-1634057306449-51bc02166e3d
+
+Beach (beach.jpg)
+Photo by Maarten van den Heuvel on Unsplash.
+https://images.unsplash.com/photo-1506953823976-52e1fdc0149a

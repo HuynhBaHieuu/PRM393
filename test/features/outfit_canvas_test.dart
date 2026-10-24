@@ -88,12 +88,10 @@ void main() {
     rgba[(1 * 4 + 1) * 4 + 3] = 255;
     rgba[(2 * 4 + 2) * 4 + 3] = 255;
     final bounds = opaqueBounds(rgba, 4, 3)!;
-    expect([bounds.left, bounds.top, bounds.right, bounds.bottom], [
-      1,
-      1,
-      3,
-      3,
-    ]);
+    expect(
+      [bounds.left, bounds.top, bounds.right, bounds.bottom],
+      [1, 1, 3, 3],
+    );
     expect(opaqueBounds(Uint8List(16), 2, 2), isNull);
   });
 

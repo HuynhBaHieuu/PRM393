@@ -125,15 +125,18 @@ class StylistMessage {
 }
 
 /// Chats with an OpenAI-compatible chat completions API that styles outfits
-/// from the user's wardrobe, and draws try-on pictures with Gemini. Item
-/// metadata is sent with every message; photos only when the user attaches
-/// one or asks for a try-on.
+/// from the user's wardrobe, and draws try-on pictures with Meta's Muse
+/// Image, or Gemini when Muse is missing or out of credits. Item metadata is
+/// sent with every message; photos only when the user attaches one or asks
+/// for a try-on.
 class AiStylistService {
   const AiStylistService({
     required this.apiKey,
     this.baseUrl = defaultBaseUrl,
     this.model = defaultModel,
     this.imageModel = defaultImageModel,
+    this.qualityImageModel = defaultQualityImageModel,
+    this.museImageModel = defaultMuseImageModel,
     this.primary,
   });
 
@@ -155,6 +158,9 @@ class AiStylistService {
           baseUrl: read('AI_BASE_URL') ?? defaultBaseUrl,
           model: read('AI_MODEL') ?? defaultModel,
           imageModel: read('AI_IMAGE_MODEL') ?? defaultImageModel,
+          qualityImageModel:
+              read('AI_IMAGE_MODEL_QUALITY') ?? defaultQualityImageModel,
+          museImageModel: read('MUSE_IMAGE_MODEL') ?? defaultMuseImageModel,
           primary: museKey == null
               ? null
               : (
@@ -177,14 +183,16 @@ class AiStylistService {
   static const String defaultBaseUrl = 'https://api.openai.com/v1';
   static const String defaultModel = 'gpt-4o';
   static const String defaultImageModel = 'gemini-2.5-flash-image';
+  static const String defaultQualityImageModel = 'gemini-3-pro-image-preview';
   static const String museBaseUrl = 'https://api.meta.ai/v1';
   static const String museModel = 'muse-spark-1.3';
+  static const String defaultMuseImageModel = 'muse-image-1.0';
 
   static const int maxOutfits = 3;
   static const int maxShopping = 3;
 
   /// Most pieces drawn onto one try-on picture.
-  static const int maxTryOnPieces = 4;
+  static const int maxTryOnPieces = 5;
   static const int _minPieces = 2;
 
   /// Only the latest messages are sent: 10 questions and their answers.
@@ -196,6 +204,9 @@ class AiStylistService {
   static const int _maxReplyLength = 600;
   static const Duration _timeout = Duration(seconds: 60);
   static const Duration _imageTimeout = Duration(seconds: 120);
+
+  static const String _noPicture =
+      'No try-on picture came back. Try a clearer, full-body photo of you.';
 
   static const String _unreadable =
       'The AI reply could not be read. Please try again.';
@@ -232,12 +243,37 @@ class AiStylistService {
       '10. Leave any list empty when it isn\'t needed. Write "name", '
       '"reason" and shopping text in the language of "reply".';
 
-  static const String _tryOnPrompt =
-      'Virtual try-on. The first image shows a person. Create a realistic '
-      'full-body photo of this same person, keeping their face, body, pose '
-      'and skin tone, wearing all of the clothing pieces shown in the other '
-      'images together as one outfit. Keep each piece\'s color, pattern and '
-      'logos. Plain light studio background.';
+  static String _tryOnPrompt({
+    required bool hasSelfie,
+    required bool hasBody,
+    required int pieceCount,
+    required String bodyType,
+    required String appearance,
+    required String scene,
+    required String notes,
+  }) {
+    final person = switch ((hasSelfie, hasBody)) {
+      (true, true) =>
+        'The first image is a selfie of a person and the second shows their '
+            'full body. Create a realistic full-body photo of this same '
+            'person, keeping their face, hair, skin tone and body shape,',
+      (true, false) =>
+        'The first image shows a person\'s face. Create a realistic '
+            'full-body photo of this same person, keeping their face, hair '
+            'and skin tone, as $bodyType,',
+      (false, true) =>
+        'The first image shows a person. Create a realistic full-body photo '
+            'of this same person, keeping their face, body and skin tone,',
+      (false, false) =>
+        'Create a realistic full-body photo of a fashion model, $bodyType,',
+    };
+    return 'Virtual try-on. $person standing naturally and wearing all of '
+        'the clothing pieces shown in the last $pieceCount images together '
+        'as one outfit. Keep each piece\'s color, pattern, fit and logos. '
+        'Setting: $scene.'
+        '${appearance.isEmpty ? '' : ' How the person looks: $appearance.'}'
+        '${notes.isEmpty ? '' : ' Styling notes from the user: $notes.'}';
+  }
 
   final String apiKey;
   final String baseUrl;
@@ -245,6 +281,13 @@ class AiStylistService {
 
   /// Gemini model that draws try-on pictures.
   final String imageModel;
+
+  /// Slower Gemini model for "Quality" try-ons.
+  final String qualityImageModel;
+
+  /// Muse model that draws try-on pictures on [primary]'s endpoint, tried
+  /// before Gemini.
+  final String museImageModel;
 
   /// Chat endpoint tried first, such as Meta's Muse Spark; the one above
   /// takes over when it runs out of credits or quota.
@@ -259,7 +302,9 @@ class AiStylistService {
       : null;
 
   /// Whether [tryOn] can work with this provider.
-  bool get canTryOn => apiKey.isNotEmpty && _geminiRoot != null;
+  bool get canTryOn => primary != null || _canGeminiTryOn;
+
+  bool get _canGeminiTryOn => apiKey.isNotEmpty && _geminiRoot != null;
 
   /// Answers the last message in [history], which the user just sent, as
   /// [persona]. [notes] is what the user told the stylist about themselves.
@@ -378,38 +423,113 @@ class AiStylistService {
     return _parse(content, byShortId);
   }
 
-  /// Draws the person in [person] wearing [pieces] (photos of the clothes,
-  /// at most [maxTryOnPieces]) and returns the picture's bytes.
+  /// Draws [pieces] (photos of the clothes, at most [maxTryOnPieces]) on the
+  /// person in [person] (a selfie) and [body] (a full-body photo), or on an
+  /// AI model when both are null, and returns the picture's bytes.
+  /// [bodyType] describes the figure, e.g. "a woman with a slim build";
+  /// [appearance] is how the user describes themselves; [scene] the
+  /// setting; [notes] is the user's own styling prompt.
   Future<Uint8List> tryOn({
-    required List<int> person,
+    List<int>? person,
+    List<int>? body,
     required List<List<int>> pieces,
+    String bodyType = 'a person with an average build',
+    String appearance = '',
+    String scene = 'a plain light grey photo studio',
+    String notes = '',
+    bool highQuality = false,
     Future<void>? cancel,
   }) async {
-    final root = _geminiRoot;
-    if (apiKey.isEmpty || root == null) {
-      throw const AiException('Virtual try-on needs a Gemini API key.');
+    if (!canTryOn) {
+      throw const AiException('Virtual try-on needs a Muse or Gemini API key.');
     }
-    Map<String, Object?> inline(List<int> bytes) => {
-      'inline_data': {'mime_type': mimeOf(bytes), 'data': base64Encode(bytes)},
-    };
+    final worn = pieces.take(maxTryOnPieces).toList();
+    final prompt = _tryOnPrompt(
+      hasSelfie: person != null,
+      hasBody: body != null,
+      pieceCount: worn.length,
+      bodyType: bodyType,
+      appearance: appearance.trim(),
+      scene: scene,
+      notes: notes.trim(),
+    );
+    // In the order the prompt names them.
+    final images = [?person, ?body, ...worn];
+    if (primary case final muse?) {
+      try {
+        return await _museTryOn(muse, prompt, images, cancel);
+      } on _OutOfQuota {
+        if (!_canGeminiTryOn) rethrow;
+      }
+    }
+    return _geminiTryOn(prompt, images, highQuality, cancel);
+  }
+
+  /// Meta's Muse Image edit endpoint, which takes up to 10 images as data
+  /// URLs. Muse has no slower model, so [tryOn]'s `highQuality` only picks
+  /// the Gemini model.
+  Future<Uint8List> _museTryOn(
+    ({String apiKey, String baseUrl, String model}) muse,
+    String prompt,
+    List<List<int>> images,
+    Future<void>? cancel,
+  ) async {
     final text = await _request(
-      Uri.parse('$root/models/$imageModel:generateContent'),
+      Uri.parse('${muse.baseUrl}/images/edits'),
+      {
+        'model': museImageModel,
+        'prompt': '$prompt Vertical 3:4 portrait photo.',
+        'images': [
+          for (final image in images)
+            {
+              'image_url':
+                  'data:${mimeOf(image)};base64,${base64Encode(image)}',
+            },
+        ],
+        'n': 1,
+      },
+      headers: {HttpHeaders.authorizationHeader: 'Bearer ${muse.apiKey}'},
+      modelName: museImageModel,
+      timeout: _imageTimeout,
+      cancel: cancel,
+    );
+    if (_decode(text) case {'data': [{'b64_json': final String data}, ...]}) {
+      return base64Decode(data);
+    }
+    throw const AiException(_noPicture);
+  }
+
+  Future<Uint8List> _geminiTryOn(
+    String prompt,
+    List<List<int>> images,
+    bool highQuality,
+    Future<void>? cancel,
+  ) async {
+    final model = highQuality ? qualityImageModel : imageModel;
+    final text = await _request(
+      Uri.parse('$_geminiRoot/models/$model:generateContent'),
       {
         'contents': [
           {
             'parts': [
-              {'text': _tryOnPrompt},
-              inline(person),
-              for (final piece in pieces.take(maxTryOnPieces)) inline(piece),
+              {'text': prompt},
+              for (final image in images)
+                {
+                  'inline_data': {
+                    'mime_type': mimeOf(image),
+                    'data': base64Encode(image),
+                  },
+                },
             ],
           },
         ],
         'generationConfig': {
           'responseModalities': ['IMAGE'],
+          'imageConfig': {'aspectRatio': '3:4'},
         },
       },
       headers: {'x-goog-api-key': apiKey},
-      modelName: imageModel,
+      modelName: model,
       timeout: _imageTimeout,
       cancel: cancel,
     );
@@ -422,9 +542,7 @@ class AiStylistService {
         }
       }
     }
-    throw const AiException(
-      'No try-on picture came back. Try a clearer, full-body photo of you.',
-    );
+    throw const AiException(_noPicture);
   }
 
   static Object? _decode(String text) {

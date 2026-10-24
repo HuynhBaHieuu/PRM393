@@ -14,11 +14,17 @@ class AppMaterialApp extends StatelessWidget {
     required this.home,
     this.themeMode = ThemeMode.system,
     this.onGenerateRoute,
+    this.navigatorKey,
+    this.scaffoldMessengerKey,
   });
 
   final Widget home;
   final ThemeMode themeMode;
   final RouteFactory? onGenerateRoute;
+
+  /// For notices from work that outlives its screen, like a try-on.
+  final GlobalKey<NavigatorState>? navigatorKey;
+  final GlobalKey<ScaffoldMessengerState>? scaffoldMessengerKey;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +35,8 @@ class AppMaterialApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       onGenerateRoute: onGenerateRoute,
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       home: home,
     );
   }

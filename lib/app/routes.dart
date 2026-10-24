@@ -20,6 +20,11 @@ import 'package:all_fits/features/social/screens/style_outfit_screen.dart';
 import 'package:all_fits/features/social/screens/styled_together_screen.dart';
 import 'package:all_fits/features/social/screens/user_profile_screen.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
+import 'package:all_fits/data/models/try_on.dart';
+import 'package:all_fits/features/try_on/screens/try_on_clothes_screen.dart';
+import 'package:all_fits/features/try_on/screens/try_on_profile_screen.dart';
+import 'package:all_fits/features/try_on/screens/try_on_screen.dart';
+import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_form_screen.dart';
@@ -50,6 +55,9 @@ abstract final class AppRoutes {
   static const String styledOutfit = '/styled/detail';
   static const String discover = '/discover';
   static const String publicOutfit = '/discover/outfit';
+  static const String tryOn = '/try-on';
+  static const String tryOnProfile = '/try-on/profile';
+  static const String tryOnClothes = '/try-on/clothes';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -100,6 +108,11 @@ abstract final class AppRoutes {
       AppRoutes.discover => const DiscoverScreen(),
       AppRoutes.publicOutfit when args is (FeedPost, bool) =>
         PublicOutfitScreen(post: args.$1, fromFeed: args.$2),
+      AppRoutes.tryOn when args is TryOnArgs => TryOnScreen(args: args),
+      AppRoutes.tryOnClothes when args is TryOnArgs => TryOnClothesScreen(
+        args: args,
+      ),
+      AppRoutes.tryOnProfile => TryOnProfileScreen(onboarding: args == true),
       _ => const NotFoundView(),
     };
     final isModalForm =
@@ -226,6 +239,25 @@ abstract final class AppNavigator {
 
   static Future<void> discover(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.discover);
+
+  /// Prefer [TryOnFlows.start], which asks for consent first.
+  static Future<void> tryOn(BuildContext context, TryOnArgs args) =>
+      Navigator.of(context).pushNamed(AppRoutes.tryOn, arguments: args);
+
+  /// Prefer [TryOnFlows.start], which asks for consent first.
+  static Future<void> tryOnClothes(BuildContext context, TryOnArgs args) =>
+      Navigator.of(context).pushNamed(AppRoutes.tryOnClothes, arguments: args);
+
+  /// During [onboarding], resolves to who wears the outfit once the user
+  /// agrees, or null.
+  static Future<TryOnWearer?> tryOnProfile(
+    BuildContext context, {
+    bool onboarding = false,
+  }) async {
+    final result = await Navigator.of(context)
+        .pushNamed<Object?>(AppRoutes.tryOnProfile, arguments: onboarding);
+    return result is TryOnWearer ? result : null;
+  }
 
   /// Resolves to true when the post changed (saved, unsaved, owner blocked).
   static Future<bool> publicOutfit(

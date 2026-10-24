@@ -1,10 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Needed by the AI stylist; debug builds get it from the debug manifest. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Saving try-on pictures to the gallery on Android 10 and older (gal). -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
     <application
         android:label="all_fits"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

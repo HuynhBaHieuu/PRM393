@@ -15,6 +15,9 @@ abstract final class StorageKeys {
   static const String stylistChats = 'stylist.chats.v1';
   static const String stylistUsage = 'stylist.usage.v1';
   static const String stylistPrefs = 'stylist.prefs.v1';
+  static const String tryOnProfile = 'tryon.profile.v1';
+  static const String tryOnResults = 'tryon.results.v1';
+  static const String tryOnUsage = 'tryon.usage.v1';
 
   static const List<String> userDataKeys = [
     clothingItems,

@@ -154,24 +154,26 @@ Miễn phí và Premium: bản miễn phí có khoảng 10 sticker, 3 kiểu tó
 
 ## 9. Thử đồ bằng AI
 
-App tạo một bức ảnh người mặc outfit bạn đã ghép, để bạn hình dung khi mặc lên trông thế nào.
+App tạo một bức ảnh người mặc outfit bạn đã ghép, để bạn hình dung khi mặc lên trông thế nào. Cách làm học theo màn "AI Try On" của Fits.
 
 Cách dùng:
-1. Mở một outfit, bấm "Try on".
-2. Lần đầu, app giải thích cách hoạt động và hỏi bạn có đồng ý gửi ảnh không.
-3. Chọn người mặc: ảnh của chính bạn (ảnh toàn thân, đứng thẳng, đủ sáng) hoặc một người mẫu có sẵn trong app.
-4. Đợi khoảng 20 đến 60 giây. Bạn có thể làm việc khác, khi xong app sẽ báo.
-5. Xem ảnh kết quả. Bấm "Edit" để đổi người mặc hoặc thử lại, "Lưu vào máy" để tải về, hoặc "Xóa".
-6. Các ảnh đã tạo được giữ trong mục "Try-on" của outfit đó.
-7. Ảnh toàn thân của bạn xem, thay hoặc xóa trong Account, Settings.
+1. Mở một outfit và bấm "Try on", hoặc bấm ô "AI Try On" ở Home. Từ Home, bước đầu là màn "Select clothes to try on": lọc theo Tops, Bottoms, Shoes, Outerwear, Full Body, Accessories, chọn tối đa 5 món, món đã chọn hiện ở khay dưới (bấm × để bỏ), rồi bấm "Next".
+2. Lần đầu, màn "Try on profile" giải thích cách hoạt động. Bạn thêm ảnh selfie, ảnh toàn thân (không bắt buộc) và chọn dáng người (Nam/Nữ, S/M/L, chân ngắn/dài). Bấm "Continue" nghĩa là đồng ý gửi ảnh cho dịch vụ AI. Nếu không muốn gửi ảnh, bấm "Use an AI model instead" để dùng người mẫu AI theo dáng người đã chọn.
+3. Màn thử đồ hiện các món đã chọn bị làm mờ, nút "Generate image" và số lượt còn lại. Hàng nút bên dưới cho đổi: Background (Studio, Brick wall, NYC Subway, Tokyo Night, Skatepark, Café, Paris, Old town, Beach), Clothes, Fast/Quality (Quality chậm gấp đôi nhưng đẹp hơn), Prompt (ghi thêm yêu cầu, ví dụ "Oversized fit") và người mặc (bạn hoặc người mẫu AI).
+4. Đợi khoảng 20 đến 60 giây. Bạn có thể rời màn hình, khi xong app báo "Your AI try-on is ready" kèm nút "View".
+5. Xem ảnh kết quả, có nhãn "AI-generated image". Giữ tay lên ảnh để xem lại các món đồ. Bấm "Try again" để tạo lại, "Save" để lưu vào thư viện ảnh, "Share" để chia sẻ, hoặc "Delete". Đổi bất kỳ lựa chọn nào thì quay về nút "Generate image".
+6. Các ảnh đã tạo được giữ trong mục "Try-on" của outfit đó. Bấm vào một ảnh để mở lại.
+7. Ảnh selfie, ảnh toàn thân và dáng người xem, thay hoặc xóa trong Account, Settings, "Try on profile" (hoặc bấm ảnh đại diện ở màn chọn đồ). Ở đây có thêm ô "Additional prompt" để tả ngoại hình (tối đa 300 ký tự, ví dụ "đeo kính, tóc ngắn"), được gửi kèm mỗi lần tạo ảnh. Nút "Try on" trong AI Stylist cũng dùng chung chức năng này.
 
-App làm gì phía sau: ảnh được gửi tới một dịch vụ tạo ảnh bằng AI qua máy chủ của app, không gọi thẳng từ điện thoại. Nhiều dịch vụ chỉ mặc được từng món một, nên app mặc áo trước rồi tới quần. Giày và phụ kiện có thể chưa hiện trong ảnh.
+App làm gì phía sau: app gửi ảnh của bạn (hoặc dáng người khi dùng người mẫu AI), ảnh các món đồ, bối cảnh và yêu cầu thêm trong một lần. App thử Muse Image của Meta trước (`muse-image-1.0`, endpoint `/v1/images/edits`, khoảng $0.01 một ảnh, dùng chung `MUSE_API_KEY` với AI Stylist). Nếu Muse chưa có billing hoặc hết lượt thì chuyển sang Gemini: Fast dùng `gemini-2.5-flash-image`, Quality dùng `gemini-3-pro-image-preview`. Muse không có bản chậm hơn, nên Fast/Quality chỉ đổi model của Gemini. Các model đổi được bằng `MUSE_IMAGE_MODEL`, `AI_IMAGE_MODEL` và `AI_IMAGE_MODEL_QUALITY` trong `assets/env.json`. Cả hai dịch vụ mặc được nhiều món cùng lúc, nên không cần mặc từng món. Cần bật billing ở ít nhất một bên thì mới tạo được ảnh.
 
-Về quyền riêng tư: ảnh toàn thân của bạn chỉ bạn xem được, và bạn xóa được bất cứ lúc nào. Nhóm sẽ chọn dịch vụ không dùng ảnh của người dùng để huấn luyện AI.
+Hiện tại app gọi AI thẳng từ điện thoại và đếm lượt trên máy, giống AI Stylist. Trước khi bán lượt thật, nên chuyển việc gọi AI và đếm lượt sang một Supabase Edge Function.
 
-Lưu ý: ảnh do AI tạo có thể lệch màu hoặc sai dáng so với đồ thật, nên app ghi rõ "Ảnh minh họa bằng AI".
+Về quyền riêng tư: ảnh selfie và ảnh toàn thân chỉ bạn xem được, không nằm trong hồ sơ công khai, và xóa được bất cứ lúc nào. Ảnh chỉ được gửi đi khi bạn bấm tạo ảnh. Ảnh được gửi cho Meta hoặc Google; trước khi phát hành, nhóm cần kiểm tra lại điều khoản dữ liệu của gói API đang dùng.
 
-Miễn phí và Premium: mỗi ảnh tốn tiền dịch vụ, nên chức năng này dành cho Premium, ví dụ 20 ảnh mỗi tháng. Bản miễn phí được thử 1 lần. Nếu tạo ảnh thất bại thì không bị trừ lượt.
+Lưu ý: ảnh do AI tạo có thể lệch màu hoặc sai dáng so với đồ thật, nên app ghi rõ "AI-generated image".
+
+Miễn phí và Premium: mỗi ảnh tốn tiền dịch vụ. Bản miễn phí được thử 1 lần, Premium được 20 ảnh mỗi tháng (đổi trong `AppConfig.freeTryOns` và `AppConfig.premiumTryOnsPerMonth`). Hết lượt thì app mời lên Premium. Tạo ảnh thất bại hoặc bấm "Cancel" thì không bị trừ lượt.
 
 
 ## 10. Mạng xã hội: hồ sơ, theo dõi, khám phá

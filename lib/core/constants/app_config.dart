@@ -60,6 +60,14 @@ abstract final class AppConfig {
   /// Extra Free AI Stylist messages for sharing the app, once a day.
   static const int shareBonusMessages = 3;
 
+  /// AI try-on pictures a Free account can make, ever: one to see how it
+  /// works.
+  static const int freeTryOns = 1;
+
+  /// AI try-on pictures Premium can make each calendar month. Each one costs
+  /// money at the image provider. Failed ones don't count.
+  static const int premiumTryOnsPerMonth = 20;
+
   /// Past AI Stylist chats kept on the device, newest first.
   static const int stylistChatsKept = 30;
 

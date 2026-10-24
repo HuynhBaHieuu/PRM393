@@ -158,6 +158,15 @@ class SettingsScreen extends StatelessWidget {
                       onTap: () => AppNavigator.premium(context),
                     ),
                     ListTile(
+                      leading: const Icon(Icons.accessibility_new_rounded),
+                      title: const Text('Try on profile'),
+                      subtitle: const Text(
+                        'Selfie, body photo and body type for AI try-on',
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => AppNavigator.tryOnProfile(context),
+                    ),
+                    ListTile(
                       leading: const Icon(Icons.logout_rounded),
                       title: const Text('Log out'),
                       onTap: () => AuthFlows.signOut(context),

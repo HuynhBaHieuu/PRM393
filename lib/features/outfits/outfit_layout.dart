@@ -8,20 +8,20 @@ import 'package:all_fits/data/models/outfit_slot.dart';
 abstract final class OutfitLayout {
   /// Spots as (x, y, width, height) fractions of the canvas, see
   /// [OutfitPlacement].
-  static const Map<OutfitSlot, List<(double, double, double, double)>>
-  _spots = {
-    OutfitSlot.outerwear: [(0.28, 0.22, 0.46, 0.34)],
-    OutfitSlot.top: [(0.66, 0.20, 0.42, 0.30)],
-    OutfitSlot.dress: [(0.66, 0.42, 0.48, 0.58)],
-    OutfitSlot.bottom: [(0.66, 0.60, 0.44, 0.50)],
-    OutfitSlot.shoes: [(0.28, 0.84, 0.42, 0.20)],
-    OutfitSlot.accessories: [
-      (0.24, 0.53, 0.32, 0.20),
-      (0.90, 0.46, 0.18, 0.14),
-      (0.90, 0.86, 0.18, 0.14),
-      (0.90, 0.10, 0.18, 0.14),
-    ],
-  };
+  static const Map<OutfitSlot, List<(double, double, double, double)>> _spots =
+      {
+        OutfitSlot.outerwear: [(0.28, 0.22, 0.46, 0.34)],
+        OutfitSlot.top: [(0.66, 0.20, 0.42, 0.30)],
+        OutfitSlot.dress: [(0.66, 0.42, 0.48, 0.58)],
+        OutfitSlot.bottom: [(0.66, 0.60, 0.44, 0.50)],
+        OutfitSlot.shoes: [(0.28, 0.84, 0.42, 0.20)],
+        OutfitSlot.accessories: [
+          (0.24, 0.53, 0.32, 0.20),
+          (0.90, 0.46, 0.18, 0.14),
+          (0.90, 0.86, 0.18, 0.14),
+          (0.90, 0.10, 0.18, 0.14),
+        ],
+      };
 
   /// Back to front, so tops sit over bottoms and accessories over all.
   static const List<OutfitSlot> _paintOrder = [

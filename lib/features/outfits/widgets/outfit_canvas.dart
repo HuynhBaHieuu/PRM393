@@ -139,7 +139,11 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
     setState(() => _activeId = id);
     _start = piece;
     _startFocal = details.focalPoint;
-    _emit([..._placements]..removeAt(index)..add(piece));
+    _emit(
+      [..._placements]
+        ..removeAt(index)
+        ..add(piece),
+    );
   }
 
   void _onUpdate(ScaleUpdateDetails details) {

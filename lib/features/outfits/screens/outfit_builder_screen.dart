@@ -242,46 +242,43 @@ class _Preview extends StatelessWidget {
     final canvas = AspectRatio(
       aspectRatio: AppSizes.outfitImageAspect,
       child: items.isEmpty
-              ? Container(
-                  decoration: BoxDecoration(
-                    color: palette.surfaceMuted,
-                    borderRadius: BorderRadius.circular(AppRadius.xl),
-                    border: Border.all(color: palette.border),
+          ? Container(
+              decoration: BoxDecoration(
+                color: palette.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                border: Border.all(color: palette.border),
+              ),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.style_outlined,
+                    size: AppSizes.iconXl,
+                    color: palette.textSecondary,
                   ),
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.style_outlined,
-                        size: AppSizes.iconXl,
-                        color: palette.textSecondary,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        'Build your look',
-                        style: context.textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        'Add pieces from your wardrobe below.',
-                        textAlign: TextAlign.center,
-                        style: context.textTheme.bodySmall,
-                      ),
-                    ],
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Build your look', style: context.textTheme.titleLarge),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Add pieces from your wardrobe below.',
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.bodySmall,
                   ),
-                )
-              : DecoratedBox(
-                  position: DecorationPosition.foreground,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: palette.border),
-                  ),
-                  child: OutfitCanvas(
-                    items: items,
-                    layout: builder.layout,
-                    onChanged: builder.setLayout,
-                  ),
-                ),
+                ],
+              ),
+            )
+          : DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(
+                border: Border.all(color: palette.border),
+              ),
+              child: OutfitCanvas(
+                items: items,
+                layout: builder.layout,
+                onChanged: builder.setLayout,
+              ),
+            ),
     );
     return Center(
       child: ConstrainedBox(

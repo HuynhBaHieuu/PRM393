@@ -120,10 +120,7 @@ void main() {
         itemIds: [tee, jeans],
         outfitIds: [look],
       );
-      final b = await closet.collections.createCollection(
-        'B',
-        itemIds: [tee],
-      );
+      final b = await closet.collections.createCollection('B', itemIds: [tee]);
 
       await closet.closet.deleteItemPermanently(tee);
       expect(closet.collections.collectionById(a.id)!.itemIds, [jeans]);

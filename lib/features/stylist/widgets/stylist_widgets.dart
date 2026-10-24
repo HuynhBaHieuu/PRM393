@@ -881,12 +881,12 @@ class ChatHistorySheet extends StatelessWidget {
   }
 }
 
-/// Picks the stylist, says what they should know about the user, and sets
-/// the try-on photo.
+/// Picks the stylist, says what they should know about the user, and links
+/// to the try-on profile.
 class PersonaSheet extends StatefulWidget {
-  const PersonaSheet({super.key, required this.onChangeBodyPhoto});
+  const PersonaSheet({super.key, required this.onOpenTryOnProfile});
 
-  final VoidCallback onChangeBodyPhoto;
+  final VoidCallback onOpenTryOnProfile;
 
   @override
   State<PersonaSheet> createState() => _PersonaSheetState();
@@ -972,14 +972,12 @@ class _PersonaSheetState extends State<PersonaSheet> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.accessibility_new_rounded),
-                  title: const Text('Try-on photo'),
-                  subtitle: Text(
-                    store.bodyPhoto == null
-                        ? 'A full-body photo of you, used to try outfits on'
-                        : 'Used to try outfits on',
+                  title: const Text('Try on profile'),
+                  subtitle: const Text(
+                    'Your selfie, body photo and body type for AI try-on',
                   ),
-                  trailing: Text(store.bodyPhoto == null ? 'Add' : 'Change'),
-                  onTap: widget.onChangeBodyPhoto,
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: widget.onOpenTryOnProfile,
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ],

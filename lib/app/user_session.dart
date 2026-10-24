@@ -6,6 +6,7 @@ import 'package:all_fits/app/app_dependencies.dart';
 import 'package:all_fits/app/app_material_app.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
+import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
@@ -20,6 +21,9 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
+import 'package:all_fits/features/try_on/try_on_controller.dart';
+import 'package:all_fits/features/try_on/try_on_flows.dart';
+import 'package:all_fits/data/models/try_on.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -49,6 +53,9 @@ class _UserSessionState extends State<UserSession> {
   late final CollectionController _collections;
   late final WeatherController _weather;
   late final StylistStore _stylist;
+  late final TryOnController _tryOn;
+  final GlobalKey<NavigatorState> _navigator = GlobalKey();
+  final GlobalKey<ScaffoldMessengerState> _messenger = GlobalKey();
   late final ClosetActions _closet;
   late final ShellController _shell;
 
@@ -98,6 +105,20 @@ class _UserSessionState extends State<UserSession> {
       images: deps.imageStorage,
       clock: deps.clock,
     );
+    _tryOn =
+        TryOnController(
+            storage: ScopedStorageService(
+              deps.storage,
+              StorageKeys.userScope(widget.user.id),
+            ),
+            images: deps.imageStorage,
+            service: deps.aiStylist,
+            idGenerator: deps.idGenerator,
+            clock: deps.clock,
+          )
+          ..onBackgroundResult = _tryOnReady
+          ..onBackgroundError = _tryOnFailed
+          ..load();
     _closet = ClosetActions(
       wardrobe: _wardrobe,
       outfits: _outfits,
@@ -136,12 +157,44 @@ class _UserSessionState extends State<UserSession> {
     _collections.dispose();
     _weather.dispose();
     _stylist.dispose();
+    _tryOn.dispose();
     _shell.dispose();
     _social?.dispose();
     super.dispose();
   }
 
   void _retry() => setState(() => _startup = _bootstrap.run());
+
+  /// A try-on finished after the user left its screen.
+  void _tryOnReady(TryOnResult result) {
+    _messenger.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Your AI try-on is ready'),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () {
+              final navigator = _navigator.currentContext;
+              if (navigator != null) TryOnFlows.open(navigator, result);
+            },
+          ),
+        ),
+      );
+  }
+
+  void _tryOnFailed(Object error) {
+    _messenger.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Your try-on didn’t work: ${describeError(error)} No credit was '
+            'used.',
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +213,7 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _collections),
         ChangeNotifierProvider.value(value: _weather),
         ChangeNotifierProvider.value(value: _stylist),
+        ChangeNotifierProvider.value(value: _tryOn),
         ChangeNotifierProvider.value(value: _shell),
         ChangeNotifierProvider<SocialController?>.value(value: _social),
         Provider.value(value: _closet),
@@ -169,6 +223,8 @@ class _UserSessionState extends State<UserSession> {
         builder: (context, themeMode, _) => AppMaterialApp(
           themeMode: themeMode,
           onGenerateRoute: AppRoutes.onGenerateRoute,
+          navigatorKey: _navigator,
+          scaffoldMessengerKey: _messenger,
           home: FutureBuilder<void>(
             future: _startup,
             builder: (context, snapshot) {

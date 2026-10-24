@@ -1,25 +1,20 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_config.dart';
-import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
-import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
-import 'package:all_fits/data/sample/sample_data.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
 import 'package:all_fits/features/outfits/widgets/item_picker_sheet.dart';
@@ -27,6 +22,8 @@ import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/stylist/widgets/stylist_widgets.dart';
+import 'package:all_fits/features/try_on/try_on_controller.dart';
+import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 
@@ -230,97 +227,9 @@ class _StylistScreenState extends State<StylistScreen> {
     return city != null && report?.location == city ? report : null;
   }
 
-  /// Draws the user wearing [outfit].
-  Future<void> _tryOn(OutfitSuggestion outfit) async {
-    if (_busy) return;
-    final store = context.read<StylistStore>();
-    final body = store.bodyPhoto ?? await _setBodyPhoto();
-    if (body == null || !mounted) return;
-    final service = context.read<AiStylistService>();
-    final images = context.read<ImageStorageService>();
-    final items = context.read<WardrobeController>().itemsByIds(outfit.itemIds);
-    await _run('Drawing your try-on…', (cancel) async {
-      final person = await AiStylistService.readImage(
-        images.resolvePath(body) ?? body,
-      );
-      if (person == null) {
-        throw const AiException(
-          'Your try-on photo could not be loaded. Choose it again in the '
-          'stylist menu.',
-        );
-      }
-      final pieces = [
-        for (final item in items.take(AiStylistService.maxTryOnPieces))
-          ?await _photoOf(item, images),
-      ];
-      if (pieces.isEmpty) {
-        throw const AiException('These clothes have no photos to try on.');
-      }
-      final picture = await service.tryOn(
-        person: person,
-        pieces: pieces,
-        cancel: cancel,
-      );
-      final extension = switch (AiStylistService.mimeOf(picture)) {
-        'image/png' => 'png',
-        'image/webp' => 'webp',
-        _ => 'jpg',
-      };
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}/tryon_${DateTime.now().microsecondsSinceEpoch}.$extension',
-      );
-      await file.writeAsBytes(picture);
-      try {
-        return StylistMessage.stylist(
-          'Here’s ${outfit.name} on you ✨',
-          photo: await images.saveImage(file.path),
-        );
-      } finally {
-        await file.delete();
-      }
-    }, retry: () => _tryOn(outfit));
-  }
-
-  /// The photo of [item]: the user's own, or a sample's bundled one.
-  static Future<List<int>?> _photoOf(
-    ClothingItem item,
-    ImageStorageService images,
-  ) async {
-    final reference = item.imagePath;
-    if (reference != null) {
-      final location = images.resolvePath(reference);
-      return location == null ? null : AiStylistService.readImage(location);
-    }
-    final asset = SampleData.photoFor(item.id);
-    if (asset == null) return null;
-    final data = await rootBundle.load(asset);
-    return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-  }
-
-  /// Asks for the full-body photo used for try-ons; returns its reference.
-  Future<String?> _setBodyPhoto() async {
-    final source = await _choosePhotoSource(
-      title: 'Add a full-body photo of you',
-      message:
-          'It’s used to try outfits on, and sent to the AI service only '
-          'when you ask for a try-on.',
-    );
-    if (source == null || !mounted) return null;
-    try {
-      final path = await context.read<ImagePickerService>().pickImage(source);
-      if (path == null || !mounted) return null;
-      final reference = await context.read<ImageStorageService>().saveImage(
-        path,
-      );
-      if (!mounted) return null;
-      await context.read<StylistStore>().setBodyPhoto(reference);
-      return reference;
-    } catch (error) {
-      if (mounted) context.showErrorSnack(error);
-      return null;
-    }
-  }
+  /// Opens AI try-on with [outfit]'s pieces.
+  Future<void> _tryOn(OutfitSuggestion outfit) =>
+      TryOnFlows.start(context, itemIds: outfit.itemIds);
 
   /// Camera or library; the library straight away without a camera.
   Future<ImagePickSource?> _choosePhotoSource({
@@ -482,7 +391,9 @@ class _StylistScreenState extends State<StylistScreen> {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => PersonaSheet(onChangeBodyPhoto: _setBodyPhoto),
+    builder: (_) => PersonaSheet(
+      onOpenTryOnProfile: () => AppNavigator.tryOnProfile(context),
+    ),
   );
 
   Future<void> _save(OutfitSuggestion suggestion) async {
@@ -565,7 +476,10 @@ class _StylistScreenState extends State<StylistScreen> {
         ],
       ),
       body: service.isConfigured
-          ? _buildChat(context, canTryOn: service.canTryOn)
+          ? _buildChat(
+              context,
+              canTryOn: context.read<TryOnController>().isAvailable,
+            )
           : const AppEmptyState(
               icon: Icons.auto_awesome_outlined,
               title: 'AI stylist isn’t set up',
@@ -591,7 +505,7 @@ class _StylistScreenState extends State<StylistScreen> {
                 message: message,
                 saved: _saved,
                 onSave: _save,
-                onTryOn: canTryOn && !outOfMessages ? _tryOn : null,
+                onTryOn: canTryOn ? _tryOn : null,
                 onShop: _shop,
               ),
       if (_busy) ChatBubble(text: _busyLabel, fromUser: false),

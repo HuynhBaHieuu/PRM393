@@ -258,7 +258,9 @@ void main() {
 
     final muse = AiStylistService.fromConfig('{"MUSE_API_KEY": "m"}');
     expect(muse.isConfigured, isTrue);
-    expect(muse.canTryOn, isFalse);
+    // Muse Image draws try-ons on the same key.
+    expect(muse.canTryOn, isTrue);
+    expect(muse.museImageModel, AiStylistService.defaultMuseImageModel);
     expect(muse.primary, (
       apiKey: 'm',
       baseUrl: AiStylistService.museBaseUrl,
@@ -383,7 +385,25 @@ void main() {
       apiKey: 'test-key',
       baseUrl: 'http://127.0.0.1:${server.port}/v1beta/openai',
       imageModel: 'image-model',
+      qualityImageModel: 'quality-model',
     );
+
+    String pictureResponse(List<int> picture) => jsonEncode({
+      'candidates': [
+        {
+          'content': {
+            'parts': [
+              {
+                'inlineData': {
+                  'mimeType': 'image/png',
+                  'data': base64Encode(picture),
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
 
     test(
       'sends the person and pieces to Gemini and returns the picture',
@@ -419,7 +439,7 @@ void main() {
         expect(sentPath, '/v1beta/models/image-model:generateContent');
         expect(sentGoogleKey, 'test-key');
         final parts = sentBody!['contents'][0]['parts'] as List;
-        // The prompt, the person, then at most four pieces.
+        // The prompt, the person, then at most five pieces.
         expect(parts, hasLength(2 + AiStylistService.maxTryOnPieces));
         expect(parts[1]['inline_data'], {
           'mime_type': 'image/jpeg',
@@ -427,9 +447,115 @@ void main() {
         });
         expect(sentBody!['generationConfig'], {
           'responseModalities': ['IMAGE'],
+          'imageConfig': {'aspectRatio': '3:4'},
         });
       },
     );
+
+    test('draws an AI model with the body type, scene and notes', () async {
+      rawResponse = pictureResponse([0x89, 0x50, 0x4E, 0x47]);
+      await gemini().tryOn(
+        pieces: [
+          [0xFF, 0xD8, 1],
+          [0xFF, 0xD8, 2],
+        ],
+        bodyType: 'a man with a slim build',
+        appearance: 'short beard',
+        scene: 'a skatepark',
+        notes: ' oversized fit ',
+        highQuality: true,
+      );
+
+      expect(sentPath, '/v1beta/models/quality-model:generateContent');
+      final parts = sentBody!['contents'][0]['parts'] as List;
+      // No photo of the user: only the prompt and the two pieces.
+      expect(parts, hasLength(3));
+      final prompt = parts[0]['text'] as String;
+      expect(prompt, contains('fashion model, a man with a slim build'));
+      expect(prompt, contains('last 2 images'));
+      expect(prompt, contains('Setting: a skatepark.'));
+      expect(prompt, contains('How the person looks: short beard.'));
+      expect(prompt, contains('Styling notes from the user: oversized fit.'));
+    });
+
+    test('tries Muse Image first and falls back to Gemini', () async {
+      final picture = [0x89, 0x50, 0x4E, 0x47, 5];
+      // Both shapes in one answer: Muse reads data, Gemini candidates.
+      rawResponse = jsonEncode({
+        'data': [
+          {'b64_json': base64Encode(picture)},
+        ],
+        ...jsonDecode(pictureResponse(picture)) as Map<String, dynamic>,
+      });
+      final both = AiStylistService(
+        apiKey: 'gemini-key',
+        baseUrl: 'http://127.0.0.1:${server.port}/v1beta/openai',
+        imageModel: 'image-model',
+        primary: (
+          apiKey: 'muse-key',
+          baseUrl: 'http://127.0.0.1:${server.port}/muse',
+          model: 'muse-model',
+        ),
+      );
+      Future<List<int>> draw() => both.tryOn(
+        person: [0xFF, 0xD8, 7],
+        pieces: [
+          [0xFF, 0xD8, 1],
+        ],
+      );
+
+      expect(await draw(), picture);
+      expect(paths, ['/muse/images/edits']);
+      expect(sentAuth, 'Bearer muse-key');
+      expect(sentBody!['model'], AiStylistService.defaultMuseImageModel);
+      expect(sentBody!['images'], [
+        {
+          'image_url':
+              'data:image/jpeg;base64,${base64Encode([0xFF, 0xD8, 7])}',
+        },
+        {
+          'image_url':
+              'data:image/jpeg;base64,${base64Encode([0xFF, 0xD8, 1])}',
+        },
+      ]);
+      expect(sentBody!['prompt'], contains("person's face"));
+
+      // No billing on Muse: Gemini draws it instead.
+      paths.clear();
+      museStatus = HttpStatus.paymentRequired;
+      expect(await draw(), picture);
+      expect(paths, [
+        '/muse/images/edits',
+        '/v1beta/models/image-model:generateContent',
+      ]);
+
+      // Muse alone can try on too.
+      expect(
+        const AiStylistService(
+          apiKey: '',
+          primary: (apiKey: 'k', baseUrl: 'https://x', model: 'm'),
+        ).canTryOn,
+        isTrue,
+      );
+    });
+
+    test('sends the selfie before the full-body photo', () async {
+      rawResponse = pictureResponse([0x89, 0x50, 0x4E, 0x47]);
+      await gemini().tryOn(
+        person: [0xFF, 0xD8, 7],
+        body: [0xFF, 0xD8, 8],
+        pieces: [
+          [0xFF, 0xD8, 1],
+        ],
+      );
+
+      expect(sentPath, '/v1beta/models/image-model:generateContent');
+      final parts = sentBody!['contents'][0]['parts'] as List;
+      expect(parts, hasLength(4));
+      expect(parts[0]['text'], contains('selfie'));
+      expect(parts[1]['inline_data']['data'], base64Encode([0xFF, 0xD8, 7]));
+      expect(parts[2]['inline_data']['data'], base64Encode([0xFF, 0xD8, 8]));
+    });
 
     test('explains a plan without image generation', () async {
       status = HttpStatus.tooManyRequests;
@@ -523,7 +649,7 @@ void main() {
     museStatus = HttpStatus.paymentRequired;
     final museOnly = both(apiKey: '');
     expect(museOnly.isConfigured, isTrue);
-    expect(museOnly.canTryOn, isFalse);
+    expect(museOnly.canTryOn, isTrue);
     expect(await send(museOnly), contains('out of credits'));
   });
 
