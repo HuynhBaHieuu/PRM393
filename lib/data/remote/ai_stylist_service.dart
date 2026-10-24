@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
@@ -138,6 +141,8 @@ class AiStylistService {
     this.qualityImageModel = defaultQualityImageModel,
     this.museImageModel = defaultMuseImageModel,
     this.primary,
+    this.cloudflare,
+    this.shrinkImage = fitImage,
   });
 
   /// Builds the service from the contents of [configAsset]. Anything missing
@@ -153,6 +158,8 @@ class AiStylistService {
         }
 
         final museKey = read('MUSE_API_KEY');
+        final cloudflareAccount = read('CLOUDFLARE_ACCOUNT_ID');
+        final cloudflareToken = read('CLOUDFLARE_API_TOKEN');
         return AiStylistService(
           apiKey: read('OPENAI_API_KEY') ?? '',
           baseUrl: read('AI_BASE_URL') ?? defaultBaseUrl,
@@ -167,6 +174,14 @@ class AiStylistService {
                   apiKey: museKey,
                   baseUrl: read('MUSE_BASE_URL') ?? museBaseUrl,
                   model: read('MUSE_MODEL') ?? museModel,
+                ),
+          cloudflare: cloudflareAccount == null || cloudflareToken == null
+              ? null
+              : (
+                  baseUrl: cloudflareBaseUrl,
+                  accountId: cloudflareAccount,
+                  apiToken: cloudflareToken,
+                  model: read('CLOUDFLARE_IMAGE_MODEL') ?? cloudflareImageModel,
                 ),
         );
       }
@@ -187,6 +202,16 @@ class AiStylistService {
   static const String museBaseUrl = 'https://api.meta.ai/v1';
   static const String museModel = 'muse-spark-1.3';
   static const String defaultMuseImageModel = 'muse-image-1.0';
+  static const String cloudflareBaseUrl =
+      'https://api.cloudflare.com/client/v4';
+  static const String cloudflareImageModel =
+      '@cf/black-forest-labs/flux-2-klein-4b';
+
+  /// Cloudflare's FLUX.2 takes at most this many reference images, each
+  /// smaller than 512 x 512.
+  static const int _cloudflareMaxImages = 4;
+  static const int _cloudflareMaxSide = 511;
+  static const int _cloudflareTries = 4;
 
   static const int maxOutfits = 3;
   static const int maxShopping = 3;
@@ -275,6 +300,34 @@ class AiStylistService {
         '${notes.isEmpty ? '' : ' Styling notes from the user: $notes.'}';
   }
 
+  /// FLUX on Cloudflare flags pictures less often when images are named by
+  /// number and nothing asks to copy a face.
+  static String _fluxPrompt({
+    required bool hasSelfie,
+    required bool hasBody,
+    required int pieceCount,
+    required String bodyType,
+    required String appearance,
+    required String scene,
+    required String notes,
+  }) {
+    final people = (hasSelfie ? 1 : 0) + (hasBody ? 1 : 0);
+    final who = switch (people) {
+      0 => 'a fashion model, $bodyType,',
+      1 when hasSelfie => 'the person in image 1, $bodyType,',
+      1 => 'the person in image 1',
+      _ => 'the person in images 1 and 2',
+    };
+    final first = people + 1;
+    final last = people + pieceCount;
+    final pieces = first == last ? 'image $first' : 'images $first to $last';
+    return 'Full-body fashion photo of $who fully clothed, wearing the '
+        'clothing from $pieces together as one outfit, with the same colors, '
+        'patterns and logos. Natural standing pose. Setting: $scene.'
+        '${appearance.isEmpty ? '' : ' The person: $appearance.'}'
+        '${notes.isEmpty ? '' : ' Styling: $notes.'}';
+  }
+
   final String apiKey;
   final String baseUrl;
   final String model;
@@ -289,6 +342,13 @@ class AiStylistService {
   /// before Gemini.
   final String museImageModel;
 
+  /// Workers AI image model tried last; its daily allowance is free.
+  final ({String baseUrl, String accountId, String apiToken, String model})?
+  cloudflare;
+
+  /// Shrinks an image to fit a size; [fitImage] outside tests.
+  final Future<List<int>> Function(List<int> image, int maxSide) shrinkImage;
+
   /// Chat endpoint tried first, such as Meta's Muse Spark; the one above
   /// takes over when it runs out of credits or quota.
   final ({String apiKey, String baseUrl, String model})? primary;
@@ -302,7 +362,7 @@ class AiStylistService {
       : null;
 
   /// Whether [tryOn] can work with this provider.
-  bool get canTryOn => primary != null || _canGeminiTryOn;
+  bool get canTryOn => primary != null || _canGeminiTryOn || cloudflare != null;
 
   bool get _canGeminiTryOn => apiKey.isNotEmpty && _geminiRoot != null;
 
@@ -441,28 +501,143 @@ class AiStylistService {
     Future<void>? cancel,
   }) async {
     if (!canTryOn) {
-      throw const AiException('Virtual try-on needs a Muse or Gemini API key.');
+      throw const AiException(
+        'Virtual try-on needs a Muse, Gemini or Cloudflare API key.',
+      );
     }
     final worn = pieces.take(maxTryOnPieces).toList();
-    final prompt = _tryOnPrompt(
-      hasSelfie: person != null,
-      hasBody: body != null,
-      pieceCount: worn.length,
-      bodyType: bodyType,
-      appearance: appearance.trim(),
-      scene: scene,
-      notes: notes.trim(),
-    );
-    // In the order the prompt names them.
-    final images = [?person, ?body, ...worn];
-    if (primary case final muse?) {
+    // The images, in the order the prompt names them, and that prompt.
+    (List<List<int>>, String) request(List<int>? body, List<List<int>> worn) =>
+        (
+          [?person, ?body, ...worn],
+          _tryOnPrompt(
+            hasSelfie: person != null,
+            hasBody: body != null,
+            pieceCount: worn.length,
+            bodyType: bodyType,
+            appearance: appearance.trim(),
+            scene: scene,
+            notes: notes.trim(),
+          ),
+        );
+    final (images, prompt) = request(body, worn);
+    // Tried in order; the next one takes over when one is out of credits.
+    final attempts = <Future<Uint8List> Function()>[
+      if (primary case final muse?)
+        () => _museTryOn(muse, prompt, images, cancel),
+      if (_canGeminiTryOn)
+        () => _geminiTryOn(prompt, images, highQuality, cancel),
+      if (cloudflare case final flux?)
+        () {
+          // Room for four images: the body photo goes first, then pieces.
+          final room = _cloudflareMaxImages - (person == null ? 0 : 1);
+          final keepBody = body != null && worn.length < room;
+          final fewer = [
+            ?person,
+            if (keepBody) body,
+            ...worn.take(room - (keepBody ? 1 : 0)),
+          ];
+          final prompt = _fluxPrompt(
+            hasSelfie: person != null,
+            hasBody: keepBody,
+            pieceCount:
+                fewer.length - (person == null ? 0 : 1) - (keepBody ? 1 : 0),
+            bodyType: bodyType,
+            appearance: appearance.trim(),
+            scene: scene,
+            notes: notes.trim(),
+          );
+          return _cloudflareTryOn(flux, prompt, fewer, cancel);
+        },
+    ];
+    for (final (index, attempt) in attempts.indexed) {
       try {
-        return await _museTryOn(muse, prompt, images, cancel);
+        return await attempt();
       } on _OutOfQuota {
-        if (!_canGeminiTryOn) rethrow;
+        if (index == attempts.length - 1) rethrow;
       }
     }
-    return _geminiTryOn(prompt, images, highQuality, cancel);
+    throw StateError('No try-on provider');
+  }
+
+  /// FLUX.2 on Cloudflare Workers AI, free up to a daily allowance. Images
+  /// are sent shrunk as multipart fields `input_image_0`, `input_image_1`...
+  Future<Uint8List> _cloudflareTryOn(
+    ({String baseUrl, String accountId, String apiToken, String model}) flux,
+    String prompt,
+    List<List<int>> images,
+    Future<void>? cancel,
+  ) async {
+    final small = [
+      for (final image in images) await shrinkImage(image, _cloudflareMaxSide),
+    ];
+    // Its safety filter sometimes flags a fine picture with a person in it;
+    // another try usually passes.
+    for (var attempt = 1; ; attempt++) {
+      try {
+        return await _cloudflareDraw(flux, prompt, small, cancel);
+      } on _Flagged {
+        if (attempt == _cloudflareTries) {
+          throw const AiException(
+            'The free AI’s safety filter blocked this picture. Try again, '
+            'use the AI model, or a different photo of you.',
+          );
+        }
+      }
+    }
+  }
+
+  Future<Uint8List> _cloudflareDraw(
+    ({String baseUrl, String accountId, String apiToken, String model}) flux,
+    String prompt,
+    List<List<int>> small,
+    Future<void>? cancel,
+  ) async {
+    final text = await _request(
+      Uri.parse(
+        '${flux.baseUrl}/accounts/${flux.accountId}/ai/run/${flux.model}',
+      ),
+      _Multipart(
+        fields: {'prompt': prompt, 'width': '768', 'height': '1024'},
+        files: {
+          for (final (index, image) in small.indexed)
+            'input_image_$index': image,
+        },
+      ),
+      headers: {HttpHeaders.authorizationHeader: 'Bearer ${flux.apiToken}'},
+      modelName: flux.model,
+      timeout: _imageTimeout,
+      cancel: cancel,
+    );
+    if (_decode(text) case {'result': {'image': final String data}}) {
+      return base64Decode(data);
+    }
+    throw const AiException(_noPicture);
+  }
+
+  /// Scales [bytes] down so neither side is over [maxSide], as PNG; small
+  /// images are returned as they are.
+  static Future<List<int>> fitImage(List<int> bytes, int maxSide) async {
+    final buffer = await ui.ImmutableBuffer.fromUint8List(
+      Uint8List.fromList(bytes),
+    );
+    final descriptor = await ui.ImageDescriptor.encoded(buffer);
+    try {
+      final scale = maxSide / math.max(descriptor.width, descriptor.height);
+      if (scale >= 1) return bytes;
+      final codec = await descriptor.instantiateCodec(
+        targetWidth: (descriptor.width * scale).floor(),
+        targetHeight: (descriptor.height * scale).floor(),
+      );
+      final frame = await codec.getNextFrame();
+      final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+      frame.image.dispose();
+      codec.dispose();
+      return data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    } finally {
+      descriptor.dispose();
+      buffer.dispose();
+    }
   }
 
   /// Meta's Muse Image edit endpoint, which takes up to 10 images as data
@@ -574,9 +749,11 @@ class AiStylistService {
   }
 
   /// Posts [body] as JSON to [url] and returns the response text.
+  /// Posts [body], a JSON map or a [_Multipart], and returns the response
+  /// text.
   Future<String> _request(
     Uri url,
-    Map<String, Object?> body, {
+    Object body, {
     required Map<String, String> headers,
     required String modelName,
     Duration timeout = _timeout,
@@ -607,8 +784,19 @@ class AiStylistService {
           HttpStatus.notFound => 'The AI model "$modelName" is not available.',
           >= HttpStatus.internalServerError =>
             'The AI service is busy right now. Try again in a moment.',
-          _ => 'The AI service returned an error ($status).',
+          _ => [
+            'The AI service returned an error ($status)',
+            ?_errorDetail(text),
+          ].join(': '),
         };
+        developer.log(
+          'AI request to ${url.host} returned $status',
+          name: 'ai',
+          error: text.length > 500 ? text.substring(0, 500) : text,
+        );
+        if (status == HttpStatus.badRequest && text.contains('flagged')) {
+          throw _Flagged(message);
+        }
         throw status == HttpStatus.paymentRequired ||
                 status == HttpStatus.tooManyRequests
             ? _OutOfQuota(message)
@@ -621,8 +809,13 @@ class AiStylistService {
       throw const AiException(
         'The AI service took too long to answer. Please try again.',
       );
-    } on Exception {
+    } on Exception catch (error) {
       // Socket and TLS failures, and cancelled requests.
+      developer.log(
+        'AI request to ${url.host} failed',
+        name: 'ai',
+        error: error,
+      );
       throw const AiException(
         'Could not reach the AI service. Check your connection.',
       );
@@ -631,16 +824,41 @@ class AiStylistService {
     }
   }
 
+  /// The provider's own error message, when it sent one: Gemini and Muse
+  /// use `error.message`, Cloudflare `errors[].message`.
+  static String? _errorDetail(String text) {
+    try {
+      final message = switch (jsonDecode(text)) {
+        {'error': {'message': final String message}} => message,
+        {'errors': [{'message': final String message}, ...]} => message,
+        _ => null,
+      };
+      if (message == null || message.trim().isEmpty) return null;
+      final line = message.trim().split('\n').first;
+      return line.length > 160 ? '${line.substring(0, 160)}…' : line;
+    } on FormatException {
+      return null;
+    }
+  }
+
   static Future<(int, String)> _post(
     HttpClient client,
     Uri url,
-    Map<String, Object?> body,
+    Object body,
     Map<String, String> headers,
   ) async {
     final request = await client.postUrl(url);
-    request.headers.contentType = ContentType.json;
+    request.headers.contentType = body is _Multipart
+        ? ContentType(
+            'multipart',
+            'form-data',
+            parameters: {'boundary': body.boundary},
+          )
+        : ContentType.json;
     headers.forEach(request.headers.set);
-    request.add(utf8.encode(jsonEncode(body)));
+    request.add(
+      body is _Multipart ? body.bytes : utf8.encode(jsonEncode(body)),
+    );
     final response = await request.close();
     return (response.statusCode, await response.transform(utf8.decoder).join());
   }
@@ -830,4 +1048,43 @@ class AiStylistService {
 /// The provider has no credits or quota left; another one may take over.
 class _OutOfQuota extends AiException {
   const _OutOfQuota(super.message);
+}
+
+/// The provider's safety filter rejected the picture it drew.
+class _Flagged extends AiException {
+  const _Flagged(super.message);
+}
+
+/// A multipart/form-data body of text [fields] and image [files].
+class _Multipart {
+  _Multipart({
+    required Map<String, String> fields,
+    required Map<String, List<int>> files,
+  }) {
+    final out = BytesBuilder(copy: false);
+    void line(String text) => out.add(utf8.encode('$text\r\n'));
+    for (final MapEntry(:key, :value) in fields.entries) {
+      line('--$boundary');
+      line('Content-Disposition: form-data; name="$key"');
+      line('');
+      line(value);
+    }
+    for (final MapEntry(:key, :value) in files.entries) {
+      final mime = AiStylistService.mimeOf(value);
+      line('--$boundary');
+      line(
+        'Content-Disposition: form-data; name="$key"; '
+        'filename="$key.${mime.split('/').last}"',
+      );
+      line('Content-Type: $mime');
+      line('');
+      out.add(value);
+      line('');
+    }
+    line('--$boundary--');
+    bytes = out.takeBytes();
+  }
+
+  final String boundary = 'allfits-${DateTime.now().microsecondsSinceEpoch}';
+  late final List<int> bytes;
 }

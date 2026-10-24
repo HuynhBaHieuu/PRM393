@@ -36,6 +36,9 @@ void main() {
 
   /// Status for requests to the Muse stand-in under /muse.
   late int museStatus;
+
+  /// Status for requests to the Cloudflare stand-in under /cf.
+  late int cfStatus;
   late List<String> paths;
   late String reply;
 
@@ -45,6 +48,9 @@ void main() {
   /// When set, the server waits for it before answering.
   Completer<void>? hold;
   Map<String, dynamic>? sentBody;
+
+  /// The request body as sent, one character per byte.
+  String? sentRaw;
   String? sentAuth;
   String? sentPath;
   String? sentGoogleKey;
@@ -69,6 +75,7 @@ void main() {
   setUp(() async {
     status = HttpStatus.ok;
     museStatus = HttpStatus.ok;
+    cfStatus = HttpStatus.ok;
     paths = [];
     reply = outfits([]);
     rawResponse = null;
@@ -87,13 +94,20 @@ void main() {
       sentGoogleKey = request.headers.value('x-goog-api-key');
       sentPath = request.uri.path;
       paths.add(request.uri.path);
-      sentBody = jsonDecode(
-        await utf8.decoder.bind(request).join(),
-      ) as Map<String, dynamic>;
+      sentRaw = await latin1.decoder.bind(request).join();
+      // Multipart bodies (Cloudflare) are only kept raw.
+      sentBody = request.headers.contentType?.mimeType == 'application/json'
+          ? jsonDecode(utf8.decode(latin1.encode(sentRaw!)))
+                as Map<String, dynamic>
+          : null;
       await hold?.future;
       try {
         request.response
-          ..statusCode = sentPath!.startsWith('/muse') ? museStatus : status
+          ..statusCode = sentPath!.startsWith('/muse')
+              ? museStatus
+              : sentPath!.startsWith('/cf')
+              ? cfStatus
+              : status
           ..headers.contentType = ContentType.json
           ..write(
             rawResponse ??
@@ -537,6 +551,122 @@ void main() {
         ).canTryOn,
         isTrue,
       );
+    });
+
+    test('falls back to Cloudflare FLUX.2 with at most four images', () async {
+      final picture = [0xFF, 0xD8, 0xFF, 9];
+      rawResponse = jsonEncode({
+        'result': {'image': base64Encode(picture)},
+        'success': true,
+      });
+      final shrunk = <int>[];
+      final all = AiStylistService(
+        apiKey: 'gemini-key',
+        baseUrl: 'http://127.0.0.1:${server.port}/v1beta/openai',
+        imageModel: 'image-model',
+        primary: (
+          apiKey: 'muse-key',
+          baseUrl: 'http://127.0.0.1:${server.port}/muse',
+          model: 'muse-model',
+        ),
+        cloudflare: (
+          baseUrl: 'http://127.0.0.1:${server.port}/cf',
+          accountId: 'acc',
+          apiToken: 'cf-token',
+          model: '@cf/flux',
+        ),
+        shrinkImage: (image, maxSide) async {
+          shrunk.add(maxSide);
+          return image;
+        },
+      );
+      // Muse has no billing and Gemini no image quota.
+      museStatus = HttpStatus.paymentRequired;
+      status = HttpStatus.tooManyRequests;
+
+      final drawn = await all.tryOn(
+        person: [0xFF, 0xD8, 7],
+        body: [0xFF, 0xD8, 8],
+        pieces: [
+          for (var i = 0; i < 5; i++) [0xFF, 0xD8, i],
+        ],
+      );
+
+      expect(drawn, picture);
+      expect(paths, [
+        '/muse/images/edits',
+        '/v1beta/models/image-model:generateContent',
+        '/cf/accounts/acc/ai/run/@cf/flux',
+      ]);
+      expect(sentAuth, 'Bearer cf-token');
+      // The selfie and three pieces; the body photo and two pieces are left
+      // out, and each image is shrunk.
+      expect(shrunk, [511, 511, 511, 511]);
+      expect(sentRaw, contains('name="input_image_3"'));
+      expect(sentRaw, isNot(contains('name="input_image_4"')));
+      expect(sentRaw, contains('the person in image 1'));
+      expect(sentRaw, contains('images 2 to 4'));
+      expect(sentRaw, contains('fully clothed'));
+      expect(sentRaw, contains('name="height"'));
+    });
+
+    test('tries Cloudflare again when its filter flags a picture', () async {
+      final flux = AiStylistService(
+        apiKey: '',
+        cloudflare: (
+          baseUrl: 'http://127.0.0.1:${server.port}/cf',
+          accountId: 'acc',
+          apiToken: 'cf-token',
+          model: '@cf/flux',
+        ),
+        shrinkImage: (image, _) async => image,
+      );
+      cfStatus = HttpStatus.badRequest;
+      rawResponse = jsonEncode({
+        'errors': [
+          {'message': 'AiError: Your output has been flagged.', 'code': 3030},
+        ],
+        'success': false,
+      });
+      await expectLater(
+        flux.tryOn(
+          person: [0xFF, 0xD8, 7],
+          pieces: [
+            [0xFF, 0xD8, 1],
+          ],
+        ),
+        throwsA(
+          isA<AiException>().having(
+            (e) => e.message,
+            'message',
+            contains('safety filter'),
+          ),
+        ),
+      );
+      expect(paths, hasLength(4));
+
+      // Other errors are shown with the provider's reason, without retrying.
+      paths.clear();
+      rawResponse = jsonEncode({
+        'errors': [
+          {'message': 'Bad input image', 'code': 5006},
+        ],
+      });
+      await expectLater(
+        flux.tryOn(
+          pieces: [
+            [0xFF, 0xD8, 1],
+          ],
+        ),
+        throwsA(
+          isA<AiException>().having(
+            (e) => e.message,
+            'message',
+            'The AI service returned an error (400): Bad input image',
+          ),
+        ),
+      );
+      expect(paths, hasLength(1));
     });
 
     test('sends the selfie before the full-body photo', () async {
