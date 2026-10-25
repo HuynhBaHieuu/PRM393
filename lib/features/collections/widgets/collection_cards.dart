@@ -93,9 +93,9 @@ class CollectionCover extends StatelessWidget {
     final items = [
       ...contents.items.where((i) => !i.isArchived),
       ...contents.items.where((i) => i.isArchived),
-    ];
+    ].take(_collageSize).toList();
     final cells = <Widget>[
-      for (final item in items.take(_collageSize))
+      for (final item in items)
         Padding(
           padding: const EdgeInsets.all(AppSpacing.xxs),
           child: ClothingImage(
