@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -20,12 +22,29 @@ import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
+import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/features/wardrobe/widgets/detect_status.dart';
 import 'package:all_fits/features/wardrobe/widgets/photo_picker_field.dart';
+import 'package:all_fits/features/wardrobe/widgets/photo_tips_sheet.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+
+/// Form fields the AI can fill in from the photo.
+enum _AiField { name, category, subcategory, color, seasons, brand }
+
+/// The fields as they were before the AI filled them, for Undo.
+typedef _BeforeAi = ({
+  String name,
+  ClothingCategory? category,
+  ClothingSubcategory? subcategory,
+  ClothingColor? color,
+  Set<Season> seasons,
+  String brand,
+});
 
 /// Add a new clothing item, or edit one when [itemId] is given.
 class ClothingFormScreen extends StatefulWidget {
@@ -59,6 +78,17 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   bool _dirty = false;
   bool _showErrors = false;
 
+  DetectPhase _detectPhase = DetectPhase.idle;
+
+  /// Fields the AI filled in that the user hasn't changed since.
+  final Set<_AiField> _aiFilled = {};
+  _BeforeAi? _beforeAi;
+  ClothingDetection? _detection;
+
+  /// Bumped for every detection, so a stale answer is ignored.
+  int _detectRun = 0;
+  Completer<void>? _cancelDetect;
+
   bool get _isEditing => widget.itemId != null;
 
   @override
@@ -85,10 +115,18 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     for (final controller in [_name, _brand, _price, _notes]) {
       controller.addListener(_markDirty);
     }
+    // Typing over an AI value makes it the user's own.
+    _name.addListener(() {
+      if (_name.text != _detection?.name) _unmark(_AiField.name);
+    });
+    _brand.addListener(() {
+      if (_brand.text != _detection?.brand) _unmark(_AiField.brand);
+    });
   }
 
   @override
   void dispose() {
+    _stopDetection();
     _name.dispose();
     _brand.dispose();
     _price.dispose();
@@ -116,13 +154,164 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
       _newImagePath == null && _existing?.imagePath == null && !_isEditing;
 
   Future<void> _pickImage(ImagePickSource source) async {
+    final detector = context.read<AutoDetectController>();
+    if (!_isEditing && !detector.tipsSeen) {
+      await showPhotoTipsSheet(context);
+      await detector.markTipsSeen();
+      if (!mounted) return;
+    }
     try {
       final path = await context.read<ImagePickerService>().pickImage(source);
-      if (path != null && mounted) _update(() => _newImagePath = path);
+      if (path != null && mounted) {
+        _update(() => _newImagePath = path);
+        unawaited(_detect(path));
+      }
     } catch (error) {
       if (mounted) context.showErrorSnack(error);
     }
   }
+
+  /// Has the AI fill in the empty fields from the new photo at [path]. A
+  /// new photo starts over: what the AI filled from the last one goes.
+  Future<void> _detect(String path) async {
+    final detector = context.read<AutoDetectController>();
+    if (_isEditing || !detector.isOn) return;
+    _stopDetection();
+    _undoAi();
+    setState(() => _detectPhase = DetectPhase.idle);
+    if (!detector.consented) {
+      final agreed = await showConfirmDialog(
+        context,
+        title: 'Let AI fill in this piece?',
+        message:
+            'AI can read the category, type, color, season, name and brand '
+            'from your photo. To do that, the photo is sent to an AI '
+            'service. You can turn this off in Settings at any time.',
+        confirmLabel: 'Allow',
+        cancelLabel: 'Not now',
+      );
+      if (!mounted) return;
+      if (!agreed) {
+        await detector.setEnabled(false);
+        if (mounted) {
+          context.showSnack('AI detection is off. Turn it on in Settings.');
+        }
+        return;
+      }
+      await detector.consent();
+      if (!mounted || path != _newImagePath) return;
+    }
+    if (detector.left(context.read<SettingsController>().plan) == 0) {
+      setState(() => _detectPhase = DetectPhase.noCredits);
+      return;
+    }
+    final run = ++_detectRun;
+    final cancel = _cancelDetect = Completer<void>();
+    setState(() => _detectPhase = DetectPhase.running);
+    try {
+      final detection = await detector.detect(path, cancel: cancel.future);
+      if (!mounted || run != _detectRun) return;
+      _fillIn(detection);
+    } catch (_) {
+      if (!mounted || run != _detectRun) return;
+      setState(() => _detectPhase = DetectPhase.failed);
+    }
+  }
+
+  /// Drops a detection in flight; its answer is ignored.
+  void _stopDetection() {
+    _detectRun++;
+    final cancel = _cancelDetect;
+    if (cancel != null && !cancel.isCompleted) cancel.complete();
+    _cancelDetect = null;
+  }
+
+  /// Fills only the fields that are still empty, never what the user set.
+  void _fillIn(ClothingDetection found) {
+    _detection = found;
+    _beforeAi = (
+      name: _name.text,
+      category: _category,
+      subcategory: _subcategory,
+      color: _color,
+      seasons: {..._seasons},
+      brand: _brand.text,
+    );
+    final filled = <_AiField>{};
+    if (_category == null && found.category != null) {
+      _category = found.category;
+      filled.add(_AiField.category);
+    }
+    if (_subcategory == null && found.subcategory?.category == _category) {
+      _subcategory = found.subcategory;
+      if (_subcategory != null) filled.add(_AiField.subcategory);
+    }
+    // The field holds one color: the main one. The rest show below it.
+    if (_color == null && found.colors.isNotEmpty) {
+      _color = found.colors.first;
+      filled.add(_AiField.color);
+    }
+    if (_seasons.isEmpty && found.seasons.isNotEmpty) {
+      _seasons.addAll(found.seasons);
+      filled.add(_AiField.seasons);
+    }
+    if (_name.text.trim().isEmpty && found.name.isNotEmpty) {
+      _name.text = found.name;
+      filled.add(_AiField.name);
+    }
+    if (_brand.text.trim().isEmpty && found.brand.isNotEmpty) {
+      _brand.text = found.brand;
+      filled.add(_AiField.brand);
+    }
+    setState(() {
+      _aiFilled
+        ..clear()
+        ..addAll(filled);
+      _detectPhase = DetectPhase.done;
+      if (filled.isNotEmpty) _dirty = true;
+    });
+  }
+
+  /// Puts back what the AI filled in and the user hasn't changed since.
+  void _undoAi() {
+    final before = _beforeAi;
+    if (before == null) return;
+    final filled = {..._aiFilled};
+    _beforeAi = null;
+    _detection = null;
+    _aiFilled.clear();
+    if (filled.contains(_AiField.name)) _name.text = before.name;
+    if (filled.contains(_AiField.brand)) _brand.text = before.brand;
+    setState(() {
+      if (filled.contains(_AiField.category)) {
+        _category = before.category;
+        if (_subcategory?.category != _category) _subcategory = null;
+      }
+      if (filled.contains(_AiField.subcategory)) {
+        _subcategory = before.subcategory;
+      }
+      if (filled.contains(_AiField.color)) _color = before.color;
+      if (filled.contains(_AiField.seasons)) {
+        _seasons
+          ..clear()
+          ..addAll(before.seasons);
+      }
+      _detectPhase = DetectPhase.idle;
+    });
+  }
+
+  void _unmark(_AiField field) {
+    if (_aiFilled.contains(field)) setState(() => _aiFilled.remove(field));
+  }
+
+  Widget? _markIf(_AiField field) =>
+      _aiFilled.contains(field) ? const AiMark() : null;
+
+  /// Colors the AI saw besides the one in the Color field.
+  List<ClothingColor> get _otherColors => [
+    for (final color in _detection?.colors ?? const <ClothingColor>[])
+      if (color != _color) color,
+  ];
 
   Future<void> _save() async {
     if (_saving) return;
@@ -257,16 +446,25 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                           ? 'A photo is required'
                           : null,
                     ),
+                    DetectStatus(
+                      phase: _detectPhase,
+                      filledAny: _beforeAi != null && _aiFilled.isNotEmpty,
+                      creditsLeft: context.watch<AutoDetectController>().left(
+                        context.watch<SettingsController>().plan,
+                      ),
+                      onUndo: _undoAi,
+                    ),
                     const SizedBox(height: AppSpacing.xl),
                     TextFormField(
                       controller: _name,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.next,
                       maxLength: Validators.maxNameLength,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Name',
                         hintText: 'e.g. White linen shirt',
                         counterText: '',
+                        suffixIcon: _markIf(_AiField.name),
                       ),
                       validator: (v) =>
                           Validators.requiredName(v, subject: 'a name'),
@@ -274,6 +472,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
                       label: 'Category',
+                      badge: _markIf(_AiField.category),
                       child: PillGroup<ClothingCategory>(
                         options: ClothingCategory.values,
                         selected: {?_category},
@@ -285,7 +484,11 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                         ),
                         onToggle: (c) => _update(() {
                           _category = c;
-                          if (_subcategory?.category != c) _subcategory = null;
+                          _aiFilled.remove(_AiField.category);
+                          if (_subcategory?.category != c) {
+                            _subcategory = null;
+                            _aiFilled.remove(_AiField.subcategory);
+                          }
                         }),
                       ),
                     ),
@@ -294,14 +497,16 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                       const SizedBox(height: AppSpacing.lg),
                       LabeledSection(
                         label: 'Type',
+                        badge: _markIf(_AiField.subcategory),
                         child: PillGroup<ClothingSubcategory>(
                           options: ClothingSubcategory.of(category),
                           selected: {?_subcategory},
                           labelOf: (s) => s.label,
                           // Tapping the chosen type again clears it.
-                          onToggle: (s) => _update(
-                            () => _subcategory = s == _subcategory ? null : s,
-                          ),
+                          onToggle: (s) => _update(() {
+                            _subcategory = s == _subcategory ? null : s;
+                            _aiFilled.remove(_AiField.subcategory);
+                          }),
                         ),
                       ),
                     ],
@@ -317,6 +522,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
                       label: 'Color',
+                      badge: _markIf(_AiField.color),
                       trailing: _color == null
                           ? null
                           : Text(
@@ -325,22 +531,35 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                             ),
                       child: ColorSwatchPicker(
                         selected: _color,
-                        onChanged: (c) =>
-                            _update(() => _color = _color == c ? null : c),
+                        onChanged: (c) => _update(() {
+                          _color = _color == c ? null : c;
+                          _aiFilled.remove(_AiField.color);
+                        }),
                       ),
                     ),
+                    if (_otherColors case final others
+                        when others.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      AiOtherColors(
+                        colors: others,
+                        onPick: (c) => _update(() {
+                          _color = c;
+                          _aiFilled.remove(_AiField.color);
+                        }),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
                       label: 'Season',
+                      badge: _markIf(_AiField.seasons),
                       child: PillGroup<Season>(
                         options: Season.values,
                         selected: _seasons,
                         labelOf: (s) => s.label,
-                        onToggle: (s) => _update(
-                          () => _seasons.contains(s)
-                              ? _seasons.remove(s)
-                              : _seasons.add(s),
-                        ),
+                        onToggle: (s) => _update(() {
+                          if (!_seasons.remove(s)) _seasons.add(s);
+                          _aiFilled.remove(_AiField.seasons);
+                        }),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -353,8 +572,9 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                             controller: _brand,
                             textCapitalization: TextCapitalization.words,
                             textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Brand',
+                              suffixIcon: _markIf(_AiField.brand),
                             ),
                             validator: Validators.optionalName,
                           ),

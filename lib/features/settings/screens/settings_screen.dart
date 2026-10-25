@@ -15,6 +15,7 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/settings/widgets/settings_section.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -101,6 +102,7 @@ class SettingsScreen extends StatelessWidget {
     // Rebuild when items change so the sample-data actions stay accurate.
     context.watch<WardrobeController>();
     final closet = context.read<ClosetActions>();
+    final detector = context.watch<AutoDetectController>();
     final palette = context.palette;
 
     return Scaffold(
@@ -173,6 +175,35 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (detector.isAvailable)
+                  SettingsSection(
+                    title: 'AI',
+                    footer:
+                        'AI detection sends the photo of each new piece to '
+                        'an AI service to fill in its category, type, '
+                        'color, season, name and brand.',
+                    children: [
+                      SwitchListTile(
+                        secondary: const Icon(Icons.auto_awesome_outlined),
+                        title: const Text('AI detection'),
+                        subtitle: Text(switch (detector.left(settings.plan)) {
+                          null => 'Fill in new clothes from their photo',
+                          final left =>
+                            '$left of ${AppConfig.freeDetectionsPerMonth} '
+                                'free detections left this month',
+                        }),
+                        // Turning it on here counts as agreeing to send
+                        // photos, since the footer says what it does.
+                        value: detector.enabled && detector.consented,
+                        onChanged: (on) => ClosetFlows.guard(
+                          context,
+                          () => on
+                              ? detector.consent()
+                              : detector.setEnabled(false),
+                        ),
+                      ),
+                    ],
+                  ),
                 SettingsSection(
                   title: 'Appearance',
                   children: [

@@ -24,6 +24,7 @@ import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/data/models/try_on.dart';
+import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
@@ -54,6 +55,7 @@ class _UserSessionState extends State<UserSession> {
   late final WeatherController _weather;
   late final StylistStore _stylist;
   late final TryOnController _tryOn;
+  late final AutoDetectController _autoDetect;
   final GlobalKey<NavigatorState> _navigator = GlobalKey();
   final GlobalKey<ScaffoldMessengerState> _messenger = GlobalKey();
   late final ClosetActions _closet;
@@ -119,6 +121,14 @@ class _UserSessionState extends State<UserSession> {
           ..onBackgroundResult = _tryOnReady
           ..onBackgroundError = _tryOnFailed
           ..load();
+    _autoDetect = AutoDetectController(
+      storage: ScopedStorageService(
+        deps.storage,
+        StorageKeys.userScope(widget.user.id),
+      ),
+      service: deps.aiStylist,
+      clock: deps.clock,
+    )..load();
     _closet = ClosetActions(
       wardrobe: _wardrobe,
       outfits: _outfits,
@@ -158,6 +168,7 @@ class _UserSessionState extends State<UserSession> {
     _weather.dispose();
     _stylist.dispose();
     _tryOn.dispose();
+    _autoDetect.dispose();
     _shell.dispose();
     _social?.dispose();
     super.dispose();
@@ -214,6 +225,7 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _weather),
         ChangeNotifierProvider.value(value: _stylist),
         ChangeNotifierProvider.value(value: _tryOn),
+        ChangeNotifierProvider.value(value: _autoDetect),
         ChangeNotifierProvider.value(value: _shell),
         ChangeNotifierProvider<SocialController?>.value(value: _social),
         Provider.value(value: _closet),

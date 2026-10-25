@@ -6,12 +6,41 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/core/utils/validators.dart';
+import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
+import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/models/weather.dart';
+
+/// What the AI read from a photo of one piece. Every value is checked
+/// against the app's own lists; anything it couldn't tell is null or empty.
+class ClothingDetection {
+  const ClothingDetection({
+    this.category,
+    this.subcategory,
+    this.colors = const [],
+    this.seasons = const [],
+    this.name = '',
+    this.brand = '',
+  });
+
+  final ClothingCategory? category;
+
+  /// Always one of [category]'s types.
+  final ClothingSubcategory? subcategory;
+
+  /// The piece's colors, main one first, like Fits' black-and-white tee.
+  final List<ClothingColor> colors;
+  final List<Season> seasons;
+  final String name;
+  final String brand;
+}
 
 /// One AI-proposed outfit. [itemIds] only ever holds ids of wardrobe items
 /// that were sent with the request.
@@ -130,8 +159,8 @@ class StylistMessage {
 /// Chats with an OpenAI-compatible chat completions API that styles outfits
 /// from the user's wardrobe, and draws try-on pictures with Meta's Muse
 /// Image, or Gemini when Muse is missing or out of credits. Item metadata is
-/// sent with every message; photos only when the user attaches one or asks
-/// for a try-on.
+/// sent with every message; photos only when the user attaches one, asks
+/// for a try-on, or has a new piece tagged.
 class AiStylistService {
   const AiStylistService({
     required this.apiKey,
@@ -235,6 +264,34 @@ class AiStylistService {
 
   static const String _unreadable =
       'The AI reply could not be read. Please try again.';
+
+  static const String _noPiece = 'No clothing piece was found in this photo.';
+
+  /// Photos are shrunk to this many pixels a side before detection: enough
+  /// to read the piece and its logo, far fewer tokens than the original.
+  static const int _detectMaxSide = 640;
+  static const int _maxColors = 3;
+  static const Duration _detectTimeout = Duration(seconds: 30);
+
+  static String get _detectPrompt =>
+      'You tag clothing photos for a wardrobe app. Look at the main piece '
+      'of clothing, shoes, bag or accessory in the photo. Rules:\n'
+      '1. "found" is false when the photo shows none; then leave the rest '
+      'empty.\n'
+      '2. "category" is one of: '
+      '${ClothingCategory.values.map((c) => c.name).join(', ')}.\n'
+      '3. "type" is the closest type for that category, or "" when none '
+      'fits: ${[for (final category in ClothingCategory.values)
+        if (ClothingSubcategory.of(category).isNotEmpty) '${category.name} (${ClothingSubcategory.of(category).map((s) => s.name).join(', ')})'].join('; ')}.\n'
+      '4. "colors" lists its colors, main color first, at most '
+      '$_maxColors, from: '
+      '${ClothingColor.values.map((c) => c.name).join(', ')}. Use "multi" '
+      'only for a print or pattern with many colors.\n'
+      '5. "seasons" lists the seasons it suits, from: '
+      '${Season.values.map((s) => s.name).join(', ')}.\n'
+      '6. "brand" only when a logo or label is clearly visible, else "".\n'
+      '7. "name" is a short English name of 2 to 4 words, like "Adidas '
+      't-shirt" or "Black leather boots".';
 
   // Short numbered rules: small models follow them more reliably than prose.
   static String _systemPrompt(StylistPersona persona) =>
@@ -481,6 +538,47 @@ class AiStylistService {
       _ => throw const AiException(_unreadable),
     };
     return _parse(content, byShortId);
+  }
+
+  /// Reads the category, type, color, seasons, name and brand of the piece
+  /// in [photo]. Throws [AiException] when nothing usable comes back,
+  /// including when the photo shows no clothing.
+  Future<ClothingDetection> detectClothing(
+    List<int> photo, {
+    Future<void>? cancel,
+  }) async {
+    if (!isConfigured) {
+      throw const AiException('AI detection is not set up.');
+    }
+    final small = await shrinkImage(photo, _detectMaxSide);
+    final text = await _chat(
+      {
+        'messages': [
+          {'role': 'system', 'content': _detectPrompt},
+          {
+            'role': 'user',
+            'content': [
+              {'type': 'text', 'text': 'Tag this piece.'},
+              {
+                'type': 'image_url',
+                'image_url': {
+                  'url': 'data:${mimeOf(small)};base64,${base64Encode(small)}',
+                },
+              },
+            ],
+          },
+        ],
+        'response_format': _detectFormat,
+      },
+      cancel,
+      timeout: _detectTimeout,
+    );
+    final content = switch (_decode(text)) {
+      {'choices': [{'message': {'content': final String content}}, ...]} =>
+        content,
+      _ => throw const AiException(_unreadable),
+    };
+    return _parseDetection(content);
   }
 
   /// Draws [pieces] (photos of the clothes, at most [maxTryOnPieces]) on the
@@ -730,12 +828,17 @@ class AiStylistService {
 
   /// Sends the chat completions [body] to [primary] first, then to the main
   /// endpoint when [primary] is out of credits or quota.
-  Future<String> _chat(Map<String, Object?> body, Future<void>? cancel) async {
+  Future<String> _chat(
+    Map<String, Object?> body,
+    Future<void>? cancel, {
+    Duration timeout = _timeout,
+  }) async {
     Future<String> send(String key, String base, String model) => _request(
       Uri.parse('$base/chat/completions'),
       {'model': model, ...body},
       headers: {HttpHeaders.authorizationHeader: 'Bearer $key'},
       modelName: model,
+      timeout: timeout,
       cancel: cancel,
     );
     if (primary case final first?) {
@@ -990,6 +1093,52 @@ class AiStylistService {
     );
   }
 
+  /// Keeps only values from the app's own lists; model output is never
+  /// trusted.
+  static ClothingDetection _parseDetection(String content) {
+    final start = content.indexOf('{');
+    final end = content.lastIndexOf('}');
+    if (start < 0 || end < start) throw const AiException(_unreadable);
+    final decoded = _decode(content.substring(start, end + 1));
+    if (decoded is! Map) throw const AiException(_unreadable);
+    if (decoded['found'] == false) throw const AiException(_noPiece);
+
+    T? pick<T extends Enum>(List<T> values, Object? name) => name is String
+        ? values.where((v) => v.name == name.trim()).firstOrNull
+        : null;
+    var category = pick(ClothingCategory.values, decoded['category']);
+    final type = pick(ClothingSubcategory.values, decoded['type']);
+    // A type alone still tells the category; a type from another category
+    // is dropped.
+    category ??= type?.category;
+    final subcategory = type?.category == category ? type : null;
+    final seasons = [
+      if (decoded['seasons'] case final List names)
+        for (final season in Season.values)
+          if (names.contains(season.name)) season,
+    ];
+    final name = _clip(decoded['name'], Validators.maxNameLength);
+    final brand = _clip(decoded['brand'], Validators.maxNameLength);
+    if (category == null && name.isEmpty) throw const AiException(_noPiece);
+    return ClothingDetection(
+      category: category,
+      subcategory: subcategory,
+      colors: [
+        if (decoded['colors'] case final List names)
+          ...{for (final name in names) ?pick(ClothingColor.values, name)}
+              .take(_maxColors),
+      ],
+      seasons: seasons,
+      name: name,
+      // "adidas" becomes "Adidas", as on the brand chips.
+      brand:
+          AppConfig.suggestedBrands
+              .where((b) => b.toLowerCase() == brand.toLowerCase())
+              .firstOrNull ??
+          brand,
+    );
+  }
+
   static String _clip(Object? value, int max, {String fallback = ''}) {
     final text = value is String ? value.trim() : '';
     if (text.isEmpty) return fallback;
@@ -1039,6 +1188,36 @@ class AiStylistService {
           },
         },
         'required': ['reply', 'outfits', 'packingItemIds', 'shopping'],
+        'additionalProperties': false,
+      },
+    },
+  };
+
+  static const Map<String, Object?> _detectFormat = {
+    'type': 'json_schema',
+    'json_schema': {
+      'name': 'clothing_tags',
+      'strict': true,
+      'schema': {
+        'type': 'object',
+        'properties': {
+          'found': {'type': 'boolean'},
+          'category': {'type': 'string'},
+          'type': {'type': 'string'},
+          'colors': _stringArray,
+          'seasons': _stringArray,
+          'brand': {'type': 'string'},
+          'name': {'type': 'string'},
+        },
+        'required': [
+          'found',
+          'category',
+          'type',
+          'colors',
+          'seasons',
+          'brand',
+          'name',
+        ],
         'additionalProperties': false,
       },
     },

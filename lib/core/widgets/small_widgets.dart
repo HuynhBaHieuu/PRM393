@@ -171,11 +171,15 @@ class LabeledSection extends StatelessWidget {
     required this.label,
     required this.child,
     this.trailing,
+    this.badge,
   });
 
   final String label;
   final Widget child;
   final Widget? trailing;
+
+  /// Shown right after the label, e.g. a mark for AI-filled values.
+  final Widget? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -185,9 +189,19 @@ class LabeledSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
-                label.toUpperCase(),
-                style: context.textTheme.labelSmall,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      label.toUpperCase(),
+                      style: context.textTheme.labelSmall,
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: AppSpacing.xxs),
+                    badge!,
+                  ],
+                ],
               ),
             ),
             ?trailing,

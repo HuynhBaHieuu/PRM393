@@ -8,6 +8,8 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_subcategory.dart';
+import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
@@ -715,6 +717,94 @@ void main() {
             [2],
           ],
         ),
+        throwsA(isA<AiException>()),
+      );
+    });
+  });
+
+  group('detect clothing', () {
+    AiStylistService detector() => AiStylistService(
+      apiKey: 'test-key',
+      baseUrl: 'http://127.0.0.1:${server.port}',
+      model: 'test-model',
+      shrinkImage: (image, _) async => image,
+    );
+
+    String tags(Map<String, Object?> values) => jsonEncode({
+      'found': true,
+      'category': '',
+      'type': '',
+      'colors': <String>[],
+      'seasons': <String>[],
+      'brand': '',
+      'name': '',
+      ...values,
+    });
+
+    test('sends the photo and keeps only known values', () async {
+      reply = tags({
+        'category': 'tops',
+        'type': 'tShirts',
+        'colors': ['black', 'white', 'black', 'teal', 'grey', 'red'],
+        'seasons': ['summer', 'monsoon', 'spring'],
+        'brand': 'adidas',
+        'name': 'Adidas t-shirt',
+      });
+
+      final found = await detector().detectClothing(_webp);
+
+      expect(found.category, ClothingCategory.tops);
+      expect(found.subcategory, ClothingSubcategory.tShirts);
+      // Known colors only, each once, at most three.
+      expect(found.colors, [
+        ClothingColor.black,
+        ClothingColor.white,
+        ClothingColor.grey,
+      ]);
+      expect(found.seasons, [Season.spring, Season.summer]);
+      // Spelled as on the brand chips.
+      expect(found.brand, 'Adidas');
+      expect(found.name, 'Adidas t-shirt');
+
+      expect(
+        sentBody!['response_format']['json_schema']['name'],
+        'clothing_tags',
+      );
+      final user = (sentBody!['messages'] as List).last;
+      final image = (user['content'] as List).last;
+      expect(image['image_url']['url'], startsWith('data:image/webp;base64,'));
+    });
+
+    test('drops a type from another category and unknown colors', () async {
+      reply = tags({
+        'category': 'shoes',
+        'type': 'jeans',
+        'colors': ['teal'],
+      });
+      final shoes = await detector().detectClothing(_webp);
+      expect(shoes.category, ClothingCategory.shoes);
+      expect(shoes.subcategory, isNull);
+      expect(shoes.colors, isEmpty);
+
+      // A known type still tells the category.
+      reply = tags({'category': 'footwear', 'type': 'sneakers'});
+      final sneakers = await detector().detectClothing(_webp);
+      expect(sneakers.category, ClothingCategory.shoes);
+      expect(sneakers.subcategory, ClothingSubcategory.sneakers);
+    });
+
+    test('fails when the photo shows no piece', () async {
+      reply = tags({'found': false});
+      await expectLater(
+        detector().detectClothing(_webp),
+        throwsA(isA<AiException>()),
+      );
+
+      reply = tags({
+        'colors': ['black'],
+      });
+      await expectLater(
+        detector().detectClothing(_webp),
         throwsA(isA<AiException>()),
       );
     });

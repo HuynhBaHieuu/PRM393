@@ -18,6 +18,7 @@ abstract final class StorageKeys {
   static const String tryOnProfile = 'tryon.profile.v1';
   static const String tryOnResults = 'tryon.results.v1';
   static const String tryOnUsage = 'tryon.usage.v1';
+  static const String autoDetect = 'detect.prefs.v1';
 
   static const List<String> userDataKeys = [
     clothingItems,

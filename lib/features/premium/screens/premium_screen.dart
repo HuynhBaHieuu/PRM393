@@ -24,6 +24,7 @@ class PremiumScreen extends StatelessWidget {
     (true, 'Weather outfit picks'),
     (true, 'AI Stylist: ${AppConfig.freeStylistMessagesPerDay} messages a day'),
     (true, 'AI Try On: ${AppConfig.freeTryOns} free try'),
+    (true, 'AI detection: ${AppConfig.freeDetectionsPerMonth} photos a month'),
   ];
 
   static const List<(bool, String)> _premiumFeatures = [
@@ -33,6 +34,7 @@ class PremiumScreen extends StatelessWidget {
     (true, 'Weather outfit picks'),
     (true, 'Unlimited AI Stylist chat'),
     (true, 'AI Try On: ${AppConfig.premiumTryOnsPerMonth} pictures a month'),
+    (true, 'Unlimited AI detection'),
   ];
 
   @override

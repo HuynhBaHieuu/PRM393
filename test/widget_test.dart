@@ -91,6 +91,9 @@ Future<void> _addClothing(
 }) async {
   expect(find.text('Add clothing'), findsOneWidget);
   await _tap(tester, find.text('Gallery'));
+  // Photo tips come before the first photo.
+  final gotIt = find.text('Got it 👌');
+  if (gotIt.evaluate().isNotEmpty) await _tap(tester, gotIt);
   await tester.enterText(find.widgetWithText(TextFormField, 'Name'), name);
   await _tap(tester, find.text(category));
   await _tap(tester, find.text('Save'));

@@ -68,6 +68,10 @@ abstract final class AppConfig {
   /// money at the image provider. Failed ones don't count.
   static const int premiumTryOnsPerMonth = 20;
 
+  /// Photos a Free account can have the AI tag each calendar month;
+  /// Premium has no limit. Failed detections don't count.
+  static const int freeDetectionsPerMonth = 5;
+
   /// Past AI Stylist chats kept on the device, newest first.
   static const int stylistChatsKept = 30;
 
