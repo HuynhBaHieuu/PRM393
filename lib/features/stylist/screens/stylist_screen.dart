@@ -30,8 +30,26 @@ import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 /// Chat with the AI stylist, which answers with outfits built from the
 /// user's wardrobe, packing lists, shopping ideas and try-on pictures. Chats
 /// are saved on the device and can be reopened from the history.
+/// How the stylist chat opens from elsewhere, e.g. Home's "Find an outfit"
+/// or a piece's 💬: a first message, pieces to attach, or a photo to pick.
+class StylistLaunch {
+  const StylistLaunch({
+    this.prompt,
+    this.itemIds = const [],
+    this.withPhoto = false,
+  });
+
+  final String? prompt;
+  final List<String> itemIds;
+
+  /// Asks for a photo first and sends it with [prompt].
+  final bool withPhoto;
+}
+
 class StylistScreen extends StatefulWidget {
-  const StylistScreen({super.key});
+  const StylistScreen({super.key, this.launch});
+
+  final StylistLaunch? launch;
 
   /// Quick starts that send a message: chip label, then the message.
   static const List<(String, String)> prompts = [
@@ -51,6 +69,12 @@ class StylistScreen extends StatefulWidget {
       'Pick clothes from my wardrobe that go with this photo.';
 
   static const String ratePrompt = 'Rate my outfit.';
+
+  static const String colorsPrompt =
+      'Find my colors: which color palette suits me best, and which pieces '
+      'in my wardrobe match it?';
+
+  static const String findOutfitPrompt = 'Find me an outfit for today.';
 
   @override
   State<StylistScreen> createState() => _StylistScreenState();
@@ -92,6 +116,19 @@ class _StylistScreenState extends State<StylistScreen> {
   void initState() {
     super.initState();
     context.read<StylistStore>().load();
+    final launch = widget.launch;
+    if (launch != null) {
+      _attached = [...launch.itemIds];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final prompt = launch.prompt ?? '';
+        if (launch.withPhoto) {
+          _sendPhoto(prompt);
+        } else if (prompt.isNotEmpty) {
+          _send(prompt);
+        }
+      });
+    }
   }
 
   @override

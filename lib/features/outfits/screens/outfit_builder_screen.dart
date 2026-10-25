@@ -19,17 +19,30 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/builder_widgets.dart';
 import 'package:all_fits/features/outfits/widgets/item_picker_sheet.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
+import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
 class OutfitBuilderArgs {
-  const OutfitBuilderArgs({this.outfitId, this.initialItemIds = const []});
+  const OutfitBuilderArgs({
+    this.outfitId,
+    this.initialItemIds = const [],
+    this.photoFile,
+    this.planDate,
+  });
 
   /// Outfit to edit; null creates a new outfit.
   final String? outfitId;
 
   /// Pieces to start a new outfit with.
   final List<String> initialItemIds;
+
+  /// A just-taken outfit selfie (a temporary file) for a new outfit.
+  final String? photoFile;
+
+  /// Plans the new outfit on this day once it is saved.
+  final DateTime? planDate;
 }
 
 class OutfitBuilderScreen extends StatefulWidget {
@@ -43,6 +56,10 @@ class OutfitBuilderScreen extends StatefulWidget {
 
 class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
   OutfitBuilderController? _builder;
+
+  /// The outfit's selfie: just taken, or already stored.
+  String? _photoFile;
+  String? _photoRef;
   late final TextEditingController _name;
   late final TextEditingController _notes;
   bool _saving = false;
@@ -63,6 +80,8 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
         initialItemIds: widget.args.initialItemIds,
       )..addListener(_markDirty);
     }
+    _photoFile = widget.args.photoFile;
+    _photoRef = outfit?.photoPath;
     _name = TextEditingController(text: outfit?.name)..addListener(_markDirty);
     _notes = TextEditingController(text: outfit?.notes)
       ..addListener(_markDirty);
@@ -107,23 +126,29 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
     final builder = _builder!;
     if (_saving) return;
     FocusScope.of(context).unfocus();
-    if (builder.isEmpty) {
+    final hasPhoto = _photoFile != null || _photoRef != null;
+    if (builder.isEmpty && !hasPhoto) {
       context.showSnack('Add at least one piece to your outfit.');
       return;
     }
     final outfits = context.read<OutfitController>();
+    final closet = context.read<ClosetActions>();
     final shell = context.read<ShellController>();
     final navigator = Navigator.of(context);
     final draft = builder.buildDraft(
       name: _name.text,
       fallbackName: 'Outfit ${outfits.outfits.length + 1}',
       notes: _notes.text,
+      newPhotoPath: _photoFile,
+      keepsPhoto: _photoFile == null && _photoRef != null,
     );
     setState(() => _saving = true);
     try {
       final editingId = builder.editingId;
       if (editingId == null) {
-        await outfits.createOutfit(draft);
+        final outfit = await outfits.createOutfit(draft);
+        final planDate = widget.args.planDate;
+        if (planDate != null) await closet.planOutfit(outfit.id, planDate);
         shell.openCloset(ClosetTab.outfits);
       } else {
         await outfits.updateOutfit(editingId, draft);
@@ -192,7 +217,18 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
           listenable: builder,
           builder: (context, _) {
             final items = wardrobe.itemsByIds(builder.itemIds);
-            final preview = _Preview(builder: builder, items: items);
+            final hasPhoto = _photoFile != null || _photoRef != null;
+            final preview = hasPhoto
+                ? _PhotoPreview(
+                    file: _photoFile,
+                    reference: _photoRef,
+                    onRemove: () => setState(() {
+                      _photoFile = null;
+                      _photoRef = null;
+                      _dirty = true;
+                    }),
+                  )
+                : _Preview(builder: builder, items: items);
             return LayoutBuilder(
               builder: (context, constraints) {
                 final wide =
@@ -203,6 +239,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
                   name: _name,
                   notes: _notes,
                   saving: _saving,
+                  isSelfie: hasPhoto,
                   onPickSlot: _pickForSlot,
                   onReplace: _replace,
                   onSave: _save,
@@ -224,6 +261,43 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
               },
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// The outfit selfie in place of the collage.
+class _PhotoPreview extends StatelessWidget {
+  const _PhotoPreview({required this.onRemove, this.file, this.reference});
+
+  final String? file;
+  final String? reference;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppSizes.maxPreviewWidth),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: AppSizes.outfitImageAspect,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                child: OutfitPhoto(file: file, reference: reference),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onRemove,
+                child: const Text('Use a collage instead'),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -319,6 +393,7 @@ class _BuilderForm extends StatelessWidget {
     required this.name,
     required this.notes,
     required this.saving,
+    required this.isSelfie,
     required this.onPickSlot,
     required this.onReplace,
     required this.onSave,
@@ -330,6 +405,9 @@ class _BuilderForm extends StatelessWidget {
   final TextEditingController name;
   final TextEditingController notes;
   final bool saving;
+
+  /// The outfit is a selfie, so its pieces are optional tags.
+  final bool isSelfie;
   final ValueChanged<OutfitSlot> onPickSlot;
   final ValueChanged<ClothingItem> onReplace;
   final VoidCallback onSave;
@@ -351,7 +429,7 @@ class _BuilderForm extends StatelessWidget {
       children: [
         if (header != null) ...[header!, const SizedBox(height: AppSpacing.xl)],
         LabeledSection(
-          label: 'Add pieces',
+          label: isSelfie ? 'Tag what you’re wearing' : 'Add pieces',
           child: SlotSelector(
             countOf: (slot) => builder.idsInSlot(slot).length,
             onSelect: onPickSlot,
@@ -431,7 +509,7 @@ class _BuilderForm extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
-          onPressed: saving || builder.isEmpty ? null : onSave,
+          onPressed: saving || (builder.isEmpty && !isSelfie) ? null : onSave,
           child: saving
               ? SizedBox.square(
                   dimension: AppSizes.iconSm,

@@ -71,7 +71,11 @@ class _StyleOutfitScreenState extends State<StyleOutfitScreen> {
           if (snapshot.connectionState != ConnectionState.done) {
             return const AppLoadingView();
           }
-          final items = snapshot.data?.items ?? const [];
+          // Pieces the owner keeps out of other people's outfits.
+          final items = [
+            for (final item in snapshot.data?.items ?? const <ClothingItem>[])
+              if (!item.noStyling) item,
+          ];
           if (items.isEmpty) {
             return AppEmptyState(
               icon: Icons.checkroom_outlined,

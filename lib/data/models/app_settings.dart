@@ -1,5 +1,6 @@
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
+import 'package:all_fits/data/models/outfit_create_mode.dart';
 import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/weather.dart';
 
@@ -26,6 +27,7 @@ class AppSettings {
     this.premiumSince,
     this.premiumUntil,
     this.weatherLocation,
+    this.outfitMode = OutfitCreateMode.collage,
   });
 
   factory AppSettings.fromJson(JsonMap json) {
@@ -45,6 +47,9 @@ class AppSettings {
       premiumSince: JsonReader.date(json, 'premiumSince'),
       premiumUntil: JsonReader.date(json, 'premiumUntil'),
       weatherLocation: WeatherLocation.tryFromJson(json['weatherLocation']),
+      outfitMode:
+          JsonReader.enumValue(OutfitCreateMode.values, json['outfitMode']) ??
+          OutfitCreateMode.collage,
     );
   }
 
@@ -64,6 +69,9 @@ class AppSettings {
   /// City used for weather-based outfit picks.
   final WeatherLocation? weatherLocation;
 
+  /// The default way "Add outfit" builds an outfit.
+  final OutfitCreateMode outfitMode;
+
   JsonMap toJson() => {
     'displayName': displayName,
     'username': username,
@@ -74,6 +82,7 @@ class AppSettings {
     'premiumSince': premiumSince?.toIso8601String(),
     'premiumUntil': premiumUntil?.toIso8601String(),
     'weatherLocation': weatherLocation?.toJson(),
+    'outfitMode': outfitMode.name,
   };
 
   AppSettings copyWith({
@@ -86,6 +95,7 @@ class AppSettings {
     Object? premiumSince = _unset,
     Object? premiumUntil = _unset,
     Object? weatherLocation = _unset,
+    OutfitCreateMode? outfitMode,
   }) {
     return AppSettings(
       displayName: displayName ?? this.displayName,
@@ -103,6 +113,7 @@ class AppSettings {
       weatherLocation: identical(weatherLocation, _unset)
           ? this.weatherLocation
           : weatherLocation as WeatherLocation?,
+      outfitMode: outfitMode ?? this.outfitMode,
     );
   }
 }

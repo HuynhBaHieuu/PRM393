@@ -84,6 +84,7 @@ class _UserSessionState extends State<UserSession> {
     );
     _outfits = OutfitController(
       repository: repositories.outfits,
+      imageStorage: deps.imageStorage,
       idGenerator: deps.idGenerator,
       clock: deps.clock,
     );

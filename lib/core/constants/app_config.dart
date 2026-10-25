@@ -8,6 +8,26 @@ abstract final class AppConfig {
 
   static const String defaultCurrencySymbol = '\$';
 
+  /// Fabrics offered on the clothing detail screen; others can be typed in.
+  static const List<String> suggestedMaterials = [
+    'Cotton',
+    'Denim',
+    'Leather',
+    'Suede',
+    'Wool',
+    'Cashmere',
+    'Fleece',
+    'Nylon',
+    'Polyester',
+    'Linen',
+    'Silk',
+    'Canvas',
+    'Corduroy',
+    'Knit',
+    'Mesh',
+    'Rubber',
+  ];
+
   /// Brands offered as one-tap choices in the clothing form, streetwear
   /// first. Any other brand can still be typed in.
   static const List<String> suggestedBrands = [

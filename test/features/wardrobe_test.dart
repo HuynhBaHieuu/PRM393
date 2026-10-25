@@ -229,20 +229,79 @@ void main() {
       expect(names(const WardrobeQuery(favoritesOnly: true)), ['Blue Jeans']);
     });
 
-    test('sorts results', () {
+    test('sorts by date, category, color, outfits and custom order', () {
       expect(names(const WardrobeQuery()), [
         'Blue Jeans',
         'Sneakers',
         'White Tee',
       ]);
-      expect(
-        names(const WardrobeQuery(sort: WardrobeSort.mostWorn)).first,
-        'White Tee',
-      );
-      expect(names(const WardrobeQuery(sort: WardrobeSort.priceLow)), [
+      expect(names(const WardrobeQuery(sort: WardrobeSort.categories)), [
         'White Tee',
         'Blue Jeans',
         'Sneakers',
+      ]);
+      // Pieces without a color go last.
+      expect(
+        names(const WardrobeQuery(sort: WardrobeSort.colors)).last,
+        'Sneakers',
+      );
+      final counts = {'Sneakers': 2, 'White Tee': 1};
+      expect(
+        const WardrobeQuery(sort: WardrobeSort.mostOutfits)
+            .apply(items, outfitCounts: counts)
+            .map((i) => i.name),
+        ['Sneakers', 'White Tee', 'Blue Jeans'],
+      );
+      final reordered = [
+        items[0].copyWith(sortIndex: 1),
+        items[3].copyWith(sortIndex: 0),
+        items[1],
+      ];
+      expect(
+        const WardrobeQuery(sort: WardrobeSort.custom)
+            .apply(reordered)
+            .map((i) => i.name),
+        ['Sneakers', 'White Tee', 'Blue Jeans'],
+      );
+    });
+
+    test('filters by usage, categories and materials', () {
+      final counts = {'White Tee': 1};
+      List<String> used(ItemUsage usage) =>
+          WardrobeQuery(usage: usage)
+              .apply(items, outfitCounts: counts)
+              .map((i) => i.name)
+              .toList();
+      expect(used(ItemUsage.used), ['White Tee']);
+      expect(used(ItemUsage.unused), ['Blue Jeans', 'Sneakers']);
+      expect(
+        names(
+          const WardrobeQuery(
+            categories: {ClothingCategory.shoes, ClothingCategory.bottoms},
+          ),
+        ),
+        ['Blue Jeans', 'Sneakers'],
+      );
+      final denim = [
+        items[1].copyWith(materials: ['Denim']),
+        items[0],
+      ];
+      expect(
+        const WardrobeQuery(materials: {'denim'}).apply(denim).single.name,
+        'Blue Jeans',
+      );
+    });
+
+    test('groups by season and color', () {
+      const bySeason = WardrobeQuery(groupBy: WardrobeGroup.season);
+      final groups = bySeason.group(bySeason.apply(items));
+      expect(groups.map((g) => g.$1), ['☀️ Summer', 'No season']);
+      expect(groups.first.$2.single.name, 'White Tee');
+      const byColor = WardrobeQuery(groupBy: WardrobeGroup.colors);
+      expect(byColor.group(byColor.apply(items)).map((g) => g.$1), [
+        'White',
+        'Blue',
+        'No color',
       ]);
     });
   });

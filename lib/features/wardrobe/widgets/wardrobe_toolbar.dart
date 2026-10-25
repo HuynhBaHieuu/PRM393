@@ -1,149 +1,164 @@
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
-import 'package:all_fits/core/widgets/page_header.dart';
-import 'package:all_fits/core/widgets/selectable_pill.dart';
+import 'package:all_fits/core/constants/app_durations.dart';
+import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 
-/// Search field with filter and sort buttons.
-class WardrobeToolbar extends StatelessWidget {
-  const WardrobeToolbar({
+/// Fits' closet toolbar: small category chips (the chosen one a black pill),
+/// then a round filter button and, optionally, a round "⋯" button.
+class ClothesToolbar extends StatelessWidget {
+  const ClothesToolbar({
     super.key,
-    required this.searchController,
-    required this.onSearchChanged,
+    required this.category,
+    required this.onCategory,
     required this.onFilter,
-    required this.onSort,
-    required this.filterCount,
+    this.filterCount = 0,
+    this.onMore,
   });
 
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearchChanged;
+  final ClothingCategory? category;
+  final ValueChanged<ClothingCategory?> onCategory;
   final VoidCallback onFilter;
-  final VoidCallback onSort;
   final int filterCount;
+  final VoidCallback? onMore;
+
+  static const double _height = 48;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+    return SizedBox(
+      height: _height,
       child: Row(
         children: [
           Expanded(
-            child: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: searchController,
-              builder: (context, value, _) => TextField(
-                controller: searchController,
-                onChanged: onSearchChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search name, brand, color…',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  isDense: true,
-                  suffixIcon: value.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () {
-                            searchController.clear();
-                            onSearchChanged('');
-                          },
-                        ),
-                ),
+            child: ShaderMask(
+              // Fades chips out under the buttons, as in Fits.
+              shaderCallback: (rect) => const LinearGradient(
+                colors: [Colors.black, Colors.black, Colors.transparent],
+                stops: [0, 0.88, 1],
+              ).createShader(rect),
+              blendMode: BlendMode.dstIn,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: AppSpacing.page),
+                children: [
+                  CategoryChip(
+                    label: 'All',
+                    selected: category == null,
+                    onTap: () => onCategory(null),
+                  ),
+                  for (final c in ClothingCategory.values)
+                    CategoryChip(
+                      label: c.label,
+                      selected: category == c,
+                      onTap: () => onCategory(category == c ? null : c),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          HeaderIconButton(
-            icon: Icons.tune_rounded,
+          RoundToolButton(
+            icon: Icons.filter_list_rounded,
             tooltip: 'Filter',
             badgeCount: filterCount,
             onPressed: onFilter,
           ),
-          const SizedBox(width: AppSpacing.xs),
-          HeaderIconButton(
-            icon: Icons.swap_vert_rounded,
-            tooltip: 'Sort',
-            onPressed: onSort,
-          ),
+          if (onMore != null) ...[
+            const SizedBox(width: AppSpacing.xs),
+            RoundToolButton(
+              icon: Icons.more_horiz_rounded,
+              tooltip: 'More',
+              onPressed: onMore!,
+            ),
+          ],
+          const SizedBox(width: AppSpacing.page),
         ],
       ),
     );
   }
 }
 
-/// Horizontally scrolling category pills with an "All" option.
-class CategoryFilterBar extends StatelessWidget {
-  const CategoryFilterBar({
+/// A small category chip: grey text, or white text on a black pill.
+class CategoryChip extends StatelessWidget {
+  const CategoryChip({
     super.key,
+    required this.label,
     required this.selected,
-    required this.onChanged,
-    this.categories = ClothingCategory.values,
+    required this.onTap,
   });
 
-  final ClothingCategory? selected;
-  final ValueChanged<ClothingCategory?> onChanged;
-  final List<ClothingCategory> categories;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return PillBar(
-      pills: [
-        SelectablePill(
-          label: 'All',
-          selected: selected == null,
-          onTap: () => onChanged(null),
-        ),
-        for (final category in categories)
-          SelectablePill(
-            label: category.label,
-            selected: selected == category,
-            onTap: () => onChanged(selected == category ? null : category),
+    final palette = context.palette;
+    return Center(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: AppDurations.fast,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: selected ? palette.ink : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadius.sm + 2),
+            ),
+            child: Text(
+              label,
+              style: context.textTheme.titleSmall?.copyWith(
+                color: selected ? palette.onInk : palette.textTertiary,
+              ),
+            ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }
 
-/// Horizontally scrolling brand pills. Several brands can be active at once,
-/// like the Brand section of the filter sheet.
-class BrandFilterBar extends StatelessWidget {
-  const BrandFilterBar({
+/// Grey round icon button with an optional count badge.
+class RoundToolButton extends StatelessWidget {
+  const RoundToolButton({
     super.key,
-    required this.brands,
-    required this.selected,
-    required this.onChanged,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.badgeCount = 0,
   });
 
-  final List<String> brands;
-
-  /// Lower-cased brand names, as in `WardrobeQuery.brands`.
-  final Set<String> selected;
-  final ValueChanged<Set<String>> onChanged;
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
-    return PillBar(
-      pills: [
-        SelectablePill(
-          label: 'All brands',
-          selected: selected.isEmpty,
-          onTap: () => onChanged(const {}),
-        ),
-        for (final brand in brands)
-          SelectablePill(
-            label: brand,
-            selected: selected.contains(brand.toLowerCase()),
-            onTap: () {
-              final key = brand.toLowerCase();
-              onChanged(
-                selected.contains(key)
-                    ? ({...selected}..remove(key))
-                    : {...selected, key},
-              );
-            },
-          ),
-      ],
+    final palette = context.palette;
+    final button = IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon),
+      style: IconButton.styleFrom(
+        fixedSize: const Size.square(AppSizes.headerActionSize + 4),
+        backgroundColor: palette.surfaceMuted,
+        foregroundColor: palette.ink,
+      ),
+    );
+    if (badgeCount == 0) return button;
+    return Badge(
+      label: Text('$badgeCount'),
+      backgroundColor: palette.ink,
+      textColor: palette.onInk,
+      child: button,
     );
   }
 }

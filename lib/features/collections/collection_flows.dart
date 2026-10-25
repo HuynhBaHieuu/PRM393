@@ -202,6 +202,59 @@ abstract final class CollectionFlows {
   static Future<void> addItem(BuildContext context, String itemId) =>
       _addTo(context, _Entry.item(itemId));
 
+  /// Adds several pieces to one collection, picked from a list.
+  static Future<void> addItems(
+    BuildContext context,
+    List<String> itemIds,
+  ) async {
+    if (itemIds.length == 1) return addItem(context, itemIds.single);
+    final collections = context.read<CollectionController>();
+    const newCollection = '';
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const SheetHeader(title: 'Add to collection'),
+            ListTile(
+              leading: const Icon(Icons.add_rounded),
+              title: const Text('New collection'),
+              onTap: () => Navigator.of(sheetContext).pop(newCollection),
+            ),
+            for (final collection in collections.collections)
+              ListTile(
+                leading: const Icon(Icons.bookmark_border_rounded),
+                title: Text(collection.name),
+                onTap: () => Navigator.of(sheetContext).pop(collection.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null || !context.mounted) return;
+    if (chosen == newCollection) {
+      await create(context, itemIds: itemIds);
+      return;
+    }
+    final collection = collections.collectionById(chosen);
+    if (collection == null) return;
+    await ClosetFlows.guard(
+      context,
+      () => collections.setEntries(
+        chosen,
+        itemIds: [...itemIds, ...collection.itemIds],
+        outfitIds: collection.outfitIds,
+      ),
+      successMessage:
+          'Added ${AppFormatters.count(itemIds.length, 'piece')} to '
+          '“${collection.name}”',
+    );
+  }
+
   /// Ticks which collections hold one outfit.
   static Future<void> addOutfit(BuildContext context, String outfitId) =>
       _addTo(context, _Entry.outfit(outfitId));

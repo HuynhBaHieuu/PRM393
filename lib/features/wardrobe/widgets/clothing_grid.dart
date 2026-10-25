@@ -16,6 +16,7 @@ class ClothingSliverGrid extends StatelessWidget {
     this.isSelected,
     this.isDimmed,
     this.onLongPress,
+    this.checkable = false,
   });
 
   final List<ClothingItem> items;
@@ -25,6 +26,9 @@ class ClothingSliverGrid extends StatelessWidget {
   final bool Function(ClothingItem item)? isSelected;
   final bool Function(ClothingItem item)? isDimmed;
 
+  /// Shows Fits' round checks (see [ClothingTile.checkable]).
+  final bool checkable;
+
   @override
   Widget build(BuildContext context) {
     final footer = MediaQuery.textScalerOf(context)
@@ -33,7 +37,7 @@ class ClothingSliverGrid extends StatelessWidget {
       builder: (context, constraints) => SliverGrid(
         gridDelegate: AdaptiveGrid.imageTiles(
           width: constraints.crossAxisExtent,
-          imageAspect: AppSizes.clothingImageAspect,
+          imageAspect: AppSizes.closetTileAspect,
           footerHeight: footer,
           minTileWidth: AppSizes.clothingMinTileWidth,
           spacing: AppSpacing.sm,
@@ -46,6 +50,7 @@ class ClothingSliverGrid extends StatelessWidget {
             child: ClothingTile(
               item: item,
               selected: isSelected?.call(item) ?? false,
+              checkable: checkable,
               dimmed: isDimmed?.call(item) ?? false,
               onTap: () => onTap(item),
               onFavorite: onFavorite == null ? null : () => onFavorite!(item),

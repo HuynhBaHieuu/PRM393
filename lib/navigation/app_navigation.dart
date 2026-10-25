@@ -9,12 +9,12 @@ import 'package:all_fits/navigation/closet_screen.dart';
 
 enum AppTab { home, profile }
 
-/// Tabs inside the Profile closet.
+/// Tabs inside the Profile closet. Planner and Insights open from icons
+/// above them, as in Fits.
 enum ClosetTab {
   clothes('Clothes'),
   outfits('Outfits'),
-  collections('Collections'),
-  planner('Planner');
+  collections('Collections');
 
   const ClosetTab(this.label);
 
@@ -185,7 +185,6 @@ class _NavItem extends StatelessWidget {
 
 /// What the central "+" button can create.
 Future<void> _showCreateSheet(BuildContext context) {
-  final shell = context.read<ShellController>();
   return showModalBottomSheet<void>(
     context: context,
     builder: (sheetContext) {
@@ -236,7 +235,7 @@ Future<void> _showCreateSheet(BuildContext context) {
                   _CreateOption(
                     icon: Icons.calendar_today_outlined,
                     label: 'Plan outfit',
-                    onTap: () => go(() => shell.openCloset(ClosetTab.planner)),
+                    onTap: () => go(() => AppNavigator.planner(context)),
                   ),
                 ],
               ),

@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/constants/app_durations.dart';
+import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/color_swatch.dart';
+import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
-import 'package:all_fits/core/widgets/small_widgets.dart';
+import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 
-/// Opens the filter sheet; resolves to the updated query, or null if closed.
+/// Opens Fits' "Filters" sheet; resolves to the updated query, or null if
+/// dismissed.
 Future<WardrobeQuery?> showWardrobeFilterSheet(
   BuildContext context, {
   required WardrobeQuery query,
   required List<String> brands,
+  required List<String> materials,
 }) {
   return showModalBottomSheet<WardrobeQuery>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => WardrobeFilterSheet(query: query, brands: brands),
+    builder: (_) =>
+        WardrobeFilterSheet(query: query, brands: brands, materials: materials),
   );
 }
 
@@ -26,10 +33,12 @@ class WardrobeFilterSheet extends StatefulWidget {
     super.key,
     required this.query,
     required this.brands,
+    required this.materials,
   });
 
   final WardrobeQuery query;
   final List<String> brands;
+  final List<String> materials;
 
   @override
   State<WardrobeFilterSheet> createState() => _WardrobeFilterSheetState();
@@ -37,152 +46,321 @@ class WardrobeFilterSheet extends StatefulWidget {
 
 class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
   late WardrobeQuery _query = widget.query;
+  late final TextEditingController _name = TextEditingController(
+    text: widget.query.searchText,
+  );
 
-  static const double _maxHeightFraction = 0.85;
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
 
   Set<T> _toggled<T>(Set<T> set, T value) =>
       set.contains(value) ? ({...set}..remove(value)) : {...set, value};
 
+  static String? _summary(Iterable<String> names) =>
+      names.isEmpty ? null : names.join(', ');
+
+  Future<void> _pickCategories() async {
+    final result = await showMultiSelectSheet<ClothingCategory>(
+      context,
+      options: ClothingCategory.values,
+      selected: _query.categories,
+      labelOf: (c) => c.label,
+    );
+    if (result != null) {
+      setState(() => _query = _query.copyWith(categories: result));
+    }
+  }
+
+  /// Brands and materials are stored lower-cased; [names] keeps their casing.
+  Future<Set<String>?> _pickNames(List<String> names, Set<String> keys) async {
+    final result = await showMultiSelectSheet<String>(
+      context,
+      options: names,
+      selected: names.where((n) => keys.contains(n.toLowerCase())).toSet(),
+      labelOf: (n) => n,
+    );
+    return result?.map((n) => n.toLowerCase()).toSet();
+  }
+
+  Future<void> _pickBrands() async {
+    if (widget.brands.isEmpty) {
+      context.showSnack('Add a brand to a piece to filter by it.');
+      return;
+    }
+    final result = await _pickNames(widget.brands, _query.brands);
+    if (result != null) {
+      setState(() => _query = _query.copyWith(brands: result));
+    }
+  }
+
+  Future<void> _pickMaterials() async {
+    if (widget.materials.isEmpty) {
+      context.showSnack('Add materials to a piece to filter by them.');
+      return;
+    }
+    final result = await _pickNames(widget.materials, _query.materials);
+    if (result != null) {
+      setState(() => _query = _query.copyWith(materials: result));
+    }
+  }
+
+  void _clear() {
+    _name.clear();
+    setState(() => _query = _query.clearedSheetFilters());
+  }
+
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.sizeOf(context).height * _maxHeightFraction;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SheetHeader(title: 'Filter'),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-              children: [
-                LabeledSection(
-                  label: 'Color',
-                  child: ColorSwatchPicker(
-                    selected: null,
-                    multiSelected: _query.colors,
-                    onChanged: (color) => setState(
-                      () => _query = _query.copyWith(
-                        colors: _toggled(_query.colors, color),
-                      ),
+    final palette = context.palette;
+    return OptionSheetFrame(
+      title: 'Filters',
+      secondaryLabel: 'Clear filters',
+      onSecondary: _clear,
+      onDone: () =>
+          Navigator.of(context)
+              .pop(_query.copyWith(searchText: _name.text.trim())),
+      children: [
+        const OptionSheetLabel('Colors'),
+        SizedBox(
+          height: _ColorDot.size + 8,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final color in ClothingColor.values)
+                _ColorDot(
+                  color: color,
+                  selected: _query.colors.contains(color),
+                  onTap: () => setState(
+                    () => _query = _query.copyWith(
+                      colors: _toggled(_query.colors, color),
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                LabeledSection(
-                  label: 'Season',
-                  child: PillGroup<Season>(
-                    options: Season.values,
-                    selected: _query.seasons,
-                    labelOf: (s) => s.label,
-                    onToggle: (season) => setState(
-                      () => _query = _query.copyWith(
-                        seasons: _toggled(_query.seasons, season),
-                      ),
-                    ),
+            ],
+          ),
+        ),
+        const OptionSheetLabel('Categories'),
+        SelectFieldButton(
+          placeholder: 'Select categories',
+          value: _summary(_query.categories.map((c) => c.label)),
+          onTap: _pickCategories,
+        ),
+        const OptionSheetLabel('Season'),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final season in Season.values)
+              SeasonChip(
+                season: season,
+                selected: _query.seasons.contains(season),
+                onTap: () => setState(
+                  () => _query = _query.copyWith(
+                    seasons: _toggled(_query.seasons, season),
                   ),
                 ),
-                if (widget.brands.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  LabeledSection(
-                    label: 'Brand',
-                    child: PillGroup<String>(
-                      options: widget.brands,
-                      selected: widget.brands
-                          .where((b) => _query.brands.contains(b.toLowerCase()))
-                          .toSet(),
-                      labelOf: (b) => b,
-                      onToggle: (brand) => setState(
-                        () => _query = _query.copyWith(
-                          brands: _toggled(_query.brands, brand.toLowerCase()),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Favorites only'),
-                  value: _query.favoritesOnly,
-                  onChanged: (value) => setState(
-                    () => _query = _query.copyWith(favoritesOnly: value),
-                  ),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Show archived items'),
-                  subtitle: const Text('Browse items you have put away'),
-                  value: _query.showArchived,
-                  onChanged: (value) => setState(
-                    () => _query = _query.copyWith(showArchived: value),
-                  ),
-                ),
-              ],
+              ),
+          ],
+        ),
+        const OptionSheetLabel('Brands'),
+        SelectFieldButton(
+          placeholder: 'Select brands',
+          value: _summary(
+            widget.brands.where((b) => _query.brands.contains(b.toLowerCase())),
+          ),
+          onTap: _pickBrands,
+        ),
+        const OptionSheetLabel('Materials'),
+        SelectFieldButton(
+          placeholder: 'Select materials',
+          value: _summary(
+            widget.materials.where(
+              (m) => _query.materials.contains(m.toLowerCase()),
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.page,
-                AppSpacing.md,
-                AppSpacing.page,
-                AppSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () =>
-                          setState(() => _query = _query.clearedSheetFilters()),
-                      child: const Text('Reset'),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(_query),
-                      child: const Text('Apply'),
-                    ),
-                  ),
-                ],
-              ),
+          onTap: _pickMaterials,
+        ),
+        const OptionSheetLabel('Name'),
+        TextField(
+          controller: _name,
+          textAlign: TextAlign.center,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: 'Search for name',
+            filled: false,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              borderSide: BorderSide(color: palette.border, width: 1.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              borderSide: BorderSide(color: palette.border, width: 1.5),
             ),
           ),
-        ],
+        ),
+        const OptionSheetLabel('Usage'),
+        _ChoiceRow<ItemUsage>(
+          options: ItemUsage.values,
+          selected: _query.usage,
+          labelOf: (u) => u.label,
+          onSelect: (u) => setState(() => _query = _query.copyWith(usage: u)),
+        ),
+        const OptionSheetLabel('Sort items by'),
+        _ChoiceRow<WardrobeSort>(
+          options: WardrobeSort.values,
+          selected: _query.sort,
+          labelOf: (s) => s.label,
+          onSelect: (s) => setState(() => _query = _query.copyWith(sort: s)),
+        ),
+        const OptionSheetLabel('Group items by'),
+        _ChoiceRow<WardrobeGroup>(
+          options: WardrobeGroup.values,
+          selected: _query.groupBy,
+          labelOf: (g) => g.label,
+          onSelect: (g) => setState(() => _query = _query.copyWith(groupBy: g)),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+      ],
+    );
+  }
+}
+
+/// One choice out of several, as a scrolling row of pills.
+class _ChoiceRow<T> extends StatelessWidget {
+  const _ChoiceRow({
+    required this.options,
+    required this.selected,
+    required this.labelOf,
+    required this.onSelect,
+  });
+
+  final List<T> options;
+  final T selected;
+  final String Function(T option) labelOf;
+  final ValueChanged<T> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return PillBar(
+      padding: EdgeInsets.zero,
+      pills: [
+        for (final option in options)
+          SelectablePill(
+            label: labelOf(option),
+            selected: option == selected,
+            onTap: () => onSelect(option),
+          ),
+      ],
+    );
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ClothingColor color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  static const double size = 40;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final light = color.swatch.computeLuminance() > 0.5 || color.isMulti;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: color.label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: AppDurations.fast,
+          margin: const EdgeInsets.only(right: AppSpacing.sm),
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected ? palette.ink : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: ColorSwatchDot(
+            color: color,
+            size: size,
+            child: selected
+                ? Icon(
+                    Icons.check_rounded,
+                    size: 20,
+                    color: light ? Colors.black : Colors.white,
+                  )
+                : null,
+          ),
+        ),
       ),
     );
   }
 }
 
-/// Opens the sort options; resolves to the chosen sort, or null.
-Future<WardrobeSort?> showWardrobeSortSheet(
-  BuildContext context, {
-  required WardrobeSort current,
-}) {
-  return showModalBottomSheet<WardrobeSort>(
-    context: context,
-    useSafeArea: true,
-    builder: (context) => SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SheetHeader(title: 'Sort by'),
-          for (final sort in WardrobeSort.values)
-            ListTile(
-              title: Text(sort.label),
-              trailing: sort == current
-                  ? const Icon(Icons.check_rounded)
-                  : null,
-              selected: sort == current,
-              onTap: () => Navigator.of(context).pop(sort),
+/// Fits' season chip: an outlined box with the season's emoji.
+class SeasonChip extends StatelessWidget {
+  const SeasonChip({
+    super.key,
+    required this.season,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Season season;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? palette.ink : palette.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          side: BorderSide(
+            color: selected ? palette.ink : palette.border,
+            width: 1.5,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
             ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                EmojiIcon(season.emoji, size: 18),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  season.label,
+                  style: context.textTheme.titleSmall?.copyWith(
+                    color: selected ? palette.onInk : palette.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

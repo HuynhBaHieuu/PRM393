@@ -16,7 +16,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
-import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
@@ -139,10 +139,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           border: Border.all(color: palette.border),
                         ),
-                        child: OutfitCanvas(
-                          items: items,
-                          layout: outfit.layout,
-                        ),
+                        child: OutfitCover(outfit: outfit, items: items),
                       ),
                     ),
                   ),

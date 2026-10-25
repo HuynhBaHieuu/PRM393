@@ -128,6 +128,8 @@ class OutfitBuilderController extends ChangeNotifier {
     required String name,
     required String fallbackName,
     String? notes,
+    String? newPhotoPath,
+    bool keepsPhoto = false,
   }) {
     final trimmed = name.trim();
     return OutfitDraft(
@@ -138,6 +140,8 @@ class OutfitBuilderController extends ChangeNotifier {
       notes: notes,
       isFavorite: _isFavorite,
       layout: _layout.where((p) => _itemIds.contains(p.itemId)).toList(),
+      newPhotoPath: newPhotoPath,
+      keepsPhoto: keepsPhoto,
     );
   }
 

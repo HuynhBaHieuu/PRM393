@@ -22,7 +22,10 @@ import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/features/auth/controllers/auth_controller.dart';
 import 'package:all_fits/features/auth/screens/login_screen.dart';
 import 'package:all_fits/features/collections/widgets/collection_cards.dart';
+import 'package:all_fits/features/home/screens/home_screen.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
+import 'package:all_fits/features/outfits/outfit_flows.dart';
+import 'package:all_fits/features/outfits/screens/outfit_builder_screen.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
@@ -67,7 +70,7 @@ Future<void> _tapNav(WidgetTester tester, String label) => _tap(
   find.descendant(of: find.byType(AppBottomBar), matching: find.text(label)),
 );
 
-/// Opens Clothes, Outfits or Planner inside the Profile tab.
+/// Opens Clothes, Outfits or Collections inside the Profile tab.
 Future<void> _openTab(WidgetTester tester, String label) async {
   await _tapNav(tester, 'Profile');
   await _tap(tester, find.widgetWithText(Tab, label));
@@ -77,6 +80,11 @@ Future<void> _openAccount(WidgetTester tester) async {
   await _tapNav(tester, 'Profile');
   await _tap(tester, find.byTooltip('Account'));
 }
+
+/// Home's main list (its rows of cards scroll sideways inside it).
+final Finder _homeScroll = find
+    .descendant(of: find.byType(HomeScreen), matching: find.byType(Scrollable))
+    .first;
 
 /// Picks an option from the central "+" sheet.
 Future<void> _create(WidgetTester tester, String option) async {
@@ -158,13 +166,29 @@ class _FakeStylist extends AiStylistService {
 }
 
 void main() {
-  testWidgets('home shows a greeting and empty states', (tester) async {
+  testWidgets('home follows Fits: get started, shortcuts, empty sections', (
+    tester,
+  ) async {
     await _pumpApp(tester, testDependencies());
 
-    expect(find.text('What are you wearing today?'), findsOneWidget);
-    expect(find.text('No outfit for today'), findsOneWidget);
-    expect(find.text('Create Outfit'), findsWidgets);
-    expect(find.text('Recently added'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('1/4'), findsOneWidget);
+    expect(find.text('Find an outfit'), findsOneWidget);
+    for (final tile in ['Planner', 'Dressing Room', 'Selfie']) {
+      expect(find.bySemanticsLabel(tile), findsOneWidget);
+    }
+    await tester.scrollUntilVisible(
+      find.text('Your outfits will appear here.'),
+      300,
+      scrollable: _homeScroll,
+    );
+    expect(find.text('Recent outfits'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Come back tomorrow for new ideas.'),
+      300,
+      scrollable: _homeScroll,
+    );
+    expect(find.text('Recently added items'), findsOneWidget);
   });
 
   testWidgets('bottom navigation switches between sections', (tester) async {
@@ -175,10 +199,18 @@ void main() {
 
     await _openTab(tester, 'Outfits');
     expect(find.text('No outfits yet'), findsOneWidget);
+    expect(find.widgetWithText(Tab, 'Planner'), findsNothing);
 
-    await _openTab(tester, 'Planner');
+    // Planner and Insights open from icons above the tabs, as in Fits.
+    await _tap(tester, find.byTooltip('Planner'));
     expect(find.text('October 2026'), findsOneWidget);
     expect(find.text('Nothing planned'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('Insights'));
+    expect(find.text('Wardrobe Insights'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     await _openAccount(tester);
     expect(find.text('Wardrobe Insights'), findsOneWidget);
@@ -191,24 +223,36 @@ void main() {
       tester,
       testDependencies(storage: storage, seedSampleData: true),
     );
-    // A sample outfit is planned for today.
-    expect(find.text('Weekend Denim'), findsWidgets);
-    expect(find.text('Planned for today'), findsOneWidget);
+    // "For today" mixes the sample pieces into looks.
+    await tester.scrollUntilVisible(
+      find.text('For today'),
+      300,
+      scrollable: _homeScroll,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(IdeaCard), findsWidgets);
+    expect(find.text('Get started'), findsNothing);
 
     await _openTab(tester, 'Clothes');
-    expect(find.text('25 items'), findsOneWidget);
-
-    // Brands filter the grid like categories do. The brand bar scrolls
-    // sideways, so its pills may start out of view.
-    await _tap(tester, find.text('Adidas', skipOffstage: false));
-    expect(find.text('2 items'), findsOneWidget);
+    // Brands are picked in Fits' filter sheet.
+    await _tap(tester, find.byTooltip('Filter'));
+    await _tap(tester, find.text('Select brands'));
     await _tap(tester, find.text('Adidas'));
-    expect(find.text('25 items'), findsOneWidget);
+    // The brand list opens over the filter sheet.
+    await _tap(tester, find.text('Done').last);
+    expect(find.text('Adidas'), findsOneWidget);
+    await _tap(tester, find.text('Done'));
+    expect(find.byType(ClothingTile), findsNWidgets(2));
+
+    await _tap(tester, find.byTooltip('Filter'));
+    await _tap(tester, find.text('Clear filters'));
+    await _tap(tester, find.text('Done'));
+    expect(find.byType(ClothingTile), findsWidgets);
   });
 
   testWidgets('add item validation highlights missing fields', (tester) async {
     await _pumpApp(tester, testDependencies());
-    await _tap(tester, find.text('Add Clothing').first);
+    await _create(tester, 'Add clothes');
     await _tap(tester, find.text('Save'));
 
     expect(find.text('A photo is required'), findsOneWidget);
@@ -218,7 +262,7 @@ void main() {
 
   testWidgets('a suggested brand fills the brand field', (tester) async {
     await _pumpApp(tester, testDependencies());
-    await _tap(tester, find.text('Add Clothing').first);
+    await _create(tester, 'Add clothes');
     // Typing narrows the brand row to matching brands.
     final brandField = find.widgetWithText(TextFormField, 'Brand');
     await tester.enterText(brandField, 'bal');
@@ -234,8 +278,8 @@ void main() {
   ) async {
     await _pumpApp(tester, testDependencies());
 
-    // Add the first item from Home; saving returns to the wardrobe.
-    await _tap(tester, find.text('Add Clothing').first);
+    // Add the first item from "Get started"; saving returns to the wardrobe.
+    await _tap(tester, find.text('Add 5 pieces'));
     await _addClothing(tester, name: 'White Tee', category: 'Top');
     expect(find.bySemanticsLabel('White Tee'), findsOneWidget);
 
@@ -243,29 +287,40 @@ void main() {
     await _create(tester, 'Add clothes');
     await _addClothing(tester, name: 'Blue Jeans', category: 'Bottom');
     expect(find.bySemanticsLabel('Blue Jeans'), findsOneWidget);
-    expect(find.text('2 items'), findsOneWidget);
+    expect(find.byType(ClothingTile), findsNWidgets(2));
 
-    // Search filters instantly.
-    await tester.enterText(find.byType(TextField).first, 'jeans');
-    await tester.pumpAndSettle();
+    // The filter sheet searches by name.
+    await _tap(tester, find.byTooltip('Filter'));
+    // The name search is the sheet's only text field.
+    await tester.enterText(find.byType(TextField), 'jeans');
+    await _tap(tester, find.text('Done'));
     expect(find.bySemanticsLabel('White Tee'), findsNothing);
     expect(find.bySemanticsLabel('Blue Jeans'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).first, '');
-    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('Filter'));
+    await _tap(tester, find.text('Clear filters'));
+    await _tap(tester, find.text('Done'));
 
-    // Build an outfit.
+    // Build an outfit the Fits way: tick pieces, then Next.
     await _openTab(tester, 'Outfits');
     await _tap(tester, find.text('Create Outfit'));
+    expect(find.text('Add outfit'), findsOneWidget);
+    await _tap(tester, find.bySemanticsLabel('White Tee'));
+    await _tap(tester, find.bySemanticsLabel('Blue Jeans'));
+    expect(find.text('2 selected'), findsOneWidget);
+    expect(find.text('Collage'), findsOneWidget);
+    await _tap(tester, find.text('Next'));
     expect(find.text('New outfit'), findsOneWidget);
 
-    await _tap(tester, find.widgetWithText(ActionChip, 'Top'));
-    await _tap(tester, find.bySemanticsLabel('White Tee').last);
-    await _tap(tester, find.textContaining('Done'));
-
-    await _tap(tester, find.widgetWithText(ActionChip, 'Bottom'));
-    await _tap(tester, find.bySemanticsLabel('Blue Jeans').last);
-    await _tap(tester, find.textContaining('Done'));
-
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextField, 'Outfit name'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(OutfitBuilderScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.enterText(
       find.widgetWithText(TextField, 'Outfit name'),
       'Everyday Look',
@@ -277,13 +332,15 @@ void main() {
     expect(find.text('2 pieces'), findsOneWidget);
 
     // Plan it for today in the planner, then mark it as worn.
-    await _openTab(tester, 'Planner');
+    await _tap(tester, find.byTooltip('Planner'));
     await _tap(tester, find.text('Plan Outfit'));
     await _tap(tester, find.text('Everyday Look').last);
     expect(find.text('Mark as Worn'), findsOneWidget);
 
     await _tap(tester, find.text('Mark as Worn'));
     expect(find.text('Undo'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     // Wear statistics are updated everywhere.
     await _openTab(tester, 'Outfits');
@@ -292,7 +349,6 @@ void main() {
     expect(find.text('Worn today'), findsWidgets);
 
     await _tap(tester, find.text('White Tee'));
-    expect(find.text('TIME WORN'), findsOneWidget);
     expect(find.textContaining('Worn 1 time'), findsOneWidget);
   });
 
@@ -383,7 +439,11 @@ void main() {
 
       await logIn(tester);
       expect(find.byType(AppBottomBar), findsOneWidget);
-      expect(find.textContaining('Jamie'), findsWidgets);
+      await _tapNav(tester, 'Profile');
+      expect(
+        find.textContaining(RegExp('jamie', caseSensitive: false)),
+        findsWidgets,
+      );
       await _openAccount(tester);
       expect(find.text('Jamie Lee'), findsOneWidget);
       expect(find.text('jamie@example.com'), findsOneWidget);
@@ -411,7 +471,7 @@ void main() {
 
     testWidgets('each account sees only its own wardrobe', (tester) async {
       await _pumpApp(tester, testDependencies());
-      await _tap(tester, find.text('Add Clothing').first);
+      await _create(tester, 'Add clothes');
       await _addClothing(tester, name: 'Alex Coat', category: 'Outerwear');
       expect(find.bySemanticsLabel('Alex Coat'), findsOneWidget);
 
@@ -750,7 +810,7 @@ void main() {
 
       // Its clothes are still in the wardrobe.
       await _openTab(tester, 'Clothes');
-      expect(find.text('25 items'), findsOneWidget);
+      expect(find.byType(ClothingTile), findsWidgets);
     });
 
     testWidgets('add a piece to a new collection from its detail screen', (
@@ -759,7 +819,6 @@ void main() {
       await _pumpApp(tester, testDependencies(seedSampleData: true));
       await _openTab(tester, 'Clothes');
       await _tap(tester, find.byType(ClothingTile).first);
-      await _tap(tester, find.byTooltip('More'));
       await _tap(tester, find.text('Add to collection'));
 
       await _tap(tester, find.text('New collection'));

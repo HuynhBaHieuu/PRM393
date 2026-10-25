@@ -21,6 +21,7 @@ class Outfit {
     this.wearCount = 0,
     this.lastWornAt,
     this.layout = const [],
+    this.photoPath,
   });
 
   factory Outfit.fromJson(JsonMap json) {
@@ -46,6 +47,7 @@ class Outfit {
         if (json['layout'] case final List<dynamic> raw)
           ...raw.map(OutfitPlacement.tryFromJson).whereType<OutfitPlacement>(),
       ],
+      photoPath: JsonReader.nonEmptyString(json, 'photoPath'),
       createdAt: createdAt,
       updatedAt: JsonReader.date(json, 'updatedAt') ?? createdAt,
     );
@@ -66,6 +68,10 @@ class Outfit {
   /// Where each piece sits on the outfit canvas, back to front. Pieces
   /// without an entry get a default spot when shown.
   final List<OutfitPlacement> layout;
+
+  /// An outfit selfie: a photo of the user wearing it, stored like a
+  /// clothing photo. Shown instead of the collage when set.
+  final String? photoPath;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -80,6 +86,7 @@ class Outfit {
     'wearCount': wearCount,
     'lastWornAt': lastWornAt?.toIso8601String(),
     'layout': layout.map((p) => p.toJson()).toList(),
+    'photoPath': photoPath,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -94,6 +101,7 @@ class Outfit {
     int? wearCount,
     Object? lastWornAt = _unset,
     List<OutfitPlacement>? layout,
+    Object? photoPath = _unset,
     DateTime? updatedAt,
   }) {
     return Outfit(
@@ -111,6 +119,9 @@ class Outfit {
           ? this.lastWornAt
           : lastWornAt as DateTime?,
       layout: layout ?? this.layout,
+      photoPath: identical(photoPath, _unset)
+          ? this.photoPath
+          : photoPath as String?,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

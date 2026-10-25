@@ -44,6 +44,8 @@ Future<String?> showTextInputDialog(
   String? prefixText,
   int? maxLength,
   String confirmLabel = 'Save',
+  TextInputType? keyboardType,
+  bool multiline = false,
 }) {
   return showDialog<String>(
     context: context,
@@ -54,6 +56,8 @@ Future<String?> showTextInputDialog(
       prefixText: prefixText,
       maxLength: maxLength,
       confirmLabel: confirmLabel,
+      keyboardType: keyboardType,
+      multiline: multiline,
     ),
   );
 }
@@ -66,6 +70,8 @@ class _TextInputDialog extends StatefulWidget {
     this.hint,
     this.prefixText,
     this.maxLength,
+    this.keyboardType,
+    this.multiline = false,
   });
 
   final String title;
@@ -74,6 +80,8 @@ class _TextInputDialog extends StatefulWidget {
   final String? hint;
   final String? prefixText;
   final int? maxLength;
+  final TextInputType? keyboardType;
+  final bool multiline;
 
   @override
   State<_TextInputDialog> createState() => _TextInputDialogState();
@@ -100,8 +108,18 @@ class _TextInputDialogState extends State<_TextInputDialog> {
         controller: _controller,
         autofocus: true,
         maxLength: widget.maxLength,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _submit(),
+        keyboardType: widget.multiline
+            ? TextInputType.multiline
+            : widget.keyboardType,
+        minLines: widget.multiline ? 3 : 1,
+        maxLines: widget.multiline ? 6 : 1,
+        textCapitalization: widget.multiline
+            ? TextCapitalization.sentences
+            : TextCapitalization.none,
+        textInputAction: widget.multiline
+            ? TextInputAction.newline
+            : TextInputAction.done,
+        onSubmitted: widget.multiline ? null : (_) => _submit(),
         decoration: InputDecoration(
           hintText: widget.hint,
           prefixText: widget.prefixText,

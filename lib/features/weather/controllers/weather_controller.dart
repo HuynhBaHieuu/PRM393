@@ -51,4 +51,18 @@ class WeatherController extends ChangeNotifier {
   }
 
   Future<WeatherLocation?> findCity(String name) => _service.findCity(name);
+
+  bool _locateTried = false;
+
+  /// The device's city from its internet address, looked up once per
+  /// session; null when unknown or already tried. Never throws.
+  Future<WeatherLocation?> locateOnce() async {
+    if (_locateTried) return null;
+    _locateTried = true;
+    try {
+      return await _service.locate();
+    } catch (_) {
+      return null;
+    }
+  }
 }

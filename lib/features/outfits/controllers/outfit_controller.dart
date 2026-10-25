@@ -7,6 +7,7 @@ import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/core/utils/load_status.dart';
+import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
@@ -15,11 +16,16 @@ import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
 class OutfitController extends ChangeNotifier {
   OutfitController({
     required this._repository,
+    ImageStorageService? imageStorage,
     IdGenerator idGenerator = const UuidIdGenerator(),
     this._clock = systemClock,
-  }) : _ids = idGenerator;
+  }) : _images = imageStorage,
+       _ids = idGenerator;
 
   final OutfitRepository _repository;
+
+  /// Stores outfit selfies; without it, outfits can't have a photo.
+  final ImageStorageService? _images;
   final IdGenerator _ids;
   final Clock _clock;
 
@@ -38,6 +44,17 @@ class OutfitController extends ChangeNotifier {
       _outfits.where((outfit) => outfit.isFavorite).toList();
 
   Outfit? outfitById(String id) => _byId[id];
+
+  /// How many outfits use each clothing item.
+  Map<String, int> get itemOutfitCounts {
+    final counts = <String, int>{};
+    for (final outfit in _outfits) {
+      for (final id in outfit.itemIds) {
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
 
   List<Outfit> outfitsUsingItem(String itemId) =>
       _outfits.where((outfit) => outfit.itemIds.contains(itemId)).toList();
@@ -67,6 +84,7 @@ class OutfitController extends ChangeNotifier {
 
   Future<Outfit> createOutfit(OutfitDraft draft) async {
     draft.ensureValid();
+    final photoRef = await _savePhoto(draft.newPhotoPath);
     final now = _clock();
     final outfit = Outfit(
       id: _ids.next(),
@@ -77,16 +95,23 @@ class OutfitController extends ChangeNotifier {
       notes: draft.notes.trimmedOrNull,
       isFavorite: draft.isFavorite,
       layout: draft.layout,
+      photoPath: photoRef,
       createdAt: now,
       updatedAt: now,
     );
-    await _commit([outfit]);
+    try {
+      await _commit([outfit]);
+    } catch (_) {
+      if (photoRef != null) await _images?.deleteImage(photoRef);
+      rethrow;
+    }
     return outfit;
   }
 
   Future<Outfit> updateOutfit(String id, OutfitDraft draft) async {
     final existing = _require(id);
     draft.ensureValid();
+    final photoRef = await _savePhoto(draft.newPhotoPath);
     final updated = existing.copyWith(
       name: draft.name.trim(),
       itemIds: draft.itemIds.toSet().toList(),
@@ -95,9 +120,19 @@ class OutfitController extends ChangeNotifier {
       notes: draft.notes.trimmedOrNull,
       isFavorite: draft.isFavorite,
       layout: draft.layout,
+      photoPath: photoRef ?? (draft.keepsPhoto ? existing.photoPath : null),
       updatedAt: _clock(),
     );
-    await _commit([updated]);
+    try {
+      await _commit([updated]);
+    } catch (_) {
+      if (photoRef != null) await _images?.deleteImage(photoRef);
+      rethrow;
+    }
+    final old = existing.photoPath;
+    if (old != null && old != updated.photoPath) {
+      await _images?.deleteImage(old);
+    }
     return updated;
   }
 
@@ -112,9 +147,22 @@ class OutfitController extends ChangeNotifier {
   Future<void> deleteOutfits(Iterable<String> ids) async {
     final existing = ids.where(_byId.containsKey).toSet();
     if (existing.isEmpty) return;
+    final photos = [for (final id in existing) ?_byId[id]!.photoPath];
     await _repository.deleteAll(existing);
     _setOutfits(_outfits.where((o) => !existing.contains(o.id)));
     notifyListeners();
+    for (final photo in photos) {
+      await _images?.deleteImage(photo);
+    }
+  }
+
+  Future<String?> _savePhoto(String? source) async {
+    if (source == null) return null;
+    final images = _images;
+    if (images == null) {
+      throw const ValidationException('Outfit photos aren’t available here.');
+    }
+    return images.saveImage(source);
   }
 
   Future<void> deleteOutfit(String id) => deleteOutfits([id]);
@@ -164,9 +212,13 @@ class OutfitController extends ChangeNotifier {
   }
 
   Future<void> clearAll() async {
+    final photos = [for (final o in _outfits) ?o.photoPath];
     await _repository.clear();
     _setOutfits(const []);
     notifyListeners();
+    for (final photo in photos) {
+      await _images?.deleteImage(photo);
+    }
   }
 
   Outfit _require(String id) {

@@ -23,6 +23,18 @@ abstract final class OutfitLayout {
         ],
       };
 
+  /// Spots for [worn], the pieces stacked head to toe down the middle as if
+  /// worn, as on Fits' idea cards.
+  static const Map<OutfitSlot, List<(double, double, double, double)>>
+  _wornSpots = {
+    OutfitSlot.outerwear: [(0.42, 0.24, 0.62, 0.36)],
+    OutfitSlot.top: [(0.56, 0.24, 0.6, 0.34)],
+    OutfitSlot.dress: [(0.5, 0.42, 0.68, 0.66)],
+    OutfitSlot.bottom: [(0.5, 0.6, 0.56, 0.46)],
+    OutfitSlot.shoes: [(0.5, 0.9, 0.46, 0.16)],
+    OutfitSlot.accessories: [(0.84, 0.08, 0.24, 0.12), (0.16, 0.5, 0.22, 0.14)],
+  };
+
   /// Back to front, so tops sit over bottoms and accessories over all.
   static const List<OutfitSlot> _paintOrder = [
     OutfitSlot.bottom,
@@ -50,7 +62,14 @@ abstract final class OutfitLayout {
     ];
   }
 
-  static List<OutfitPlacement> defaults(List<ClothingItem> items) {
+  /// The pieces stacked head to toe, for previews of suggested looks.
+  static List<OutfitPlacement> worn(List<ClothingItem> items) =>
+      defaults(items, spots: _wornSpots);
+
+  static List<OutfitPlacement> defaults(
+    List<ClothingItem> items, {
+    Map<OutfitSlot, List<(double, double, double, double)>> spots = _spots,
+  }) {
     final bySlot = <OutfitSlot, List<String>>{};
     for (final item in items) {
       bySlot
@@ -60,12 +79,15 @@ abstract final class OutfitLayout {
     return [
       for (final slot in _paintOrder)
         for (final (index, id) in (bySlot[slot] ?? const <String>[]).indexed)
-          _spot(slot, index, id),
+          _spot(spots[slot]!, index, id),
     ];
   }
 
-  static OutfitPlacement _spot(OutfitSlot slot, int index, String itemId) {
-    final spots = _spots[slot]!;
+  static OutfitPlacement _spot(
+    List<(double, double, double, double)> spots,
+    int index,
+    String itemId,
+  ) {
     final (x, y, width, height) = spots[index % spots.length];
     final shift = (index ~/ spots.length) * _stagger;
     return OutfitPlacement(

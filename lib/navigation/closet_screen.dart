@@ -6,7 +6,6 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/features/collections/screens/collections_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfits_screen.dart';
-import 'package:all_fits/features/planner/screens/planner_screen.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/social/screens/people_screens.dart';
@@ -16,9 +15,9 @@ import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/screens/wardrobe_screen.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
-/// The Profile tab: the user's name, a menu to the account page, their
-/// community profile when online, and the closet split into Clothes,
-/// Outfits, Collections and Planner tabs.
+/// The Profile tab: the user's name with Planner, Insights and account
+/// buttons, their community profile when online, and the closet split into
+/// Clothes, Outfits and Collections tabs.
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
 
@@ -89,6 +88,16 @@ class _ClosetScreenState extends State<ClosetScreen>
                   ),
                 ),
                 IconButton(
+                  tooltip: 'Planner',
+                  onPressed: () => AppNavigator.planner(context),
+                  icon: const Icon(Icons.calendar_today_outlined),
+                ),
+                IconButton(
+                  tooltip: 'Insights',
+                  onPressed: () => AppNavigator.insights(context),
+                  icon: const Icon(Icons.pie_chart_outline_rounded),
+                ),
+                IconButton(
                   tooltip: 'Account',
                   onPressed: () => AppNavigator.account(context),
                   icon: const Icon(Icons.menu_rounded),
@@ -100,9 +109,8 @@ class _ClosetScreenState extends State<ClosetScreen>
             _CommunityHeader(social: social, settings: settings),
           TabBar(
             controller: _tabs,
-            // Four tabs share a phone's width: shrink a label that would
-            // otherwise be clipped ("Collections" on small screens or with
-            // large text).
+            // Shrink a label that would otherwise be clipped ("Collections"
+            // on small screens or with large text).
             labelPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xxs,
             ),
@@ -123,7 +131,6 @@ class _ClosetScreenState extends State<ClosetScreen>
                 WardrobeScreen(),
                 OutfitsScreen(),
                 CollectionsScreen(),
-                PlannerScreen(),
               ],
             ),
           ),
@@ -164,6 +171,9 @@ class _CommunityHeader extends StatelessWidget {
                 ),
             followers: social.followers.length,
             following: social.following.length,
+            avatarBadge: _AddPhotoBadge(
+              onTap: () => AppNavigator.editProfile(context),
+            ),
             onFollowers: () => AppNavigator.connections(context),
             onFollowing: () =>
                 AppNavigator.connections(context, ConnectionsTab.following),
@@ -191,6 +201,37 @@ class _CommunityHeader extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Fits' small "⊕" on the corner of your own profile photo.
+class _AddPhotoBadge extends StatelessWidget {
+  const _AddPhotoBadge({required this.onTap});
+
+  final VoidCallback onTap;
+
+  static const double _size = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Semantics(
+      button: true,
+      label: 'Change profile photo',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: _size,
+          height: _size,
+          decoration: BoxDecoration(
+            color: palette.ink,
+            shape: BoxShape.circle,
+            border: Border.all(color: palette.surface, width: 3),
+          ),
+          child: Icon(Icons.add_rounded, size: 18, color: palette.onInk),
+        ),
       ),
     );
   }

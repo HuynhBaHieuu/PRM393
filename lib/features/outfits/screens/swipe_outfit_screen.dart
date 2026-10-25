@@ -20,7 +20,10 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart'
 /// shoes by default) over a mannequin, then hands the picks to the outfit
 /// builder to name and save.
 class SwipeOutfitScreen extends StatefulWidget {
-  const SwipeOutfitScreen({super.key});
+  const SwipeOutfitScreen({super.key, this.initialItemIds = const []});
+
+  /// Pieces each row starts on, e.g. those picked in "Add outfit".
+  final List<String> initialItemIds;
 
   /// Rows from head to toe, each placed over its part of the mannequin:
   /// top and bottom edge, and the widest a piece may be, all as fractions
@@ -65,7 +68,18 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
   final Map<OutfitSlot, int> _picks = {};
   final Set<OutfitSlot> _shown = {...SwipeOutfitScreen.defaultRows};
   final Map<OutfitSlot, ClothingSubcategory> _filters = {};
+  final Set<OutfitSlot> _seeded = {};
   OutfitSlot? _active;
+
+  @override
+  void initState() {
+    super.initState();
+    // Show the rows of the pieces the user started with.
+    final wardrobe = context.read<WardrobeController>();
+    for (final item in wardrobe.itemsByIds(widget.initialItemIds)) {
+      _shown.add(OutfitSlot.forCategory(item.category));
+    }
+  }
 
   @override
   void dispose() {
@@ -78,8 +92,10 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
   PageController _controllerFor(OutfitSlot slot, int count) =>
       _controllers.putIfAbsent(
         slot,
-        () =>
-            PageController(viewportFraction: 0.62, initialPage: _loops * count),
+        () => PageController(
+          viewportFraction: 0.62,
+          initialPage: _loops * count + (_picks[slot] ?? 0) % count,
+        ),
       );
 
   /// Starts [slot]'s row over at its first piece, e.g. after its pieces
@@ -146,7 +162,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
       ),
     );
     // The builder already switched to the Outfits tab; close the swiper too.
-    if (saved == true) navigator.pop();
+    if (saved == true) navigator.pop(true);
   }
 
   Future<void> _editRows(Map<OutfitSlot, List<ClothingItem>> available) {
@@ -198,7 +214,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
 
     if (available.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Swipe outfit')),
+        appBar: AppBar(title: const Text('Dressing Room')),
         body: AppEmptyState(
           icon: Icons.swipe_outlined,
           title: 'Nothing to swipe yet',
@@ -213,6 +229,13 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
       for (final slot in _visible(available.keys))
         slot: _filtered(available[slot]!, _filters[slot]),
     };
+    for (final MapEntry(key: slot, value: pieces) in bySlot.entries) {
+      if (!_seeded.add(slot)) continue;
+      final start = pieces.indexWhere(
+        (p) => widget.initialItemIds.contains(p.id),
+      );
+      if (start > 0) _picks[slot] = start;
+    }
     final active = bySlot.containsKey(_active) ? _active! : bySlot.keys.first;
     final picks = [
       for (final MapEntry(key: slot, value: pieces) in bySlot.entries)
@@ -222,7 +245,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Swipe outfit'),
+        title: const Text('Dressing Room'),
         actions: [
           IconButton(
             tooltip: 'Rows',

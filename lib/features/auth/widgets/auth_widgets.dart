@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'package:all_fits/core/constants/app_config.dart';
+import 'package:all_fits/core/widgets/app_logo.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
@@ -50,11 +50,9 @@ class AuthScaffold extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      AppConfig.appName,
-                      style: text.titleLarge?.copyWith(
-                        color: palette.textSecondary,
-                      ),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppWordmark(height: 22),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     Eyebrow(eyebrow),

@@ -5,7 +5,9 @@ import 'package:all_fits/features/collections/screens/collection_detail_screen.d
 import 'package:all_fits/features/insights/screens/insights_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_builder_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_detail_screen.dart';
+import 'package:all_fits/features/outfits/screens/outfit_pick_screen.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
+import 'package:all_fits/features/planner/screens/planner_screen.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
@@ -28,12 +30,18 @@ import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_form_screen.dart';
+import 'package:all_fits/features/wardrobe/screens/clothes_select_screen.dart';
+import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 
 abstract final class AppRoutes {
   static const String addClothing = '/clothing/new';
   static const String editClothing = '/clothing/edit';
   static const String clothingDetail = '/clothing/detail';
   static const String outfitBuilder = '/outfits/builder';
+  static const String outfitPick = '/outfits/new';
+  static const String planner = '/planner';
+  static const String selectClothes = '/clothing/select';
+  static const String reorderClothes = '/clothing/reorder';
   static const String outfitDetail = '/outfits/detail';
   static const String swipeOutfit = '/outfits/swipe';
   static const String collectionDetail = '/collections/detail';
@@ -71,13 +79,28 @@ abstract final class AppRoutes {
       AppRoutes.clothingDetail when args is String => ClothingDetailScreen(
         itemId: args,
       ),
+      AppRoutes.clothingDetail when args is ClothingDetailArgs =>
+        ClothingDetailScreen(itemId: args.itemId, siblings: args.siblings),
+      AppRoutes.selectClothes => ClothesSelectScreen(
+        query: args is WardrobeQuery ? args : const WardrobeQuery(),
+      ),
+      AppRoutes.reorderClothes => const ReorderClothesScreen(),
+      AppRoutes.outfitPick => OutfitPickScreen(
+        initialItemIds: args is List<String> ? args : const [],
+      ),
+      AppRoutes.planner => Scaffold(
+        appBar: AppBar(title: const Text('Planner')),
+        body: const PlannerScreen(),
+      ),
       AppRoutes.outfitBuilder => OutfitBuilderScreen(
         args: args is OutfitBuilderArgs ? args : const OutfitBuilderArgs(),
       ),
       AppRoutes.outfitDetail when args is String => OutfitDetailScreen(
         outfitId: args,
       ),
-      AppRoutes.swipeOutfit => const SwipeOutfitScreen(),
+      AppRoutes.swipeOutfit => SwipeOutfitScreen(
+        initialItemIds: args is List<String> ? args : const [],
+      ),
       AppRoutes.collectionDetail when args is String => CollectionDetailScreen(
         collectionId: args,
       ),
@@ -85,7 +108,9 @@ abstract final class AppRoutes {
       AppRoutes.favorites => const FavoritesScreen(),
       AppRoutes.archived => const ArchivedItemsScreen(),
       AppRoutes.settings => const SettingsScreen(),
-      AppRoutes.stylist => const StylistScreen(),
+      AppRoutes.stylist => StylistScreen(
+        launch: args is StylistLaunch ? args : null,
+      ),
       AppRoutes.premium => const PremiumScreen(),
       AppRoutes.account => const ProfileScreen(),
       AppRoutes.editProfile => const EditProfileScreen(),
@@ -151,17 +176,56 @@ abstract final class AppNavigator {
       Navigator.of(context)
           .pushNamed(AppRoutes.editClothing, arguments: itemId);
 
-  static Future<void> clothingDetail(BuildContext context, String itemId) =>
-      Navigator.of(context)
-          .pushNamed(AppRoutes.clothingDetail, arguments: itemId);
+  /// With [siblings] (the list the piece was tapped in), the page offers
+  /// ‹ › to step through them.
+  static Future<void> clothingDetail(
+    BuildContext context,
+    String itemId, {
+    List<String> siblings = const [],
+  }) => Navigator.of(context).pushNamed(
+    AppRoutes.clothingDetail,
+    arguments: ClothingDetailArgs(itemId, siblings: siblings),
+  );
 
+  static Future<void> selectClothes(
+    BuildContext context, {
+    WardrobeQuery query = const WardrobeQuery(),
+  }) =>
+      Navigator.of(context)
+          .pushNamed(AppRoutes.selectClothes, arguments: query);
+
+  static Future<void> reorderClothes(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.reorderClothes);
+
+  static Future<void> planner(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.planner);
+
+  /// Fits' "Add outfit": choose pieces first (starting with
+  /// [initialItemIds]), then how to put them together.
   static Future<void> createOutfit(
     BuildContext context, {
     List<String> initialItemIds = const [],
-  }) => Navigator.of(context).pushNamed(
-    AppRoutes.outfitBuilder,
-    arguments: OutfitBuilderArgs(initialItemIds: initialItemIds),
-  );
+  }) =>
+      Navigator.of(context)
+          .pushNamed(AppRoutes.outfitPick, arguments: initialItemIds);
+
+  /// The collage builder for a new outfit; resolves to true once saved.
+  static Future<bool> composeOutfit(
+    BuildContext context, {
+    List<String> itemIds = const [],
+    String? photoFile,
+    DateTime? planDate,
+  }) async {
+    final result = await Navigator.of(context).pushNamed<Object?>(
+      AppRoutes.outfitBuilder,
+      arguments: OutfitBuilderArgs(
+        initialItemIds: itemIds,
+        photoFile: photoFile,
+        planDate: planDate,
+      ),
+    );
+    return result == true;
+  }
 
   static Future<void> editOutfit(BuildContext context, String outfitId) =>
       Navigator.of(context).pushNamed(
@@ -169,8 +233,15 @@ abstract final class AppNavigator {
         arguments: OutfitBuilderArgs(outfitId: outfitId),
       );
 
-  static Future<void> swipeOutfit(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.swipeOutfit);
+  /// Fits' Dressing Room; resolves to true once an outfit was saved.
+  static Future<bool> swipeOutfit(
+    BuildContext context, {
+    List<String> initialItemIds = const [],
+  }) async {
+    final result = await Navigator.of(context)
+        .pushNamed<Object?>(AppRoutes.swipeOutfit, arguments: initialItemIds);
+    return result == true;
+  }
 
   static Future<void> outfitDetail(BuildContext context, String outfitId) =>
       Navigator.of(context)
@@ -195,8 +266,8 @@ abstract final class AppNavigator {
   static Future<void> settings(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.settings);
 
-  static Future<void> stylist(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.stylist);
+  static Future<void> stylist(BuildContext context, {StylistLaunch? launch}) =>
+      Navigator.of(context).pushNamed(AppRoutes.stylist, arguments: launch);
 
   static Future<void> premium(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.premium);

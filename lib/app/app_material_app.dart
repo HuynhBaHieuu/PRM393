@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/app/theme/app_theme.dart';
 import 'package:all_fits/core/constants/app_config.dart';
+import 'package:all_fits/core/widgets/app_logo.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
-import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 
 /// The app's [MaterialApp] configuration, shared by the signed-out and
@@ -52,7 +52,7 @@ class AppSplashView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(AppConfig.appName, style: context.textTheme.displaySmall),
+            const AppWordmark(height: 36),
             const SizedBox(height: AppSpacing.lg),
             const AppLoadingView(),
           ],

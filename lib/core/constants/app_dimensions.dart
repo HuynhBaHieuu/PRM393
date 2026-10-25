@@ -55,6 +55,9 @@ abstract final class AppSizes {
   /// Width / height of clothing photos in grids.
   static const double clothingImageAspect = 3 / 4;
 
+  /// Closet grids use nearly square cells, as in Fits.
+  static const double closetTileAspect = 0.95;
+
   /// Width / height of outfit previews.
   static const double outfitImageAspect = 4 / 5;
 

@@ -161,6 +161,95 @@ class WardrobeController extends ChangeNotifier {
     return updated;
   }
 
+  /// Saves one edit made on the detail screen, e.g. a new brand or season.
+  Future<ClothingItem> patchItem(
+    String id,
+    ClothingItem Function(ClothingItem item) change,
+  ) async {
+    final updated = change(_require(id)).copyWith(updatedAt: _clock());
+    if (updated.name.trim().isEmpty) {
+      throw const ValidationException('Give this piece a name.');
+    }
+    await _commit([updated]);
+    return updated;
+  }
+
+  /// Swaps the photo for the one at [source] and cuts it out again.
+  Future<void> replacePhoto(String id, String source) async {
+    final existing = _require(id);
+    final imageRef = await _images.saveImage(source);
+    final cutoutRef = await _saveCutout(source);
+    try {
+      await _commit([
+        existing.copyWith(
+          imagePath: imageRef,
+          cutoutPath: cutoutRef,
+          updatedAt: _clock(),
+        ),
+      ]);
+    } catch (_) {
+      await _images.deleteImage(imageRef);
+      if (cutoutRef != null) await _images.deleteImage(cutoutRef);
+      rethrow;
+    }
+    for (final old in _photosOf([existing])) {
+      await _images.deleteImage(old);
+    }
+  }
+
+  /// Cuts the current photo out again, e.g. after a poor first attempt.
+  Future<bool> redoCutout(String id) async {
+    final existing = _require(id);
+    final photo = existing.imagePath;
+    final source = photo == null ? null : _images.resolvePath(photo);
+    if (source == null || source.startsWith('https://')) return false;
+    final cutoutRef = await _saveCutout(source);
+    if (cutoutRef == null) return false;
+    await _commit([
+      existing.copyWith(cutoutPath: cutoutRef, updatedAt: _clock()),
+    ]);
+    final old = existing.cutoutPath;
+    if (old != null) await _images.deleteImage(old);
+    return true;
+  }
+
+  /// Saves the user's own order ("Custom" sort): [ids] first, in order.
+  Future<void> setCustomOrder(List<String> ids) async {
+    final updated = <ClothingItem>[];
+    for (var i = 0; i < ids.length; i++) {
+      final item = _byId[ids[i]];
+      if (item != null && item.sortIndex != i) {
+        updated.add(item.copyWith(sortIndex: i));
+      }
+    }
+    if (updated.isNotEmpty) await _commit(updated);
+  }
+
+  Future<void> setArchivedMany(
+    Iterable<String> ids, {
+    required bool archived,
+  }) async {
+    final now = _clock();
+    final updated = [
+      for (final item in itemsByIds(ids))
+        if (item.isArchived != archived)
+          item.copyWith(isArchived: archived, updatedAt: now),
+    ];
+    if (updated.isNotEmpty) await _commit(updated);
+  }
+
+  /// Distinct materials, sorted alphabetically.
+  List<String> get materials {
+    final names = <String, String>{};
+    for (final item in _active) {
+      for (final material in item.materials) {
+        names.putIfAbsent(material.toLowerCase(), () => material);
+      }
+    }
+    return names.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
   Future<void> toggleFavorite(String id) async {
     final item = _require(id);
     await _commit([

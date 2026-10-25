@@ -14,6 +14,8 @@ class OutfitDraft {
     this.notes,
     this.isFavorite = false,
     this.layout = const [],
+    this.newPhotoPath,
+    this.keepsPhoto = false,
   });
 
   final String name;
@@ -24,8 +26,16 @@ class OutfitDraft {
   final bool isFavorite;
   final List<OutfitPlacement> layout;
 
+  /// A just-taken outfit selfie (a temporary file) to store with the outfit.
+  final String? newPhotoPath;
+
+  /// True when the outfit being edited already has a selfie and keeps it.
+  final bool keepsPhoto;
+
+  bool get hasPhoto => newPhotoPath != null || keepsPhoto;
+
   void ensureValid() {
-    if (itemIds.isEmpty) {
+    if (itemIds.isEmpty && !hasPhoto) {
       throw const ValidationException('Add at least one piece to your outfit.');
     }
     final nameError = Validators.requiredName(name);

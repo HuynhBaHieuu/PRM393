@@ -225,7 +225,8 @@ as $$
   select jsonb_strip_nulls(jsonb_build_object(
     'id', d->'id', 'name', d->'name', 'imagePath', d->'imagePath', 'cutoutPath', d->'cutoutPath',
     'category', d->'category', 'subcategory', d->'subcategory', 'color', d->'color',
-    'seasons', d->'seasons', 'brand', d->'brand', 'createdAt', d->'createdAt'))
+    'seasons', d->'seasons', 'brand', d->'brand', 'createdAt', d->'createdAt',
+    'noStyling', d->'noStyling'))
 $$;
 
 create or replace function public.public_outfit(d jsonb) returns jsonb
@@ -338,7 +339,8 @@ begin
     'items', coalesce((
       select jsonb_agg(public.public_item(c.data) order by c.data->>'createdAt' desc)
       from public.clothing_items c
-      where c.user_id = p_user and coalesce((c.data->>'isArchived')::boolean, false) = false), '[]'),
+      where c.user_id = p_user and coalesce((c.data->>'isArchived')::boolean, false) = false
+        and (p_user = auth.uid() or coalesce((c.data->>'hideInProfile')::boolean, false) = false)), '[]'),
     'outfits', coalesce((
       select jsonb_agg(public.public_outfit(o.data) order by o.data->>'createdAt' desc)
       from public.outfits o where o.user_id = p_user), '[]'));
@@ -444,7 +446,9 @@ begin
   select jsonb_agg(public.public_item(c.data)) into v_items
   from public.clothing_items c
   where c.user_id = p_recipient and c.id = any(p_item_ids)
-    and coalesce((c.data->>'isArchived')::boolean, false) = false;
+    and coalesce((c.data->>'isArchived')::boolean, false) = false
+    and coalesce((c.data->>'hideInProfile')::boolean, false) = false
+    and coalesce((c.data->>'noStyling')::boolean, false) = false;
   if v_items is null then
     raise exception 'Pick at least one piece.';
   end if;

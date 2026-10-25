@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/data/models/app_settings.dart';
+import 'package:all_fits/data/models/outfit_create_mode.dart';
 import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
@@ -31,6 +32,8 @@ class SettingsController extends ChangeNotifier {
   DateTime? get premiumUntil => _settings.premiumUntil;
 
   WeatherLocation? get weatherLocation => _settings.weatherLocation;
+
+  OutfitCreateMode get outfitMode => _settings.outfitMode;
 
   ThemeMode get themeMode => switch (_settings.themePreference) {
     ThemePreference.system => ThemeMode.system,
@@ -78,6 +81,9 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setWeatherLocation(WeatherLocation? location) =>
       _update(_settings.copyWith(weatherLocation: location));
+
+  Future<void> setOutfitMode(OutfitCreateMode mode) =>
+      _update(_settings.copyWith(outfitMode: mode));
 
   Future<void> markSampleDataSeeded() =>
       _update(_settings.copyWith(hasSeededSampleData: true));

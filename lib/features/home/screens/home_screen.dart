@@ -2,65 +2,70 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/layout.dart';
-import 'package:all_fits/core/widgets/section_header.dart';
-import 'package:all_fits/features/home/widgets/home_greeting.dart';
+import 'package:all_fits/features/home/widgets/home_header.dart';
 import 'package:all_fits/features/home/widgets/home_sections.dart';
-import 'package:all_fits/features/home/widgets/today_outfit_section.dart';
-import 'package:all_fits/features/home/widgets/weather_section.dart';
-import 'package:all_fits/features/social/social_controller.dart';
-import 'package:all_fits/features/social/widgets/discover_section.dart';
-import 'package:all_fits/features/try_on/try_on_controller.dart';
+import 'package:all_fits/features/stylist/stylist_store.dart';
 
-class HomeScreen extends StatelessWidget {
+/// Fits' Home: shortcuts and today's ideas first, then the closet's recent
+/// and unworn pieces, ending with "Come back tomorrow for new ideas."
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // "Get started" and "Find an outfit" read the stylist's usage.
+    context.read<StylistStore>().load();
+  }
 
   @override
   Widget build(BuildContext context) {
     const padded = EdgeInsets.symmetric(horizontal: AppSpacing.page);
-    final online = context.select<SocialController?, bool>((s) => s != null);
-    final tryOn = context.select<TryOnController, bool>((t) => t.isAvailable);
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+      child: Column(
         children: [
-          const ResponsiveCenter(child: HomeGreeting()),
-          const SizedBox(height: AppSpacing.xl),
-          const ResponsiveCenter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          const ResponsiveCenter(child: HomeTopBar()),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
               children: [
-                SectionHeader(title: 'Today’s outfit'),
-                SizedBox(height: AppSpacing.md),
-                Padding(padding: padded, child: TodayOutfitSection()),
-                SizedBox(height: AppSpacing.lg),
-                Padding(padding: padded, child: QuickActions()),
+                const StoryRow(),
+                const SizedBox(height: AppSpacing.md),
+                const ResponsiveCenter(
+                  child: Padding(padding: padded, child: GetStartedCard()),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                const ResponsiveCenter(
+                  child: Padding(padding: padded, child: FindOutfitBar()),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                const ResponsiveCenter(child: QuickTiles()),
+                const ForTodaySection(),
+                const AiStylistSection(),
+                const RecentOutfitsSection(),
+                const RecentlyAddedSection(),
+                const NotYetWornSection(),
+                const NewestIdeasSection(),
+                const TryOnBackgroundsSection(),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  'Come back tomorrow for new ideas.',
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodyLarge?.copyWith(
+                    color: context.palette.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
-          if (tryOn)
-            const ResponsiveCenter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.page,
-                  AppSpacing.sm,
-                  AppSpacing.page,
-                  0,
-                ),
-                child: TryOnShortcut(),
-              ),
-            ),
-          const SizedBox(height: AppSpacing.xl),
-          const RecentlyAddedSection(),
-          if (online) ...[
-            const SizedBox(height: AppSpacing.xl),
-            const ResponsiveCenter(child: DiscoverSection()),
-          ],
-          const SizedBox(height: AppSpacing.xl),
-          const ResponsiveCenter(child: WeatherSection()),
-          const SizedBox(height: AppSpacing.xl),
-          const RecentlyWornSection(),
         ],
       ),
     );

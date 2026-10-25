@@ -23,8 +23,13 @@ class ClothingItem {
     this.brand,
     this.price,
     this.notes,
+    this.materials = const [],
+    this.purchaseDate,
     this.isFavorite = false,
     this.isArchived = false,
+    this.hideInProfile = false,
+    this.noStyling = false,
+    this.sortIndex,
     this.wearCount = 0,
     this.lastWornAt,
   });
@@ -60,8 +65,13 @@ class ClothingItem {
       brand: JsonReader.nonEmptyString(json, 'brand'),
       price: price != null && price >= 0 ? price : null,
       notes: JsonReader.nonEmptyString(json, 'notes'),
+      materials: JsonReader.stringList(json, 'materials').toSet().toList(),
+      purchaseDate: JsonReader.date(json, 'purchaseDate'),
       isFavorite: JsonReader.boolean(json, 'isFavorite'),
       isArchived: JsonReader.boolean(json, 'isArchived'),
+      hideInProfile: JsonReader.boolean(json, 'hideInProfile'),
+      noStyling: JsonReader.boolean(json, 'noStyling'),
+      sortIndex: json['sortIndex'] is int ? json['sortIndex'] as int : null,
       wearCount: math.max(0, JsonReader.integer(json, 'wearCount')),
       lastWornAt: JsonReader.date(json, 'lastWornAt'),
       createdAt: createdAt,
@@ -87,8 +97,21 @@ class ClothingItem {
   final String? brand;
   final double? price;
   final String? notes;
+
+  /// Fabrics such as "Cotton" or "Denim", in the order they were added.
+  final List<String> materials;
+  final DateTime? purchaseDate;
   final bool isFavorite;
   final bool isArchived;
+
+  /// Keeps the piece off the closet other people see on your profile.
+  final bool hideInProfile;
+
+  /// Stops people who style you from putting this piece in an outfit.
+  final bool noStyling;
+
+  /// Position in the user's own order ("Custom" sort); null until reordered.
+  final int? sortIndex;
   final int wearCount;
   final DateTime? lastWornAt;
   final DateTime createdAt;
@@ -106,8 +129,13 @@ class ClothingItem {
     'brand': brand,
     'price': price,
     'notes': notes,
+    'materials': materials,
+    'purchaseDate': purchaseDate?.toIso8601String(),
     'isFavorite': isFavorite,
     'isArchived': isArchived,
+    'hideInProfile': hideInProfile,
+    'noStyling': noStyling,
+    'sortIndex': sortIndex,
     'wearCount': wearCount,
     'lastWornAt': lastWornAt?.toIso8601String(),
     'createdAt': createdAt.toIso8601String(),
@@ -126,8 +154,13 @@ class ClothingItem {
     Object? brand = _unset,
     Object? price = _unset,
     Object? notes = _unset,
+    List<String>? materials,
+    Object? purchaseDate = _unset,
     bool? isFavorite,
     bool? isArchived,
+    bool? hideInProfile,
+    bool? noStyling,
+    Object? sortIndex = _unset,
     int? wearCount,
     Object? lastWornAt = _unset,
     DateTime? updatedAt,
@@ -150,8 +183,17 @@ class ClothingItem {
       brand: identical(brand, _unset) ? this.brand : brand as String?,
       price: identical(price, _unset) ? this.price : price as double?,
       notes: identical(notes, _unset) ? this.notes : notes as String?,
+      materials: materials ?? this.materials,
+      purchaseDate: identical(purchaseDate, _unset)
+          ? this.purchaseDate
+          : purchaseDate as DateTime?,
       isFavorite: isFavorite ?? this.isFavorite,
       isArchived: isArchived ?? this.isArchived,
+      hideInProfile: hideInProfile ?? this.hideInProfile,
+      noStyling: noStyling ?? this.noStyling,
+      sortIndex: identical(sortIndex, _unset)
+          ? this.sortIndex
+          : sortIndex as int?,
       wearCount: wearCount ?? this.wearCount,
       lastWornAt: identical(lastWornAt, _unset)
           ? this.lastWornAt

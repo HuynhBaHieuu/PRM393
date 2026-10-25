@@ -11,10 +11,16 @@ abstract interface class WeatherService {
   Future<WeatherLocation?> findCity(String name);
 
   Future<WeatherReport> today(WeatherLocation location);
+
+  /// The city the device seems to be in, from its internet address; null
+  /// when it can't be told.
+  Future<WeatherLocation?> locate();
 }
 
 /// Weather from Open-Meteo (open-meteo.com): free and needs no API key.
-/// Only the chosen city's coordinates are sent.
+/// Only the chosen city's coordinates are sent. Until the user picks a city,
+/// [locate] asks ipwho.is (free, no key) for the city of the device's
+/// internet address, so no location permission is needed.
 class OpenMeteoWeatherService implements WeatherService {
   const OpenMeteoWeatherService({this._clock = DateTime.now});
 
@@ -37,6 +43,18 @@ class OpenMeteoWeatherService implements WeatherService {
     final results = json['results'];
     if (results is! List || results.isEmpty) return null;
     return WeatherLocation.tryFromJson(results.first);
+  }
+
+  @override
+  Future<WeatherLocation?> locate() async {
+    final json = await _getJson(Uri.https('ipwho.is', '/'));
+    if (json['success'] != true) return null;
+    return WeatherLocation.tryFromJson({
+      'name': json['city'],
+      'latitude': json['latitude'],
+      'longitude': json['longitude'],
+      'country': json['country'],
+    });
   }
 
   @override

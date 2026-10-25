@@ -4,6 +4,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
+import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 
@@ -16,6 +17,7 @@ class ClothingTile extends StatelessWidget {
     this.onFavorite,
     this.onLongPress,
     this.selected = false,
+    this.checkable = false,
     this.dimmed = false,
     this.decodeWidth = 260,
   });
@@ -27,6 +29,10 @@ class ClothingTile extends StatelessWidget {
 
   /// Shows a selection ring and check mark (used by pickers).
   final bool selected;
+
+  /// Fits' multi-select look: a round check in the corner instead of a ring,
+  /// and the chosen piece greyed out.
+  final bool checkable;
 
   /// Fades the photo, e.g. for archived pieces inside a collection.
   final bool dimmed;
@@ -56,7 +62,7 @@ class ClothingTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: radius,
             border: Border.all(
-              color: selected ? palette.ink : Colors.transparent,
+              color: selected && !checkable ? palette.ink : Colors.transparent,
               width: 2,
             ),
           ),
@@ -64,7 +70,7 @@ class ClothingTile extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Opacity(
-                opacity: dimmed ? _dimmedOpacity : 1,
+                opacity: dimmed || (checkable && selected) ? _dimmedOpacity : 1,
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.xxs),
                   child: ClothingImage(
@@ -91,7 +97,13 @@ class ClothingTile extends StatelessWidget {
                   bottom: _overlayInset,
                   child: TagLabel('Archived', inverted: true),
                 ),
-              if (selected)
+              if (checkable)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: RoundCheck(checked: selected, size: 30),
+                )
+              else if (selected)
                 const Positioned(
                   top: _overlayInset,
                   left: _overlayInset,

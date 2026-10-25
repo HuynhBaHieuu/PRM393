@@ -84,6 +84,7 @@ class TestCloset {
     );
     outfits = OutfitController(
       repository: LocalOutfitRepository(this.storage),
+      imageStorage: images,
       idGenerator: ids,
       clock: clock,
     );
@@ -262,6 +263,10 @@ class FakeWeatherService implements WeatherService {
   @override
   Future<WeatherLocation?> findCity(String name) async =>
       name.trim().toLowerCase() == 'oslo' ? testCity : null;
+
+  /// Tests start without a known city.
+  @override
+  Future<WeatherLocation?> locate() async => null;
 
   @override
   Future<WeatherReport> today(WeatherLocation location) async => WeatherReport(

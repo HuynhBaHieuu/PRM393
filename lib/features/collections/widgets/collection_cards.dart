@@ -13,7 +13,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/collection.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
-import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 /// The pieces and outfits a collection points at that still exist.
@@ -149,7 +149,7 @@ class _OutfitCell extends StatelessWidget {
     return Center(
       child: AspectRatio(
         aspectRatio: AppSizes.outfitImageAspect,
-        child: OutfitCanvas(items: items, layout: outfit.layout),
+        child: OutfitCover(outfit: outfit, items: items),
       ),
     );
   }

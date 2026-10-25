@@ -309,7 +309,7 @@ void main() {
       expect(find.text('Add clothing'), findsNothing);
     });
 
-    testWidgets('home shows weather picks for the chosen city', (tester) async {
+    testWidgets('For today shows the chosen city weather', (tester) async {
       await pumpApp(tester, testDependencies());
       await tester.scrollUntilVisible(
         find.text('Set city'),
@@ -325,11 +325,8 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Oslo');
       await tap(tester, find.text('Find'));
 
-      await tester.ensureVisible(find.text('Dress for the weather'));
-      await tester.pumpAndSettle();
-      expect(find.text('Oslo, Norway'), findsOneWidget);
-      expect(find.text('6° · Rain'), findsOneWidget);
-      expect(find.textContaining('coat'), findsOneWidget);
+      // Today's high and low, as in Fits.
+      expect(find.text('9° / 3°'), findsOneWidget);
     });
     for (final (label, size) in [
       ('small phone', const Size(320, 640)),
