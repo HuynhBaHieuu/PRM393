@@ -262,3 +262,36 @@ class EmojiIcon extends StatelessWidget {
   Widget build(BuildContext context) =>
       Text(emoji, style: TextStyle(fontSize: size, height: 1));
 }
+
+/// A row in a Fits action sheet: a grey round icon and a label.
+class SheetActionTile extends StatelessWidget {
+  const SheetActionTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.page,
+        vertical: AppSpacing.xxs,
+      ),
+      leading: CircleAvatar(
+        radius: 26,
+        backgroundColor: palette.surfaceMuted,
+        foregroundColor: palette.ink,
+        child: Icon(icon),
+      ),
+      title: Text(label, style: context.textTheme.titleMedium),
+      onTap: onTap,
+    );
+  }
+}

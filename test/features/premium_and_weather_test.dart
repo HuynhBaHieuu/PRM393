@@ -224,7 +224,7 @@ void main() {
         testDependencies(aiStylist: const _EchoStylist()),
         items: 3,
       );
-      await create(tester, 'AI Stylist');
+      await create(tester, 'Chat with AI stylist');
       const limit = AppConfig.freeStylistMessagesPerDay;
       expect(find.text('$limit free messages left today'), findsOneWidget);
 
@@ -274,8 +274,8 @@ void main() {
       };
 
       await tapNav(tester, 'Profile');
-      await tap(tester, find.byTooltip('Account'));
-      await tap(tester, find.text('All Fits Premium'));
+      await tap(tester, find.byTooltip('Settings'));
+      await tap(tester, find.text('Upgrade to Premium'));
       expect(find.text(PremiumFlows.payOSPrice), findsOneWidget);
       // The wait dialog spins until paid, so pump by hand instead of settling.
       await tester.ensureVisible(find.textContaining('Upgrade for'));
@@ -346,11 +346,22 @@ void main() {
         await tester.pumpAndSettle();
 
         await tapNav(tester, 'Profile');
-        await tap(tester, find.byTooltip('Account'));
+        await tap(tester, find.byTooltip('Settings'));
         expect(find.text('Premium'), findsWidgets);
         await tap(tester, find.text('All Fits Premium'));
         expect(find.text('Cancel Premium'), findsOneWidget);
         await tap(tester, find.byTooltip('Back'));
+        expect(tester.takeException(), isNull);
+
+        // The planner's Day and Month tabs and Insights fit too.
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tap(tester, find.byTooltip('Planner'));
+        await tap(tester, find.widgetWithText(Tab, 'Month'));
+        expect(tester.takeException(), isNull);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tap(tester, find.byTooltip('Insights'));
         expect(tester.takeException(), isNull);
       });
     }

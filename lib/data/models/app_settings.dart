@@ -28,6 +28,8 @@ class AppSettings {
     this.premiumUntil,
     this.weatherLocation,
     this.outfitMode = OutfitCreateMode.collage,
+    this.startsInProfile = false,
+    this.dailyReminder = false,
   });
 
   factory AppSettings.fromJson(JsonMap json) {
@@ -50,6 +52,8 @@ class AppSettings {
       outfitMode:
           JsonReader.enumValue(OutfitCreateMode.values, json['outfitMode']) ??
           OutfitCreateMode.collage,
+      startsInProfile: JsonReader.boolean(json, 'startsInProfile'),
+      dailyReminder: JsonReader.boolean(json, 'dailyReminder'),
     );
   }
 
@@ -72,6 +76,12 @@ class AppSettings {
   /// The default way "Add outfit" builds an outfit.
   final OutfitCreateMode outfitMode;
 
+  /// "App starts in": the Profile tab instead of Home.
+  final bool startsInProfile;
+
+  /// A daily notification to log the outfit of the day.
+  final bool dailyReminder;
+
   JsonMap toJson() => {
     'displayName': displayName,
     'username': username,
@@ -83,6 +93,8 @@ class AppSettings {
     'premiumUntil': premiumUntil?.toIso8601String(),
     'weatherLocation': weatherLocation?.toJson(),
     'outfitMode': outfitMode.name,
+    'startsInProfile': startsInProfile,
+    'dailyReminder': dailyReminder,
   };
 
   AppSettings copyWith({
@@ -96,6 +108,8 @@ class AppSettings {
     Object? premiumUntil = _unset,
     Object? weatherLocation = _unset,
     OutfitCreateMode? outfitMode,
+    bool? startsInProfile,
+    bool? dailyReminder,
   }) {
     return AppSettings(
       displayName: displayName ?? this.displayName,
@@ -114,6 +128,8 @@ class AppSettings {
           ? this.weatherLocation
           : weatherLocation as WeatherLocation?,
       outfitMode: outfitMode ?? this.outfitMode,
+      startsInProfile: startsInProfile ?? this.startsInProfile,
+      dailyReminder: dailyReminder ?? this.dailyReminder,
     );
   }
 }

@@ -136,6 +136,73 @@ class OutfitController extends ChangeNotifier {
     return updated;
   }
 
+  /// Saves one edit made on the detail screen, e.g. a new occasion.
+  Future<Outfit> patchOutfit(String id, Outfit Function(Outfit o) change) async {
+    final updated = change(_require(id)).copyWith(updatedAt: _clock());
+    if (updated.name.trim().isEmpty) {
+      throw const ValidationException('Give this outfit a name.');
+    }
+    await _commit([updated]);
+    return updated;
+  }
+
+  /// Fits' "Duplicate": a copy with the same pieces and layout, unworn.
+  Future<Outfit> duplicateOutfit(String id) async {
+    final source = _require(id);
+    final now = _clock();
+    final photo = source.photoPath;
+    final copy = Outfit(
+      id: _ids.next(),
+      name: '${source.name} (copy)',
+      itemIds: source.itemIds,
+      occasion: source.occasion,
+      seasons: source.seasons,
+      notes: source.notes,
+      layout: source.layout,
+      // The copy needs its own stored file, so deleting one keeps the other.
+      photoPath: photo == null ? null : await _copyPhoto(photo),
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _commit([copy]);
+    return copy;
+  }
+
+  /// Sets or replaces the outfit's photo from the file at [source]; null
+  /// removes it.
+  Future<void> setPhoto(String id, String? source) async {
+    final existing = _require(id);
+    final photoRef = await _savePhoto(source);
+    try {
+      await _commit([
+        existing.copyWith(photoPath: photoRef, updatedAt: _clock()),
+      ]);
+    } catch (_) {
+      if (photoRef != null) await _images?.deleteImage(photoRef);
+      rethrow;
+    }
+    final old = existing.photoPath;
+    if (old != null) await _images?.deleteImage(old);
+  }
+
+  Future<String?> _copyPhoto(String reference) async {
+    final path = _images?.resolvePath(reference);
+    if (path == null || path.startsWith('https://')) return null;
+    return _savePhoto(path);
+  }
+
+  /// Saves the user's own order ("Custom" sort): [ids] first, in order.
+  Future<void> setCustomOrder(List<String> ids) async {
+    final updated = <Outfit>[];
+    for (var i = 0; i < ids.length; i++) {
+      final outfit = _byId[ids[i]];
+      if (outfit != null && outfit.sortIndex != i) {
+        updated.add(outfit.copyWith(sortIndex: i));
+      }
+    }
+    if (updated.isNotEmpty) await _commit(updated);
+  }
+
   Future<void> toggleFavorite(String id) async {
     final outfit = _require(id);
     await _commit([

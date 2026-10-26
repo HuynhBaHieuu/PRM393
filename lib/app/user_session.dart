@@ -8,6 +8,7 @@ import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
+import 'package:all_fits/data/local/reminder_service.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
@@ -156,7 +157,9 @@ class _UserSessionState extends State<UserSession> {
       closet: _closet,
       seedSampleData: deps.seedSampleData,
     );
-    _startup = _bootstrap.run();
+    _startup = _bootstrap.run().then((_) {
+      if (_settings.startsInProfile) _shell.select(AppTab.profile);
+    });
   }
 
   @override
@@ -217,6 +220,7 @@ class _UserSessionState extends State<UserSession> {
         Provider<ImageStorageService>.value(value: deps.imageStorage),
         Provider<ImagePickerService>.value(value: deps.imagePicker),
         Provider<AiStylistService>.value(value: deps.aiStylist),
+        Provider<ReminderService>.value(value: deps.reminders),
         Provider<PayOSCheckout?>.value(value: deps.payments),
         ChangeNotifierProvider.value(value: _settings),
         ChangeNotifierProvider.value(value: _wardrobe),

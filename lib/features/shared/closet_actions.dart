@@ -157,6 +157,17 @@ class ClosetActions {
     await wardrobe.deleteItems(itemIds);
   }
 
+  /// Fits' "Re-sync wardrobe": reloads everything from storage (the
+  /// server when signed in to Supabase).
+  Future<void> reloadAll() async {
+    await Future.wait([
+      wardrobe.load(),
+      outfits.load(),
+      planner.load(),
+      collections.load(),
+    ]);
+  }
+
   Future<void> eraseAllData() async {
     await collections.clearAll();
     await planner.clearAll();

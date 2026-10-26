@@ -11,6 +11,7 @@ import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/core/widgets/app_dialogs.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/color_swatch.dart';
+import 'package:all_fits/core/widgets/detail_rows.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/option_sheets.dart';
@@ -472,9 +473,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     ),
                   ],
                   const SizedBox(height: AppSpacing.md),
-                  _Group(
+                  DetailGroup(
                     children: [
-                      _Row(
+                      DetailRow(
                         icon: Icons.format_list_bulleted_rounded,
                         leading: Icon(item.category.icon, color: hint),
                         label:
@@ -482,13 +483,13 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                             item.category.singularLabel,
                         onTap: () => _pickCategory(item),
                       ),
-                      _Row(
+                      DetailRow(
                         icon: Icons.verified_outlined,
                         label: item.brand,
                         placeholder: 'Add brand',
                         onTap: () => _pickBrand(item),
                       ),
-                      _Row(
+                      DetailRow(
                         icon: Icons.water_drop_outlined,
                         leading: item.color == null
                             ? null
@@ -497,7 +498,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                         placeholder: 'Add color',
                         onTap: () => _pickColor(item),
                       ),
-                      _Row(
+                      DetailRow(
                         icon: Icons.layers_outlined,
                         label: item.materials.isEmpty
                             ? null
@@ -505,7 +506,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                         placeholder: 'Add materials',
                         onTap: () => _pickMaterials(item),
                       ),
-                      _Row(
+                      DetailRow(
                         icon: Icons.wb_sunny_outlined,
                         // Emoji only once several seasons would not fit.
                         label: item.seasons.isEmpty
@@ -523,13 +524,13 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  _Group(
+                  DetailGroup(
                     children: [
                       IntrinsicHeight(
                         child: Row(
                           children: [
                             Expanded(
-                              child: _Row(
+                              child: DetailRow(
                                 icon: Icons.paid_outlined,
                                 label: item.price == null
                                     ? null
@@ -544,7 +545,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                             ),
                             VerticalDivider(width: 1, color: palette.border),
                             Expanded(
-                              child: _Row(
+                              child: DetailRow(
                                 icon: Icons.event_available_outlined,
                                 label: item.purchaseDate == null
                                     ? null
@@ -562,9 +563,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  _Group(
+                  DetailGroup(
                     children: [
-                      _Row(
+                      DetailRow(
                         icon: Icons.edit_note_rounded,
                         label: item.notes,
                         placeholder: 'Add a note...',
@@ -575,9 +576,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  _Group(
+                  DetailGroup(
                     children: [
-                      _Row(
+                      DetailRow(
                         icon: Icons.checkroom_outlined,
                         label: 'Create outfit',
                         onTap: item.isArchived
@@ -590,16 +591,16 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  _Group(
+                  DetailGroup(
                     children: [
-                      _SwitchRow(
+                      DetailSwitchRow(
                         icon: Icons.visibility_off_outlined,
                         label: 'Hide in my profile',
                         value: item.hideInProfile,
                         onChanged: (value) =>
                             _patch((i) => i.copyWith(hideInProfile: value)),
                       ),
-                      _SwitchRow(
+                      DetailSwitchRow(
                         icon: Icons.do_not_touch_outlined,
                         label: 'Don’t let others add this item',
                         value: item.noStyling,
@@ -668,112 +669,6 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Grey rounded card holding rows split by thin lines.
-class _Group extends StatelessWidget {
-  const _Group({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return Material(
-      color: palette.surfaceMuted,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: palette.border),
-            children[i],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// One tappable detail: an icon, the value (or a grey placeholder) and ›.
-class _Row extends StatelessWidget {
-  const _Row({
-    required this.icon,
-    required this.onTap,
-    this.label,
-    this.placeholder,
-    this.leading,
-    this.chevron = true,
-    this.multiline = false,
-  });
-
-  final IconData icon;
-  final String? label;
-  final String? placeholder;
-  final Widget? leading;
-  final VoidCallback? onTap;
-  final bool chevron;
-  final bool multiline;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final empty = label == null;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: palette.ink),
-            const SizedBox(width: AppSpacing.md),
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            Expanded(
-              child: Text(
-                label ?? placeholder ?? '',
-                maxLines: multiline ? 6 : 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.bodyLarge?.copyWith(
-                  color: empty ? palette.textSecondary : palette.ink,
-                ),
-              ),
-            ),
-            if (chevron) Icon(Icons.chevron_right_rounded, color: palette.ink),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: context.palette.ink),
-      title: Text(label),
-      value: value,
-      onChanged: onChanged,
     );
   }
 }

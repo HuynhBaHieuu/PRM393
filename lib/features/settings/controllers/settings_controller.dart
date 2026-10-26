@@ -35,6 +35,10 @@ class SettingsController extends ChangeNotifier {
 
   OutfitCreateMode get outfitMode => _settings.outfitMode;
 
+  bool get startsInProfile => _settings.startsInProfile;
+
+  bool get dailyReminder => _settings.dailyReminder;
+
   ThemeMode get themeMode => switch (_settings.themePreference) {
     ThemePreference.system => ThemeMode.system,
     ThemePreference.light => ThemeMode.light,
@@ -84,6 +88,12 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setOutfitMode(OutfitCreateMode mode) =>
       _update(_settings.copyWith(outfitMode: mode));
+
+  Future<void> setStartsInProfile(bool value) =>
+      _update(_settings.copyWith(startsInProfile: value));
+
+  Future<void> setDailyReminder(bool value) =>
+      _update(_settings.copyWith(dailyReminder: value));
 
   Future<void> markSampleDataSeeded() =>
       _update(_settings.copyWith(hasSeededSampleData: true));

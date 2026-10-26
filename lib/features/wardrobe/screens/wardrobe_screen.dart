@@ -6,6 +6,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/layout.dart';
+import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
@@ -50,12 +51,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _MoreTile(
+              SheetActionTile(
                 icon: Icons.check_circle_outline_rounded,
                 label: 'Select multiple',
                 onTap: () => Navigator.of(sheetContext).pop(_MoreAction.select),
               ),
-              _MoreTile(
+              SheetActionTile(
                 icon: Icons.swap_vert_rounded,
                 label: 'Reorder',
                 onTap: () =>
@@ -150,37 +151,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
         ],
       ),
-    );
-  }
-}
-
-class _MoreTile extends StatelessWidget {
-  const _MoreTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.page,
-        vertical: AppSpacing.xxs,
-      ),
-      leading: CircleAvatar(
-        radius: 26,
-        backgroundColor: palette.surfaceMuted,
-        foregroundColor: palette.ink,
-        child: Icon(icon),
-      ),
-      title: Text(label, style: context.textTheme.titleMedium),
-      onTap: onTap,
     );
   }
 }

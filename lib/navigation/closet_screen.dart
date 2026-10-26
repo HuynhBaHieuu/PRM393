@@ -98,8 +98,8 @@ class _ClosetScreenState extends State<ClosetScreen>
                   icon: const Icon(Icons.pie_chart_outline_rounded),
                 ),
                 IconButton(
-                  tooltip: 'Account',
-                  onPressed: () => AppNavigator.account(context),
+                  tooltip: 'Settings',
+                  onPressed: () => AppNavigator.settings(context),
                   icon: const Icon(Icons.menu_rounded),
                 ),
               ],

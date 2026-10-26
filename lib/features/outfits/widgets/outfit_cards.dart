@@ -5,6 +5,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/adaptive_grid.dart';
 import 'package:all_fits/core/utils/formatters.dart';
+import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
@@ -156,6 +157,96 @@ class OutfitSliverGrid extends StatelessWidget {
           );
         }, childCount: outfits.length),
       ),
+    );
+  }
+}
+
+/// Fits' Outfits tab grid: three image-only white cards across, with a
+/// round check in [checkable] mode.
+class OutfitTileGrid extends StatelessWidget {
+  const OutfitTileGrid({
+    super.key,
+    required this.outfits,
+    required this.onTap,
+    this.onLongPress,
+    this.isSelected,
+    this.checkable = false,
+  });
+
+  final List<Outfit> outfits;
+  final ValueChanged<Outfit> onTap;
+  final ValueChanged<Outfit>? onLongPress;
+  final bool Function(Outfit outfit)? isSelected;
+  final bool checkable;
+
+  static const double _aspect = 0.62;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: AppSpacing.sm,
+        crossAxisSpacing: AppSpacing.sm,
+        childAspectRatio: _aspect,
+      ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final outfit = outfits[index];
+        final items = watchOutfitItems(context, outfit);
+        final selected = isSelected?.call(outfit) ?? false;
+        return Semantics(
+          key: ValueKey(outfit.id),
+          button: true,
+          selected: selected,
+          label: outfit.name,
+          child: GestureDetector(
+            onTap: () => onTap(outfit),
+            onLongPress: onLongPress == null
+                ? null
+                : () => onLongPress!(outfit),
+            child: Container(
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: palette.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Opacity(
+                    opacity: checkable && selected ? 0.45 : 1,
+                    child: Padding(
+                      padding: EdgeInsets.all(
+                        outfit.photoPath == null ? AppSpacing.xs : 0,
+                      ),
+                      child: OutfitCover(
+                        outfit: outfit,
+                        items: items,
+                        worn: true,
+                      ),
+                    ),
+                  ),
+                  if (checkable)
+                    Positioned(
+                      top: AppSpacing.xxs,
+                      right: AppSpacing.xxs,
+                      child: RoundCheck(checked: selected, size: 26),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }, childCount: outfits.length),
     );
   }
 }

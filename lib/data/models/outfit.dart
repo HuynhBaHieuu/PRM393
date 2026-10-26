@@ -22,6 +22,7 @@ class Outfit {
     this.lastWornAt,
     this.layout = const [],
     this.photoPath,
+    this.sortIndex,
   });
 
   factory Outfit.fromJson(JsonMap json) {
@@ -48,6 +49,7 @@ class Outfit {
           ...raw.map(OutfitPlacement.tryFromJson).whereType<OutfitPlacement>(),
       ],
       photoPath: JsonReader.nonEmptyString(json, 'photoPath'),
+      sortIndex: json['sortIndex'] is int ? json['sortIndex'] as int : null,
       createdAt: createdAt,
       updatedAt: JsonReader.date(json, 'updatedAt') ?? createdAt,
     );
@@ -72,6 +74,9 @@ class Outfit {
   /// An outfit selfie: a photo of the user wearing it, stored like a
   /// clothing photo. Shown instead of the collage when set.
   final String? photoPath;
+
+  /// Position in the user's own order ("Custom" sort); null until reordered.
+  final int? sortIndex;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -87,6 +92,7 @@ class Outfit {
     'lastWornAt': lastWornAt?.toIso8601String(),
     'layout': layout.map((p) => p.toJson()).toList(),
     'photoPath': photoPath,
+    'sortIndex': sortIndex,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -102,6 +108,7 @@ class Outfit {
     Object? lastWornAt = _unset,
     List<OutfitPlacement>? layout,
     Object? photoPath = _unset,
+    Object? sortIndex = _unset,
     DateTime? updatedAt,
   }) {
     return Outfit(
@@ -122,6 +129,9 @@ class Outfit {
       photoPath: identical(photoPath, _unset)
           ? this.photoPath
           : photoPath as String?,
+      sortIndex: identical(sortIndex, _unset)
+          ? this.sortIndex
+          : sortIndex as int?,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -79,6 +79,44 @@ class ClothesToolbar extends StatelessWidget {
   }
 }
 
+/// Just the category chips ("All", Tops, Bottoms…) in one scrolling row.
+class ClothesToolbarChips extends StatelessWidget {
+  const ClothesToolbarChips({
+    super.key,
+    required this.category,
+    required this.onCategory,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+  });
+
+  final ClothingCategory? category;
+  final ValueChanged<ClothingCategory?> onCategory;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: padding,
+        children: [
+          CategoryChip(
+            label: 'All',
+            selected: category == null,
+            onTap: () => onCategory(null),
+          ),
+          for (final c in ClothingCategory.values)
+            CategoryChip(
+              label: c.label,
+              selected: category == c,
+              onTap: () => onCategory(category == c ? null : c),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// A small category chip: grey text, or white text on a black pill.
 class CategoryChip extends StatelessWidget {
   const CategoryChip({

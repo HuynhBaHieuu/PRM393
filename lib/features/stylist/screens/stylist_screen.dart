@@ -51,13 +51,11 @@ class StylistScreen extends StatefulWidget {
 
   final StylistLaunch? launch;
 
-  /// Quick starts that send a message: chip label, then the message.
+  /// Fits' quick starts that send a message: chip label, then the message.
+  /// "Rate my outfit" follows them and asks for a photo.
   static const List<(String, String)> prompts = [
-    ('Packing list', 'Create a packing list for my next trip.'),
-    ('Work', 'What should I wear to work today?'),
-    ('Date', 'Help me pick an outfit for a date tonight.'),
-    ('Rainy day', 'It’s a rainy day. What should I wear?'),
-    ('Weekend', 'Give me a relaxed weekend outfit.'),
+    ('Make an outfit', 'Make an outfit for me from my wardrobe.'),
+    ('Create a packing list', 'Create a packing list for my next trip.'),
   ];
 
   /// Sent when the user attaches pieces without typing anything.
@@ -578,21 +576,15 @@ class _StylistScreenState extends State<StylistScreen> {
               child: Row(
                 children: [
                   for (final chip in [
-                    ActionChip(
-                      avatar: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Match a photo'),
-                      onPressed: () => _sendPhoto(StylistScreen.photoPrompt),
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.star_outline_rounded),
-                      label: const Text('Rate my outfit'),
-                      onPressed: () => _sendPhoto(StylistScreen.ratePrompt),
-                    ),
                     for (final (label, prompt) in StylistScreen.prompts)
                       ActionChip(
                         label: Text(label),
                         onPressed: () => _send(prompt),
                       ),
+                    ActionChip(
+                      label: const Text('Rate my outfit'),
+                      onPressed: () => _sendPhoto(StylistScreen.ratePrompt),
+                    ),
                   ])
                     Padding(
                       padding: const EdgeInsets.only(right: AppSpacing.xs),

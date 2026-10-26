@@ -3,12 +3,15 @@ import 'package:all_fits/core/utils/json_reader.dart';
 
 enum CalendarEntryStatus { planned, worn }
 
+const Object _unset = Object();
+
 class OutfitCalendarEntry {
   OutfitCalendarEntry({
     required this.id,
     required DateTime date,
     required this.outfitId,
     required this.status,
+    this.note,
   }) : date = DateHelpers.dateOnly(date);
 
   factory OutfitCalendarEntry.fromJson(JsonMap json) {
@@ -27,6 +30,7 @@ class OutfitCalendarEntry {
       date: date,
       outfitId: outfitId,
       status: status,
+      note: JsonReader.nonEmptyString(json, 'note'),
     );
   }
 
@@ -36,6 +40,9 @@ class OutfitCalendarEntry {
   final DateTime date;
   final String outfitId;
   final CalendarEntryStatus status;
+
+  /// What the user wrote on the planner card for this day.
+  final String? note;
 
   String get dateKey => DateHelpers.toKey(date);
 
@@ -48,18 +55,21 @@ class OutfitCalendarEntry {
     'date': dateKey,
     'outfitId': outfitId,
     'status': status.name,
+    'note': note,
   };
 
   OutfitCalendarEntry copyWith({
     DateTime? date,
     String? outfitId,
     CalendarEntryStatus? status,
+    Object? note = _unset,
   }) {
     return OutfitCalendarEntry(
       id: id,
       date: date ?? this.date,
       outfitId: outfitId ?? this.outfitId,
       status: status ?? this.status,
+      note: identical(note, _unset) ? this.note : note as String?,
     );
   }
 }

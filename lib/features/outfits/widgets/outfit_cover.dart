@@ -6,20 +6,35 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
+import 'package:all_fits/features/outfits/outfit_layout.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 
 /// An outfit's picture: its selfie when it has one, otherwise the collage.
 class OutfitCover extends StatelessWidget {
-  const OutfitCover({super.key, required this.outfit, required this.items});
+  const OutfitCover({
+    super.key,
+    required this.outfit,
+    required this.items,
+    this.worn = false,
+  });
 
   final Outfit outfit;
   final List<ClothingItem> items;
+
+  /// Without a saved layout, stacks the pieces head to toe as if worn (Fits'
+  /// tall outfit cards) instead of the flat-lay.
+  final bool worn;
 
   @override
   Widget build(BuildContext context) {
     final photo = outfit.photoPath;
     if (photo == null) {
-      return OutfitCanvas(items: items, layout: outfit.layout);
+      return OutfitCanvas(
+        items: items,
+        layout: worn && outfit.layout.isEmpty
+            ? OutfitLayout.worn(items)
+            : outfit.layout,
+      );
     }
     return OutfitPhoto(reference: photo);
   }

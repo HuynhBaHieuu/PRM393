@@ -5,14 +5,15 @@ import 'package:all_fits/features/collections/screens/collection_detail_screen.d
 import 'package:all_fits/features/insights/screens/insights_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_builder_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfit_detail_screen.dart';
+import 'package:all_fits/features/outfits/controllers/outfit_query.dart';
 import 'package:all_fits/features/outfits/screens/outfit_pick_screen.dart';
+import 'package:all_fits/features/outfits/screens/outfits_select_screen.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
 import 'package:all_fits/features/planner/screens/planner_screen.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
 import 'package:all_fits/features/profile/screens/favorites_screen.dart';
-import 'package:all_fits/features/profile/screens/profile_screen.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
 import 'package:all_fits/features/social/screens/discover_screen.dart';
@@ -42,6 +43,8 @@ abstract final class AppRoutes {
   static const String planner = '/planner';
   static const String selectClothes = '/clothing/select';
   static const String reorderClothes = '/clothing/reorder';
+  static const String selectOutfits = '/outfits/select';
+  static const String reorderOutfits = '/outfits/reorder';
   static const String outfitDetail = '/outfits/detail';
   static const String swipeOutfit = '/outfits/swipe';
   static const String collectionDetail = '/collections/detail';
@@ -51,7 +54,7 @@ abstract final class AppRoutes {
   static const String settings = '/settings';
   static const String stylist = '/stylist';
   static const String premium = '/premium';
-  static const String account = '/account';
+  static const String dailyReminders = '/settings/reminders';
   static const String editProfile = '/profile/edit';
   static const String connections = '/profile/connections';
   static const String blockedUsers = '/profile/blocked';
@@ -85,13 +88,15 @@ abstract final class AppRoutes {
         query: args is WardrobeQuery ? args : const WardrobeQuery(),
       ),
       AppRoutes.reorderClothes => const ReorderClothesScreen(),
+      AppRoutes.selectOutfits => OutfitsSelectScreen(
+        query: args is OutfitQuery ? args : const OutfitQuery(),
+      ),
+      AppRoutes.reorderOutfits => const ReorderOutfitsScreen(),
       AppRoutes.outfitPick => OutfitPickScreen(
-        initialItemIds: args is List<String> ? args : const [],
+        initialItemIds: args is (List<String>, DateTime?) ? args.$1 : const [],
+        planDate: args is (List<String>, DateTime?) ? args.$2 : null,
       ),
-      AppRoutes.planner => Scaffold(
-        appBar: AppBar(title: const Text('Planner')),
-        body: const PlannerScreen(),
-      ),
+      AppRoutes.planner => const PlannerScreen(),
       AppRoutes.outfitBuilder => OutfitBuilderScreen(
         args: args is OutfitBuilderArgs ? args : const OutfitBuilderArgs(),
       ),
@@ -112,7 +117,7 @@ abstract final class AppRoutes {
         launch: args is StylistLaunch ? args : null,
       ),
       AppRoutes.premium => const PremiumScreen(),
-      AppRoutes.account => const ProfileScreen(),
+      AppRoutes.dailyReminders => const DailyRemindersScreen(),
       AppRoutes.editProfile => const EditProfileScreen(),
       AppRoutes.connections => ConnectionsScreen(
         initialTab: args is ConnectionsTab ? args : ConnectionsTab.followers,
@@ -197,17 +202,28 @@ abstract final class AppNavigator {
   static Future<void> reorderClothes(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.reorderClothes);
 
+  static Future<void> selectOutfits(
+    BuildContext context, {
+    OutfitQuery query = const OutfitQuery(),
+  }) =>
+      Navigator.of(context)
+          .pushNamed(AppRoutes.selectOutfits, arguments: query);
+
+  static Future<void> reorderOutfits(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.reorderOutfits);
+
   static Future<void> planner(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.planner);
 
   /// Fits' "Add outfit": choose pieces first (starting with
-  /// [initialItemIds]), then how to put them together.
+  /// [initialItemIds]), then how to put them together. With [planDate], the
+  /// new outfit is planned on that day.
   static Future<void> createOutfit(
     BuildContext context, {
     List<String> initialItemIds = const [],
-  }) =>
-      Navigator.of(context)
-          .pushNamed(AppRoutes.outfitPick, arguments: initialItemIds);
+    DateTime? planDate,
+  }) => Navigator.of(context)
+      .pushNamed(AppRoutes.outfitPick, arguments: (initialItemIds, planDate));
 
   /// The collage builder for a new outfit; resolves to true once saved.
   static Future<bool> composeOutfit(
@@ -272,8 +288,8 @@ abstract final class AppNavigator {
   static Future<void> premium(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.premium);
 
-  static Future<void> account(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.account);
+  static Future<void> dailyReminders(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.dailyReminders);
 
   static Future<void> editProfile(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.editProfile);

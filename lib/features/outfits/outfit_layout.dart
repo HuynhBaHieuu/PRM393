@@ -32,7 +32,8 @@ abstract final class OutfitLayout {
     OutfitSlot.dress: [(0.5, 0.42, 0.68, 0.66)],
     OutfitSlot.bottom: [(0.5, 0.6, 0.56, 0.46)],
     OutfitSlot.shoes: [(0.5, 0.9, 0.46, 0.16)],
-    OutfitSlot.accessories: [(0.84, 0.08, 0.24, 0.12), (0.16, 0.5, 0.22, 0.14)],
+    // Beside the body, clear of the corners where cards put buttons.
+    OutfitSlot.accessories: [(0.15, 0.5, 0.24, 0.16), (0.85, 0.5, 0.24, 0.16)],
   };
 
   /// Back to front, so tops sit over bottoms and accessories over all.

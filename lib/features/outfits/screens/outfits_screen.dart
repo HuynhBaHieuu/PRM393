@@ -6,53 +6,20 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/layout.dart';
+import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
-import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/occasion.dart';
-import 'package:all_fits/data/models/outfit.dart';
-import 'package:all_fits/features/collections/collection_flows.dart';
+import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
+import 'package:all_fits/features/outfits/controllers/outfit_query.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
-import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/features/wardrobe/widgets/wardrobe_filter_sheet.dart';
+import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
 
-/// Filter for the outfits grid: all, favorites, or one occasion.
-/// Instances compare by value so the selected pill can be matched.
-sealed class _OutfitFilter {
-  const _OutfitFilter();
+enum _MoreAction { select, reorder }
 
-  bool matches(Outfit outfit);
-}
-
-class _AllFilter extends _OutfitFilter {
-  const _AllFilter();
-
-  @override
-  bool matches(Outfit outfit) => true;
-}
-
-class _FavoritesFilter extends _OutfitFilter {
-  const _FavoritesFilter();
-
-  @override
-  bool matches(Outfit outfit) => outfit.isFavorite;
-}
-
-class _OccasionFilter extends _OutfitFilter {
-  const _OccasionFilter(this.occasion);
-
-  final Occasion occasion;
-
-  @override
-  bool matches(Outfit outfit) => outfit.occasion == occasion;
-
-  @override
-  bool operator ==(Object other) =>
-      other is _OccasionFilter && other.occasion == occasion;
-
-  @override
-  int get hashCode => occasion.hashCode;
-}
-
+/// The Outfits tab: Fits' occasion chips, filter and "⋯" buttons over a
+/// three-column grid of outfit cards.
 class OutfitsScreen extends StatefulWidget {
   const OutfitsScreen({super.key});
 
@@ -61,131 +28,82 @@ class OutfitsScreen extends StatefulWidget {
 }
 
 class _OutfitsScreenState extends State<OutfitsScreen> {
-  _OutfitFilter _filter = const _AllFilter();
+  OutfitQuery _query = const OutfitQuery();
 
-  Future<void> _showActions(Outfit outfit) async {
-    final outfits = context.read<OutfitController>();
-    await showModalBottomSheet<void>(
+  Future<void> _openFilters() async {
+    final result = await showOutfitFilterSheet(context, query: _query);
+    if (result != null) setState(() => _query = result);
+  }
+
+  Future<void> _openMore() async {
+    final action = await showModalBottomSheet<_MoreAction>(
       context: context,
       builder: (sheetContext) => SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SheetHeader(title: outfit.name),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                AppNavigator.editOutfit(context, outfit.id);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                outfit.isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SheetActionTile(
+                icon: Icons.check_circle_outline_rounded,
+                label: 'Select multiple',
+                onTap: () => Navigator.of(sheetContext).pop(_MoreAction.select),
               ),
-              title: Text(
-                outfit.isFavorite ? 'Remove from favorites' : 'Favorite',
+              SheetActionTile(
+                icon: Icons.swap_vert_rounded,
+                label: 'Reorder',
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_MoreAction.reorder),
               ),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                ClosetFlows.guard(
-                  context,
-                  () => outfits.toggleFavorite(outfit.id),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.collections_bookmark_outlined),
-              title: const Text('Add to collection'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                CollectionFlows.addOutfit(context, outfit.id);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.delete_outline_rounded,
-                color: context.palette.danger,
-              ),
-              title: Text(
-                'Delete',
-                style: TextStyle(color: context.palette.danger),
-              ),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                ClosetFlows.deleteOutfit(context, outfit);
-              },
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+            ],
+          ),
         ),
       ),
     );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _MoreAction.select:
+        await AppNavigator.selectOutfits(context, query: _query);
+      case _MoreAction.reorder:
+        await AppNavigator.reorderOutfits(context);
+        if (mounted) {
+          setState(() => _query = _query.copyWith(sort: OutfitSort.custom));
+        }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<OutfitController>();
-    final all = controller.outfits;
-    final occasions = Occasion.values
-        .where((o) => all.any((outfit) => outfit.occasion == o))
-        .toList();
-    // Fall back to "All" if the selected occasion no longer exists.
-    final filter =
-        _filter is _OccasionFilter &&
-            !occasions.contains((_filter as _OccasionFilter).occasion)
-        ? const _AllFilter()
-        : _filter;
-    final visible = all.where(filter.matches).toList();
+    final all = context.watch<OutfitController>().outfits;
+    final visible = _query.apply(all);
     final insets = pageInsets(context.screenSize.width);
 
     return SafeArea(
       bottom: false,
       child: CustomScrollView(
         slivers: [
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-          if (all.isNotEmpty)
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.page,
-                  ),
-                  children: [
-                    for (final option in <_OutfitFilter>[
-                      const _AllFilter(),
-                      const _FavoritesFilter(),
-                      ...occasions.map(_OccasionFilter.new),
-                    ]) ...[
-                      SelectablePill(
-                        label: switch (option) {
-                          _AllFilter() => 'All',
-                          _FavoritesFilter() => 'Favorites',
-                          _OccasionFilter(:final occasion) => occasion.label,
-                        },
-                        selected: option == filter,
-                        onTap: () => setState(() => _filter = option),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                    ],
-                  ],
-                ),
-              ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
+          SliverToBoxAdapter(
+            child: OccasionToolbar(
+              occasion: _query.occasion,
+              onOccasion: (o) =>
+                  setState(() => _query = _query.copyWith(occasion: o)),
+              onFilter: _openFilters,
+              filterCount: _query.sheetFilterCount,
+              onMore: all.isEmpty ? null : _openMore,
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
           if (all.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.style_outlined,
                 title: 'No outfits yet',
-                message: 'Create your first look.',
+                message:
+                    'Your outfits will appear here. Create collages '
+                    'or add outfit selfies.',
                 actionLabel: 'Create Outfit',
                 onAction: () => AppNavigator.createOutfit(context),
               ),
@@ -194,31 +112,254 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             SliverFillRemaining(
               hasScrollBody: false,
               child: AppEmptyState(
-                icon: Icons.favorite_border_rounded,
-                title: 'Nothing here',
-                message: filter is _FavoritesFilter
-                    ? 'Tap the heart on a look to save it as a favorite.'
-                    : 'No outfits match this filter.',
-                actionLabel: 'Show all',
-                onAction: () => setState(() => _filter = const _AllFilter()),
+                icon: Icons.search_off_rounded,
+                title: 'No outfits match your filters',
+                message: 'Change your filters and try again',
+                actionLabel: 'Clear filters',
+                onAction: () => setState(() => _query = const OutfitQuery()),
               ),
             )
           else
-            SliverPadding(
-              padding: insets.copyWith(bottom: AppSpacing.xl),
-              sliver: OutfitSliverGrid(
-                outfits: visible,
-                onTap: (outfit) =>
-                    AppNavigator.outfitDetail(context, outfit.id),
-                onFavorite: (outfit) => ClosetFlows.guard(
-                  context,
-                  () => controller.toggleFavorite(outfit.id),
+            for (final (label, outfits) in _query.group(visible)) ...[
+              if (label.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.page,
+                      AppSpacing.md,
+                      AppSpacing.page,
+                      AppSpacing.xs,
+                    ),
+                    child: Text(
+                      '$label  ${outfits.length}',
+                      style: context.textTheme.titleMedium,
+                    ),
+                  ),
                 ),
-                onLongPress: _showActions,
+              SliverPadding(
+                padding: insets.copyWith(bottom: AppSpacing.md),
+                sliver: OutfitTileGrid(
+                  outfits: outfits,
+                  onTap: (o) => AppNavigator.outfitDetail(context, o.id),
+                ),
               ),
-            ),
+            ],
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
         ],
       ),
+    );
+  }
+}
+
+/// Occasion chips with the round filter and "⋯" buttons.
+class OccasionToolbar extends StatelessWidget {
+  const OccasionToolbar({
+    super.key,
+    required this.occasion,
+    required this.onOccasion,
+    required this.onFilter,
+    this.filterCount = 0,
+    this.onMore,
+  });
+
+  final Occasion? occasion;
+  final ValueChanged<Occasion?> onOccasion;
+  final VoidCallback onFilter;
+  final int filterCount;
+  final VoidCallback? onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: AppSpacing.page),
+              children: [
+                CategoryChip(
+                  label: 'All',
+                  selected: occasion == null,
+                  onTap: () => onOccasion(null),
+                ),
+                for (final o in Occasion.values)
+                  CategoryChip(
+                    label: o.label,
+                    selected: occasion == o,
+                    onTap: () => onOccasion(occasion == o ? null : o),
+                  ),
+              ],
+            ),
+          ),
+          RoundToolButton(
+            icon: Icons.filter_list_rounded,
+            tooltip: 'Filter',
+            badgeCount: filterCount,
+            onPressed: onFilter,
+          ),
+          if (onMore != null) ...[
+            const SizedBox(width: AppSpacing.xs),
+            RoundToolButton(
+              icon: Icons.more_horiz_rounded,
+              tooltip: 'More',
+              onPressed: onMore!,
+            ),
+          ],
+          const SizedBox(width: AppSpacing.page),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fits' outfit "Filters" sheet; resolves to the new query, or null.
+Future<OutfitQuery?> showOutfitFilterSheet(
+  BuildContext context, {
+  required OutfitQuery query,
+}) {
+  return showModalBottomSheet<OutfitQuery>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => _OutfitFilterSheet(query: query),
+  );
+}
+
+class _OutfitFilterSheet extends StatefulWidget {
+  const _OutfitFilterSheet({required this.query});
+
+  final OutfitQuery query;
+
+  @override
+  State<_OutfitFilterSheet> createState() => _OutfitFilterSheetState();
+}
+
+class _OutfitFilterSheetState extends State<_OutfitFilterSheet> {
+  late OutfitQuery _query = widget.query;
+  late final TextEditingController _name = TextEditingController(
+    text: widget.query.searchText,
+  );
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickOccasions() async {
+    final result = await showMultiSelectSheet<Occasion>(
+      context,
+      options: Occasion.values,
+      selected: _query.occasions,
+      labelOf: (o) => o.label,
+    );
+    if (result != null) {
+      setState(() => _query = _query.copyWith(occasions: result));
+    }
+  }
+
+  Widget _choices<T>(
+    List<T> options,
+    T selected,
+    String Function(T) labelOf,
+    ValueChanged<T> onSelect,
+  ) => PillBar(
+    padding: EdgeInsets.zero,
+    pills: [
+      for (final option in options)
+        SelectablePill(
+          label: labelOf(option),
+          selected: option == selected,
+          onTap: () => onSelect(option),
+        ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      borderSide: BorderSide(color: palette.border, width: 1.5),
+    );
+    return OptionSheetFrame(
+      title: 'Filters',
+      secondaryLabel: 'Clear filters',
+      onSecondary: () {
+        _name.clear();
+        setState(() => _query = _query.clearedSheetFilters());
+      },
+      onDone: () =>
+          Navigator.of(context)
+              .pop(_query.copyWith(searchText: _name.text.trim())),
+      children: [
+        const OptionSheetLabel('Categories'),
+        SelectFieldButton(
+          placeholder: 'Select categories',
+          value: _query.occasions.isEmpty
+              ? null
+              : _query.occasions.map((o) => o.label).join(', '),
+          onTap: _pickOccasions,
+        ),
+        const OptionSheetLabel('Season'),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final season in Season.values)
+              SeasonChip(
+                season: season,
+                selected: _query.seasons.contains(season),
+                onTap: () => setState(() {
+                  final seasons = {..._query.seasons};
+                  if (!seasons.remove(season)) seasons.add(season);
+                  _query = _query.copyWith(seasons: seasons);
+                }),
+              ),
+          ],
+        ),
+        const OptionSheetLabel('Name'),
+        TextField(
+          controller: _name,
+          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            hintText: 'Search for name',
+            filled: false,
+            border: border,
+            enabledBorder: border,
+          ),
+        ),
+        const OptionSheetLabel('Image type'),
+        _choices<OutfitImageType>(
+          OutfitImageType.values,
+          _query.imageType,
+          (t) => t.label,
+          (t) => setState(() => _query = _query.copyWith(imageType: t)),
+        ),
+        const OptionSheetLabel('Sort items by'),
+        _choices<OutfitSort>(
+          OutfitSort.values,
+          _query.sort,
+          (s) => s.label,
+          (s) => setState(() => _query = _query.copyWith(sort: s)),
+        ),
+        const OptionSheetLabel('Group items by'),
+        _choices<OutfitGroup>(
+          OutfitGroup.values,
+          _query.groupBy,
+          (g) => g.label,
+          (g) => setState(() => _query = _query.copyWith(groupBy: g)),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Favorites only'),
+          value: _query.favoritesOnly,
+          onChanged: (on) =>
+              setState(() => _query = _query.copyWith(favoritesOnly: on)),
+        ),
+      ],
     );
   }
 }

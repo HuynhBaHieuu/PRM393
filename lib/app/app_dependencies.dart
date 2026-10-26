@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
+import 'package:all_fits/data/local/reminder_service.dart';
 import 'package:all_fits/data/local/background_remover.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
@@ -42,6 +43,7 @@ class AppDependencies {
     this.seedSampleData = AppConfig.seedSampleDataOnFirstLaunch,
     this.aiStylist = const AiStylistService(apiKey: ''),
     this.weather = const OpenMeteoWeatherService(),
+    this.reminders = const NoReminderService(),
     this.supabase,
     PayOSCheckout? payments,
     PasswordHasher passwordHasher = const Pbkdf2PasswordHasher(),
@@ -82,6 +84,9 @@ class AppDependencies {
           ? MlKitBackgroundRemover()
           : const NoBackgroundRemover(),
       aiStylist: AiStylistService.fromConfig(env),
+      reminders: LocalReminderService.isSupported
+          ? LocalReminderService()
+          : const NoReminderService(),
       supabase: supabase,
     );
   }
@@ -106,6 +111,7 @@ class AppDependencies {
   final bool seedSampleData;
   final AiStylistService aiStylist;
   final WeatherService weather;
+  final ReminderService reminders;
   final SupabaseClient? supabase;
 
   /// Real Premium payments; null without Supabase, where Premium is a demo.

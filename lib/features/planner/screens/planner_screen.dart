@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
-import 'package:all_fits/core/utils/formatters.dart';
-import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
-import 'package:all_fits/features/planner/controllers/planner_controller.dart';
-import 'package:all_fits/features/planner/widgets/day_plan_panel.dart';
-import 'package:all_fits/features/planner/widgets/month_calendar.dart';
+import 'package:all_fits/features/planner/widgets/planner_day_view.dart';
+import 'package:all_fits/features/planner/widgets/planner_month_view.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
-import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
+/// Fits' planner: a Day tab (week strip over swipeable day cards) and a
+/// Month tab, with "Today" in the app bar.
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
 
@@ -19,170 +18,74 @@ class PlannerScreen extends StatefulWidget {
   State<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _PlannerScreenState extends State<PlannerScreen> {
-  late DateTime _month;
-  late DateTime _selected;
+class _PlannerScreenState extends State<PlannerScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(length: 2, vsync: this);
+  late final DateTime _today = context.read<ClosetActions>().today;
+  late DateTime _selected = _today;
+
+  /// Bumped to make both views jump to [_selected].
+  int _jump = 0;
 
   @override
-  void initState() {
-    super.initState();
-    final today = context.read<ClosetActions>().today;
-    _selected = today;
-    _month = DateHelpers.firstDayOfMonth(today);
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
   }
 
-  void _changeMonth(int delta) {
-    setState(() => _month = DateHelpers.addMonths(_month, delta));
-  }
-
-  void _select(DateTime day) {
+  void _goTo(DateTime day, {bool showDay = false}) {
     setState(() {
-      _selected = day;
-      if (!DateHelpers.isSameMonth(day, _month)) {
-        _month = DateHelpers.firstDayOfMonth(day);
-      }
+      _selected = DateHelpers.dateOnly(day);
+      _jump++;
     });
+    if (showDay) _tabs.animateTo(0, duration: AppDurations.fast);
   }
 
   @override
   Widget build(BuildContext context) {
-    final planner = context.watch<PlannerController>();
-    final outfits = context.watch<OutfitController>();
-    final wardrobe = context.watch<WardrobeController>();
-    final today = context.read<ClosetActions>().today;
-
-    CalendarDayInfo infoOf(DateTime day) {
-      final plan = planner.dayPlan(day);
-      final entry = plan.primary;
-      if (entry == null) return CalendarDayInfo.empty;
-      final outfit = outfits.outfitById(entry.outfitId);
-      return CalendarDayInfo(
-        thumbnail: outfit == null
-            ? null
-            : wardrobe.itemsByIds(outfit.itemIds).firstOrNull,
-        hasWorn: plan.worn != null,
-        hasPlanned: plan.planned != null,
-      );
-    }
-
-    final calendar = Column(
-      children: [
-        _MonthNavigator(
-          month: _month,
-          onPrevious: () => _changeMonth(-1),
-          onNext: () => _changeMonth(1),
-          onToday: () => _select(today),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        MonthCalendar(
-          month: _month,
-          selectedDay: _selected,
-          today: today,
-          infoOf: infoOf,
-          onSelect: _select,
-          onSwipeMonth: _changeMonth,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        const CalendarLegend(),
-      ],
-    );
-    final panel = DayPlanPanel(date: _selected);
-
-    return SafeArea(
-      bottom: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= AppSizes.wideLayoutBreakpoint;
-          const header = SizedBox(height: AppSpacing.sm);
-          if (wide) {
-            return ListView(
-              children: [
-                header,
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.page,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: calendar),
-                      const SizedBox(width: AppSpacing.xl),
-                      SizedBox(
-                        width: AppSizes.plannerSidePanelWidth,
-                        child: panel,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-              ],
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-            children: [
-              header,
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.page - AppSpacing.xs,
-                ),
-                child: calendar,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.page,
-                ),
-                child: panel,
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _MonthNavigator extends StatelessWidget {
-  const _MonthNavigator({
-    required this.month,
-    required this.onPrevious,
-    required this.onNext,
-    required this.onToday,
-  });
-
-  final DateTime month;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-  final VoidCallback onToday;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        IconButton(
-          tooltip: 'Previous month',
-          onPressed: onPrevious,
-          icon: const Icon(Icons.chevron_left_rounded),
-        ),
-        Expanded(
-          child: Text(
-            AppFormatters.monthYear(month),
-            textAlign: TextAlign.center,
-            style: context.textTheme.titleLarge,
+    final palette = context.palette;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Planner'),
+        actions: [
+          FilledButton(
+            onPressed: () => _goTo(_today),
+            style: FilledButton.styleFrom(
+              backgroundColor: palette.surfaceMuted,
+              foregroundColor: palette.ink,
+              minimumSize: const Size(0, AppSizes.compactButtonHeight - 4),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            ),
+            child: const Text('Today'),
           ),
+          const SizedBox(width: AppSpacing.md),
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: const [
+            Tab(text: 'Day'),
+            Tab(text: 'Month'),
+          ],
         ),
-        IconButton(
-          tooltip: 'Next month',
-          onPressed: onNext,
-          icon: const Icon(Icons.chevron_right_rounded),
-        ),
-        IconButton(
-          tooltip: 'Go to today',
-          onPressed: onToday,
-          icon: const Icon(Icons.today_outlined),
-        ),
-      ],
+      ),
+      body: TabBarView(
+        controller: _tabs,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          PlannerDayView(
+            key: ValueKey('day$_jump'),
+            today: _today,
+            initialDay: _selected,
+            onDayChanged: (day) => _selected = day,
+          ),
+          PlannerMonthView(
+            key: ValueKey('month$_jump'),
+            today: _today,
+            initialMonth: _selected,
+            onOpenDay: (day) => _goTo(day, showDay: true),
+          ),
+        ],
+      ),
     );
   }
 }

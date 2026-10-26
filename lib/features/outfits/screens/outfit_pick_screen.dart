@@ -22,9 +22,16 @@ import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
 /// Fits' "Add outfit": tick pieces first, pick how to put them together
 /// (Collage, Dressing Room or AI Try On), then "Next →".
 class OutfitPickScreen extends StatefulWidget {
-  const OutfitPickScreen({super.key, this.initialItemIds = const []});
+  const OutfitPickScreen({
+    super.key,
+    this.initialItemIds = const [],
+    this.planDate,
+  });
 
   final List<String> initialItemIds;
+
+  /// The planner day the new outfit is for, if opened from the planner.
+  final DateTime? planDate;
 
   @override
   State<OutfitPickScreen> createState() => _OutfitPickScreenState();
@@ -34,7 +41,7 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
   WardrobeQuery _query = const WardrobeQuery();
   late final List<String> _selected = [...widget.initialItemIds];
   late OutfitCreateMode _mode = context.read<SettingsController>().outfitMode;
-  DateTime? _planDate;
+  late DateTime? _planDate = widget.planDate;
 
   void _toggle(String id) => setState(
     () => _selected.contains(id) ? _selected.remove(id) : _selected.add(id),

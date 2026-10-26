@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/features/home/screens/home_screen.dart';
+import 'package:all_fits/features/stylist/stylist_store.dart';
+import 'package:all_fits/features/stylist/widgets/stylist_widgets.dart';
 import 'package:all_fits/navigation/closet_screen.dart';
 
 enum AppTab { home, profile }
@@ -183,7 +186,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// What the central "+" button can create.
+/// What the central "+" button can create: Fits' three rows.
 Future<void> _showCreateSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -205,39 +208,28 @@ Future<void> _showCreateSheet(BuildContext context) {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _SwipeOption(
-                onTap: () => go(() => AppNavigator.swipeOutfit(context)),
+              _CreateRow(
+                leading: const Icon(Icons.checkroom_outlined, size: 30),
+                label: 'Add clothes',
+                onTap: () => go(() => AppNavigator.addClothing(context)),
               ),
               const SizedBox(height: AppSpacing.sm),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                mainAxisSpacing: AppSpacing.sm,
-                crossAxisSpacing: AppSpacing.sm,
-                childAspectRatio: 1.6,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _CreateOption(
-                    icon: Icons.checkroom_outlined,
-                    label: 'Add clothes',
-                    onTap: () => go(() => AppNavigator.addClothing(context)),
+              _CreateRow(
+                leading: const Icon(Icons.dry_cleaning_outlined, size: 30),
+                label: 'Create outfit',
+                onTap: () => go(() => AppNavigator.createOutfit(context)),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _CreateRow(
+                leading: Builder(
+                  builder: (context) => StylistAvatar(
+                    persona: context.select<StylistStore, StylistPersona>(
+                      (s) => s.persona,
+                    ),
                   ),
-                  _CreateOption(
-                    icon: Icons.style_outlined,
-                    label: 'Create outfit',
-                    onTap: () => go(() => AppNavigator.createOutfit(context)),
-                  ),
-                  _CreateOption(
-                    icon: Icons.auto_awesome_outlined,
-                    label: 'AI Stylist',
-                    onTap: () => go(() => AppNavigator.stylist(context)),
-                  ),
-                  _CreateOption(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Plan outfit',
-                    onTap: () => go(() => AppNavigator.planner(context)),
-                  ),
-                ],
+                ),
+                label: 'Chat with AI stylist',
+                onTap: () => go(() => AppNavigator.stylist(context)),
               ),
             ],
           ),
@@ -247,62 +239,15 @@ Future<void> _showCreateSheet(BuildContext context) {
   );
 }
 
-/// The headline option: build a look by swiping tops, bottoms and shoes.
-class _SwipeOption extends StatelessWidget {
-  const _SwipeOption({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    final text = context.textTheme;
-    return Material(
-      color: palette.ink,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            children: [
-              Icon(Icons.swipe_outlined, color: palette.onInk),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Swipe outfit',
-                      style: text.titleMedium?.copyWith(color: palette.onInk),
-                    ),
-                    Text(
-                      'Swipe tops, bottoms and shoes to find a look',
-                      style: text.bodySmall?.copyWith(
-                        color: palette.onInk.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_rounded, color: palette.onInk),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateOption extends StatelessWidget {
-  const _CreateOption({
-    required this.icon,
+/// A large grey row with a leading icon and a chevron.
+class _CreateRow extends StatelessWidget {
+  const _CreateRow({
+    required this.leading,
     required this.label,
     required this.onTap,
   });
 
-  final IconData icon;
+  final Widget leading;
   final String label;
   final VoidCallback onTap;
 
@@ -311,17 +256,25 @@ class _CreateOption extends StatelessWidget {
     final palette = context.palette;
     return Material(
       color: palette.surfaceMuted,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
+      borderRadius: BorderRadius.circular(AppRadius.xl),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: AppSizes.iconLg),
-            const SizedBox(height: AppSpacing.xs),
-            Text(label, style: context.textTheme.labelLarge),
-          ],
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.lg,
+          ),
+          child: Row(
+            children: [
+              SizedBox(width: 36, child: Center(child: leading)),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(label, style: context.textTheme.titleMedium),
+              ),
+              Icon(Icons.chevron_right_rounded, color: palette.textSecondary),
+            ],
+          ),
         ),
       ),
     );
