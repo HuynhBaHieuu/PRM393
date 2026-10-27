@@ -82,7 +82,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
       context,
       title: 'Name',
       initialValue: item.name,
-      maxLength: Validators.maxNameLength,
+      maxLength: Validators.maxItemNameLength,
     );
     if (name == null || name.isEmpty || name == item.name) return;
     await _patch((i) => i.copyWith(name: name));

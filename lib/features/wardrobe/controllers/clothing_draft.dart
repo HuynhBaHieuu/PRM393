@@ -40,7 +40,10 @@ class ClothingDraft {
     if (requireImage && newImagePath == null) {
       throw const ValidationException('Add a photo of this item.');
     }
-    final nameError = Validators.requiredName(name);
+    final nameError = Validators.requiredName(
+      name,
+      max: Validators.maxItemNameLength,
+    );
     if (nameError != null) throw ValidationException(nameError);
     if (category == null) {
       throw const ValidationException('Choose a category.');

@@ -45,6 +45,11 @@ class WeatherException extends AppException {
   const WeatherException(super.message);
 }
 
+/// A shop link could not be read into a clothing item.
+class ProductLinkException extends AppException {
+  const ProductLinkException(super.message);
+}
+
 /// The action needs Premium, e.g. adding past the Free wardrobe limit.
 class PlanLimitException extends AppException {
   const PlanLimitException(super.message);

@@ -23,6 +23,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/data/remote/product_link_service.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.dart';
@@ -31,6 +32,7 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart'
 import 'package:all_fits/features/wardrobe/widgets/detect_status.dart';
 import 'package:all_fits/features/wardrobe/widgets/photo_picker_field.dart';
 import 'package:all_fits/features/wardrobe/widgets/photo_tips_sheet.dart';
+import 'package:all_fits/features/wardrobe/widgets/product_link_sheet.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 
 /// Form fields the AI can fill in from the photo.
@@ -75,6 +77,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   String? _newImagePath;
 
   bool _saving = false;
+  bool _readingLink = false;
   bool _dirty = false;
   bool _showErrors = false;
 
@@ -169,6 +172,49 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     } catch (error) {
       if (mounted) context.showErrorSnack(error);
     }
+  }
+
+  /// Reads a shop's product page into the form for the user to check.
+  Future<void> _addFromLink() async {
+    final link = await showProductLinkSheet(context);
+    if (link == null || !mounted) return;
+    final service = context.read<ProductLinkService>();
+    setState(() => _readingLink = true);
+    try {
+      final result = await service.fetch(link);
+      if (mounted) _fillFromLink(result);
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+    } finally {
+      if (mounted) setState(() => _readingLink = false);
+    }
+  }
+
+  /// The user asked for this page's details, so they replace what was
+  /// typed; fields the page doesn't give keep their value. The downloaded
+  /// photo is treated like a picked one, so the AI fills in the rest.
+  void _fillFromLink(ProductLinkResult result) {
+    final page = result.page;
+    _stopDetection();
+    _undoAi();
+    if (page.name case final name?) _name.text = name;
+    if (page.brand case final brand?) _brand.text = brand;
+    if (page.price case final price?) _price.text = _formatPriceInput(price);
+    final link = page.url.toString();
+    if (_notes.text.trim().isEmpty && link.length <= Validators.maxNotesLength) {
+      _notes.text = link;
+    }
+    final path = result.imagePath;
+    _update(() {
+      if (path != null) _newImagePath = path;
+    });
+    if (path != null) unawaited(_detect(path));
+    context.showSnack(
+      path == null
+          ? 'Details added from ${page.url.host}. The photo couldn’t be '
+                'downloaded, so add one yourself.'
+          : 'Added from ${page.url.host}. Check the details before saving.',
+    );
   }
 
   /// Has the AI fill in the empty fields from the new photo at [path]. A
@@ -454,20 +500,58 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                       ),
                       onUndo: _undoAi,
                     ),
+                    if (!_isEditing) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Center(
+                        child: OutlinedButton.icon(
+                          onPressed: _readingLink || _saving
+                              ? null
+                              : _addFromLink,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(
+                              0,
+                              AppSizes.compactButtonHeight,
+                            ),
+                          ),
+                          icon: _readingLink
+                              ? const SizedBox.square(
+                                  dimension: AppSizes.iconSm,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.link_rounded,
+                                  size: AppSizes.iconSm,
+                                ),
+                          label: Text(
+                            _readingLink
+                                ? 'Reading the shop page…'
+                                : 'Add from a shop link',
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.xl),
                     TextFormField(
                       controller: _name,
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.next,
-                      maxLength: Validators.maxNameLength,
+                      maxLength: Validators.maxItemNameLength,
+                      // Shop names can be long; let them wrap.
+                      minLines: 1,
+                      maxLines: 3,
                       decoration: InputDecoration(
                         labelText: 'Name',
                         hintText: 'e.g. White linen shirt',
                         counterText: '',
                         suffixIcon: _markIf(_AiField.name),
                       ),
-                      validator: (v) =>
-                          Validators.requiredName(v, subject: 'a name'),
+                      validator: (v) => Validators.requiredName(
+                        v,
+                        subject: 'a name',
+                        max: Validators.maxItemNameLength,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
