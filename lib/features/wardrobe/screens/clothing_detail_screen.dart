@@ -16,10 +16,12 @@ import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/core/widgets/selection_tray.dart';
+import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/collections/collection_flows.dart';
@@ -28,6 +30,7 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/features/wardrobe/widgets/extra_photos.dart';
 
 /// What the detail screen opens with: a piece, and the pieces around it in
 /// the list it was opened from (for the ‹ › buttons).
@@ -56,9 +59,14 @@ class ClothingDetailScreen extends StatefulWidget {
 
 enum _PhotoAction { camera, gallery, cutout }
 
+enum _ExtraPhotoAction { view, kind, makeMain, delete }
+
 class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   late String _id = widget.itemId;
   bool _busy = false;
+
+  /// The photo shown large: 0 is the main one, then the extra photos.
+  int _photo = 0;
 
   static const double _imageHeightFactor = 0.42;
 
@@ -309,6 +317,122 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     }
   }
 
+  void _show(String id) => setState(() {
+    _id = id;
+    _photo = 0;
+  });
+
+  Future<void> _addExtraPhoto(ClothingItem item) async {
+    final picker = context.read<ImagePickerService>();
+    final request = await showAddPhotoSheet(
+      context,
+      supportsCamera: picker.supportsCamera,
+      initialKind: suggestedPhotoKind(item.extraPhotos.map((p) => p.kind)),
+    );
+    if (request == null || !mounted) return;
+    try {
+      final path = await picker.pickImage(request.source);
+      if (path == null || !mounted) return;
+      setState(() => _busy = true);
+      await _wardrobe.addExtraPhoto(_id, path, request.kind);
+      // Shows the photo just added, now last.
+      if (mounted) setState(() => _photo = item.extraPhotos.length + 1);
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _extraPhotoOptions(ClothingPhoto photo) async {
+    final palette = context.palette;
+    final action = await showModalBottomSheet<_ExtraPhotoAction>(
+      context: context,
+      builder: (sheetContext) {
+        void pick(_ExtraPhotoAction action) =>
+            Navigator.of(sheetContext).pop(action);
+        return SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.zoom_out_map_rounded),
+                title: const Text('View full screen'),
+                onTap: () => pick(_ExtraPhotoAction.view),
+              ),
+              ListTile(
+                leading: Icon(photo.kind.icon),
+                title: const Text('Change what it shows'),
+                trailing: Text(
+                  photo.kind.label,
+                  style: context.textTheme.bodySmall,
+                ),
+                onTap: () => pick(_ExtraPhotoAction.kind),
+              ),
+              ListTile(
+                leading: const Icon(Icons.star_outline_rounded),
+                title: const Text('Use as main photo'),
+                onTap: () => pick(_ExtraPhotoAction.makeMain),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: palette.danger,
+                ),
+                title: Text(
+                  'Delete photo',
+                  style: TextStyle(color: palette.danger),
+                ),
+                onTap: () => pick(_ExtraPhotoAction.delete),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (action == null || !mounted) return;
+    switch (action) {
+      case _ExtraPhotoAction.view:
+        await AppNavigator.clothingPhotos(context, _id, initialIndex: _photo);
+      case _ExtraPhotoAction.kind:
+        final kind = await showPhotoKindSheet(context, photo.kind);
+        if (kind == null || kind == photo.kind || !mounted) return;
+        await ClosetFlows.guard(
+          context,
+          () => _wardrobe.setExtraPhotoKind(_id, photo.path, kind),
+        );
+      case _ExtraPhotoAction.makeMain:
+        setState(() => _busy = true);
+        final done = await ClosetFlows.guard(
+          context,
+          () => _wardrobe.makeMainPhoto(_id, photo.path),
+          successMessage: 'Main photo changed',
+        );
+        if (!mounted) return;
+        setState(() {
+          _busy = false;
+          if (done) _photo = 0;
+        });
+      case _ExtraPhotoAction.delete:
+        final confirmed = await showConfirmDialog(
+          context,
+          title: 'Delete this photo?',
+          message:
+              'The ${photo.kind.label.toLowerCase()} photo will be '
+              'removed from this piece.',
+          confirmLabel: 'Delete',
+          destructive: true,
+        );
+        if (!confirmed || !mounted) return;
+        final done = await ClosetFlows.guard(
+          context,
+          () => _wardrobe.removeExtraPhoto(_id, photo.path),
+        );
+        if (done && mounted) setState(() => _photo = 0);
+    }
+  }
+
   Future<void> _setArchived(ClothingItem item, {required bool archived}) async {
     final wardrobe = _wardrobe;
     final done = await ClosetFlows.guard(
@@ -353,6 +477,8 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     final previous = _neighbour(-1);
     final next = _neighbour(1);
     final hint = palette.textSecondary;
+    final photoIndex = _photo.clamp(0, item.extraPhotos.length);
+    final extra = photoIndex == 0 ? null : item.extraPhotos[photoIndex - 1];
 
     return Scaffold(
       appBar: AppBar(),
@@ -368,23 +494,53 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.xl,
                     ),
-                    child: ClothingImage(
-                      key: ValueKey(item.cutoutPath ?? item.imagePath),
-                      item: item,
-                      cutout: true,
-                      fit: BoxFit.contain,
-                      decodeWidth: size.width,
+                    child: Semantics(
+                      button: true,
+                      label: 'View photos full screen',
+                      child: GestureDetector(
+                        onTap: () => AppNavigator.clothingPhotos(
+                          context,
+                          _id,
+                          initialIndex: photoIndex,
+                        ),
+                        child: ClothingImage(
+                          key: ValueKey(
+                            extra?.path ?? item.cutoutPath ?? item.imagePath,
+                          ),
+                          item: item,
+                          photo: extra?.path,
+                          cutout: true,
+                          fit: BoxFit.contain,
+                          decodeWidth: size.width,
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 if (_busy) const Positioned.fill(child: AppLoadingView()),
+                if (extra != null)
+                  Positioned(
+                    top: 0,
+                    right: AppSpacing.page,
+                    child: TagLabel(extra.kind.label, icon: extra.kind.icon),
+                  ),
+                if (extra != null)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: _StepButton(
+                      icon: Icons.more_horiz_rounded,
+                      tooltip: 'Photo options',
+                      onTap: () => _extraPhotoOptions(extra),
+                    ),
+                  ),
                 if (previous != null)
                   Align(
                     alignment: Alignment.centerLeft,
                     child: _StepButton(
                       icon: Icons.chevron_left_rounded,
                       tooltip: 'Previous piece',
-                      onTap: () => setState(() => _id = previous),
+                      onTap: () => _show(previous),
                     ),
                   ),
                 if (next != null)
@@ -393,8 +549,48 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     child: _StepButton(
                       icon: Icons.chevron_right_rounded,
                       tooltip: 'Next piece',
-                      onTap: () => setState(() => _id = next),
+                      onTap: () => _show(next),
                     ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Center(
+            child: PhotoStrip(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+              onAdd:
+                  _busy || item.extraPhotos.length >= AppConfig.maxExtraPhotos
+                  ? null
+                  : () => _addExtraPhoto(item),
+              thumbs: [
+                PhotoThumb(
+                  image: ClothingImage(
+                    item: item,
+                    cutout: true,
+                    fit: BoxFit.contain,
+                    decodeWidth: PhotoThumb.width,
+                  ),
+                  label: 'Main',
+                  icon: Icons.star_outline_rounded,
+                  selected: photoIndex == 0,
+                  onTap: () => setState(() => _photo = 0),
+                ),
+                for (var i = 0; i < item.extraPhotos.length; i++)
+                  PhotoThumb(
+                    image: ClothingImage(
+                      item: item,
+                      photo: item.extraPhotos[i].path,
+                      decodeWidth: PhotoThumb.width,
+                    ),
+                    label: item.extraPhotos[i].kind.label,
+                    icon: item.extraPhotos[i].kind.icon,
+                    selected: photoIndex == i + 1,
+                    // Tapping the photo already shown opens its options.
+                    onTap: photoIndex == i + 1
+                        ? () => _extraPhotoOptions(item.extraPhotos[i])
+                        : () => setState(() => _photo = i + 1),
+                    onLongPress: () => _extraPhotoOptions(item.extraPhotos[i]),
                   ),
               ],
             ),

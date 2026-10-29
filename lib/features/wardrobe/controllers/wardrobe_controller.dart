@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
@@ -12,6 +13,7 @@ import 'package:all_fits/core/utils/load_status.dart';
 import 'package:all_fits/data/local/background_remover.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 
@@ -94,70 +96,74 @@ class WardrobeController extends ChangeNotifier {
     draft.ensureValid(requireImage: true);
     final imageRef = await _images.saveImage(draft.newImagePath!);
     final cutoutRef = await _saveCutout(draft.newImagePath!);
-    final now = _clock();
-    final item = ClothingItem(
-      id: _ids.next(),
-      name: draft.name.trim(),
-      imagePath: imageRef,
-      cutoutPath: cutoutRef,
-      category: draft.category!,
-      subcategory: draft.subcategory,
-      color: draft.color,
-      seasons: draft.seasons,
-      brand: draft.brand.trimmedOrNull,
-      price: draft.price,
-      notes: draft.notes.trimmedOrNull,
-      isFavorite: draft.isFavorite,
-      createdAt: now,
-      updatedAt: now,
-    );
+    final created = [imageRef, ?cutoutRef];
     try {
+      final now = _clock();
+      final item = ClothingItem(
+        id: _ids.next(),
+        name: draft.name.trim(),
+        imagePath: imageRef,
+        cutoutPath: cutoutRef,
+        extraPhotos: await _storeExtras(draft.extraPhotos ?? const [], created),
+        category: draft.category!,
+        subcategory: draft.subcategory,
+        color: draft.color,
+        seasons: draft.seasons,
+        brand: draft.brand.trimmedOrNull,
+        price: draft.price,
+        notes: draft.notes.trimmedOrNull,
+        isFavorite: draft.isFavorite,
+        createdAt: now,
+        updatedAt: now,
+      );
       await _commit([item]);
+      return item;
     } catch (_) {
-      await _images.deleteImage(imageRef);
-      if (cutoutRef != null) await _images.deleteImage(cutoutRef);
+      await _deleteAll(created);
       rethrow;
     }
-    return item;
   }
 
   Future<ClothingItem> updateItem(String id, ClothingDraft draft) async {
     final existing = _require(id);
     draft.ensureValid(requireImage: existing.imagePath == null);
 
-    String? newImageRef;
-    String? newCutoutRef;
-    final newImagePath = draft.newImagePath;
-    if (newImagePath != null) {
-      newImageRef = await _images.saveImage(newImagePath);
-      newCutoutRef = await _saveCutout(newImagePath);
-    }
-    final updated = existing.copyWith(
-      name: draft.name.trim(),
-      imagePath: newImageRef ?? existing.imagePath,
-      cutoutPath: newImageRef != null ? newCutoutRef : existing.cutoutPath,
-      category: draft.category,
-      subcategory: draft.subcategory,
-      color: draft.color,
-      seasons: draft.seasons,
-      brand: draft.brand.trimmedOrNull,
-      price: draft.price,
-      notes: draft.notes.trimmedOrNull,
-      isFavorite: draft.isFavorite,
-      updatedAt: _clock(),
-    );
+    final created = <String>[];
+    final ClothingItem updated;
     try {
+      String? newImageRef;
+      String? newCutoutRef;
+      final newImagePath = draft.newImagePath;
+      if (newImagePath != null) {
+        newImageRef = await _images.saveImage(newImagePath);
+        created.add(newImageRef);
+        newCutoutRef = await _saveCutout(newImagePath);
+        if (newCutoutRef != null) created.add(newCutoutRef);
+      }
+      final extras = draft.extraPhotos;
+      updated = existing.copyWith(
+        name: draft.name.trim(),
+        imagePath: newImageRef ?? existing.imagePath,
+        cutoutPath: newImageRef != null ? newCutoutRef : existing.cutoutPath,
+        extraPhotos: extras == null
+            ? existing.extraPhotos
+            : await _storeExtras(extras, created),
+        category: draft.category,
+        subcategory: draft.subcategory,
+        color: draft.color,
+        seasons: draft.seasons,
+        brand: draft.brand.trimmedOrNull,
+        price: draft.price,
+        notes: draft.notes.trimmedOrNull,
+        isFavorite: draft.isFavorite,
+        updatedAt: _clock(),
+      );
       await _commit([updated]);
     } catch (_) {
-      if (newImageRef != null) await _images.deleteImage(newImageRef);
-      if (newCutoutRef != null) await _images.deleteImage(newCutoutRef);
+      await _deleteAll(created);
       rethrow;
     }
-    if (newImageRef != null) {
-      for (final old in _photosOf([existing])) {
-        await _images.deleteImage(old);
-      }
-    }
+    await _deleteDropped(existing, updated);
     return updated;
   }
 
@@ -179,22 +185,106 @@ class WardrobeController extends ChangeNotifier {
     final existing = _require(id);
     final imageRef = await _images.saveImage(source);
     final cutoutRef = await _saveCutout(source);
+    final updated = existing.copyWith(
+      imagePath: imageRef,
+      cutoutPath: cutoutRef,
+      updatedAt: _clock(),
+    );
+    try {
+      await _commit([updated]);
+    } catch (_) {
+      await _deleteAll([imageRef, ?cutoutRef]);
+      rethrow;
+    }
+    await _deleteDropped(existing, updated);
+  }
+
+  /// Adds the photo at [source] as an extra photo showing [kind].
+  Future<void> addExtraPhoto(String id, String source, PhotoKind kind) async {
+    final existing = _require(id);
+    if (existing.extraPhotos.length >= AppConfig.maxExtraPhotos) {
+      throw const ValidationException(
+        'A piece can have up to ${AppConfig.maxExtraPhotos} extra photos.',
+      );
+    }
+    final reference = await _images.saveImage(source);
     try {
       await _commit([
         existing.copyWith(
-          imagePath: imageRef,
-          cutoutPath: cutoutRef,
+          extraPhotos: [
+            ...existing.extraPhotos,
+            ClothingPhoto(path: reference, kind: kind),
+          ],
           updatedAt: _clock(),
         ),
       ]);
     } catch (_) {
-      await _images.deleteImage(imageRef);
+      await _images.deleteImage(reference);
+      rethrow;
+    }
+  }
+
+  /// Changes what the extra photo at [reference] is said to show.
+  Future<void> setExtraPhotoKind(
+    String id,
+    String reference,
+    PhotoKind kind,
+  ) async {
+    final existing = _require(id);
+    await _commit([
+      existing.copyWith(
+        extraPhotos: [
+          for (final photo in existing.extraPhotos)
+            photo.path == reference ? photo.copyWith(kind: kind) : photo,
+        ],
+        updatedAt: _clock(),
+      ),
+    ]);
+  }
+
+  Future<void> removeExtraPhoto(String id, String reference) async {
+    final existing = _require(id);
+    final updated = existing.copyWith(
+      extraPhotos: [
+        for (final photo in existing.extraPhotos)
+          if (photo.path != reference) photo,
+      ],
+      updatedAt: _clock(),
+    );
+    await _commit([updated]);
+    await _deleteDropped(existing, updated);
+  }
+
+  /// Makes the extra photo at [reference] the main one and cuts it out. The
+  /// old main photo takes its place among the extra photos, as the front.
+  Future<void> makeMainPhoto(String id, String reference) async {
+    final existing = _require(id);
+    final index = existing.extraPhotos.indexWhere((p) => p.path == reference);
+    if (index < 0) return;
+    final source = _images.resolvePath(reference);
+    final cutoutRef = source == null || source.startsWith('https://')
+        ? null
+        : await _saveCutout(source);
+    final oldMain = existing.imagePath;
+    final extras = [...existing.extraPhotos]..removeAt(index);
+    if (oldMain != null) {
+      extras.insert(index, ClothingPhoto(path: oldMain, kind: PhotoKind.front));
+    }
+    final updated = existing.copyWith(
+      imagePath: reference,
+      cutoutPath: cutoutRef,
+      extraPhotos: extras,
+      updatedAt: _clock(),
+    );
+    try {
+      await _commit([updated]);
+    } catch (_) {
       if (cutoutRef != null) await _images.deleteImage(cutoutRef);
       rethrow;
     }
-    for (final old in _photosOf([existing])) {
-      await _images.deleteImage(old);
-    }
+    // Lets the closet try again for a cut-out that failed just now.
+    _cutoutAttempts.remove(id);
+    await _deleteDropped(existing, updated);
   }
 
   /// Cuts the current photo out again, e.g. after a poor first attempt.
@@ -364,8 +454,42 @@ class WardrobeController extends ChangeNotifier {
     }
   }
 
+  /// Resolves the form's extra photos to stored ones, copying each newly
+  /// picked photo into storage and adding its reference to [created].
+  Future<List<ClothingPhoto>> _storeExtras(
+    List<ExtraPhotoDraft> drafts,
+    List<String> created,
+  ) async {
+    final photos = <ClothingPhoto>[];
+    for (final draft in drafts) {
+      var reference = draft.reference;
+      if (reference == null) {
+        reference = await _images.saveImage(draft.newPath!);
+        created.add(reference);
+      }
+      photos.add(ClothingPhoto(path: reference, kind: draft.kind));
+    }
+    return photos;
+  }
+
+  /// Deletes the photos [before] had that [after] no longer uses.
+  Future<void> _deleteDropped(ClothingItem before, ClothingItem after) async {
+    final kept = _photosOf([after]).toSet();
+    await _deleteAll(_photosOf([before]).where((p) => !kept.contains(p)));
+  }
+
+  Future<void> _deleteAll(Iterable<String> references) async {
+    for (final reference in references) {
+      await _images.deleteImage(reference);
+    }
+  }
+
   static List<String> _photosOf(Iterable<ClothingItem> items) => [
-    for (final item in items) ...[?item.imagePath, ?item.cutoutPath],
+    for (final item in items) ...[
+      ?item.imagePath,
+      ?item.cutoutPath,
+      for (final photo in item.extraPhotos) photo.path,
+    ],
   ];
 
   ClothingItem _require(String id) {

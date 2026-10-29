@@ -19,6 +19,7 @@ class ClothingImage extends StatelessWidget {
     this.borderRadius,
     this.decodeWidth,
     this.cutout = false,
+    this.photo,
   });
 
   final ClothingItem item;
@@ -31,6 +32,10 @@ class ClothingImage extends StatelessWidget {
   /// Shows the piece cut out of its background when a cut-out exists,
   /// otherwise the photo.
   final bool cutout;
+
+  /// Stored reference of one of the item's extra photos, shown instead of
+  /// its main photo.
+  final String? photo;
 
   /// Whether `cutout: true` shows [item] on a transparent background.
   static bool hasCutout(ClothingItem item) =>
@@ -47,7 +52,8 @@ class ClothingImage extends StatelessWidget {
   }
 
   Widget _buildImage(BuildContext context) {
-    final reference = (cutout ? item.cutoutPath : null) ?? item.imagePath;
+    final reference =
+        photo ?? (cutout ? item.cutoutPath : null) ?? item.imagePath;
     final path = reference == null
         ? null
         : context.read<ImageStorageService>().resolvePath(reference);
