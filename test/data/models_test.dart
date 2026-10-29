@@ -6,6 +6,7 @@ import 'package:all_fits/data/models/app_settings.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
@@ -20,6 +21,10 @@ void main() {
       id: 'item-1',
       name: 'Denim Jacket',
       imagePath: 'wardrobe_images/abc.jpg',
+      extraPhotos: const [
+        ClothingPhoto(path: 'wardrobe_images/back.jpg', kind: PhotoKind.back),
+        ClothingPhoto(path: 'wardrobe_images/tag.jpg', kind: PhotoKind.tag),
+      ],
       category: ClothingCategory.outerwear,
       subcategory: ClothingSubcategory.jackets,
       color: ClothingColor.blue,
@@ -42,6 +47,7 @@ void main() {
       expect(decoded.id, item.id);
       expect(decoded.name, item.name);
       expect(decoded.imagePath, item.imagePath);
+      expect(decoded.extraPhotos, item.extraPhotos);
       expect(decoded.category, item.category);
       expect(decoded.subcategory, ClothingSubcategory.jackets);
       expect(decoded.color, item.color);
@@ -55,6 +61,28 @@ void main() {
       expect(decoded.lastWornAt, item.lastWornAt);
       expect(decoded.createdAt, item.createdAt);
       expect(decoded.updatedAt, item.updatedAt);
+    });
+
+    test('drops malformed and repeated extra photos', () {
+      final decoded = ClothingItem.fromJson({
+        'id': 'x',
+        'name': 'Tee',
+        'extraPhotos': [
+          {'path': 'a.jpg', 'kind': 'detail'},
+          {'path': 'a.jpg', 'kind': 'back'},
+          {'path': '  '},
+          {'path': 'b.jpg', 'kind': 'sideways'},
+          'c.jpg',
+        ],
+      });
+      expect(decoded.extraPhotos, const [
+        ClothingPhoto(path: 'a.jpg', kind: PhotoKind.detail),
+        ClothingPhoto(path: 'b.jpg'),
+      ]);
+      expect(
+        ClothingItem.fromJson({'id': 'y', 'name': 'Old'}).extraPhotos,
+        isEmpty,
+      );
     });
 
     test('tolerates malformed optional fields', () {

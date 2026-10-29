@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 
@@ -17,6 +18,7 @@ class ClothingItem {
     required this.updatedAt,
     this.imagePath,
     this.cutoutPath,
+    this.extraPhotos = const [],
     this.subcategory,
     this.color,
     this.seasons = const [],
@@ -58,6 +60,7 @@ class ClothingItem {
       name: name,
       imagePath: JsonReader.nonEmptyString(json, 'imagePath'),
       cutoutPath: JsonReader.nonEmptyString(json, 'cutoutPath'),
+      extraPhotos: _readPhotos(json['extraPhotos']),
       category: category,
       subcategory: subcategory?.category == category ? subcategory : null,
       color: JsonReader.enumValue(ClothingColor.values, json['color']),
@@ -88,6 +91,10 @@ class ClothingItem {
   /// The photo with its background removed, cropped to the piece. Stored
   /// like [imagePath]; null until a cut-out has been made.
   final String? cutoutPath;
+
+  /// Photos besides the main one, e.g. the back or the care label, in the
+  /// order the user added them.
+  final List<ClothingPhoto> extraPhotos;
   final ClothingCategory category;
 
   /// Always one of [category]'s subcategories, or null.
@@ -122,6 +129,7 @@ class ClothingItem {
     'name': name,
     'imagePath': imagePath,
     'cutoutPath': cutoutPath,
+    'extraPhotos': extraPhotos.map((p) => p.toJson()).toList(),
     'category': category.name,
     'subcategory': subcategory?.name,
     'color': color?.name,
@@ -147,6 +155,7 @@ class ClothingItem {
     String? name,
     Object? imagePath = _unset,
     Object? cutoutPath = _unset,
+    List<ClothingPhoto>? extraPhotos,
     ClothingCategory? category,
     Object? subcategory = _unset,
     Object? color = _unset,
@@ -174,6 +183,7 @@ class ClothingItem {
       cutoutPath: identical(cutoutPath, _unset)
           ? this.cutoutPath
           : cutoutPath as String?,
+      extraPhotos: extraPhotos ?? this.extraPhotos,
       category: category ?? this.category,
       subcategory: identical(subcategory, _unset)
           ? this.subcategory
@@ -201,6 +211,18 @@ class ClothingItem {
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  /// Drops malformed entries and repeats of the same photo.
+  static List<ClothingPhoto> _readPhotos(Object? raw) {
+    if (raw is! List) return const [];
+    final seen = <String>{};
+    return [
+      for (final entry in raw)
+        if (ClothingPhoto.tryFromJson(entry) case final photo?
+            when seen.add(photo.path))
+          photo,
+    ];
   }
 
   @override

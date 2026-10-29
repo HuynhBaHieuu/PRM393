@@ -20,6 +20,7 @@ import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
@@ -30,6 +31,7 @@ import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.da
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/detect_status.dart';
+import 'package:all_fits/features/wardrobe/widgets/extra_photos.dart';
 import 'package:all_fits/features/wardrobe/widgets/photo_picker_field.dart';
 import 'package:all_fits/features/wardrobe/widgets/photo_tips_sheet.dart';
 import 'package:all_fits/features/wardrobe/widgets/product_link_sheet.dart';
@@ -75,6 +77,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   final Set<Season> _seasons = {};
   bool _isFavorite = false;
   String? _newImagePath;
+  final List<ExtraPhotoDraft> _extraPhotos = [];
 
   bool _saving = false;
   bool _readingLink = false;
@@ -108,6 +111,10 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     _color = item?.color ?? initial?.color;
     _seasons.addAll(item?.seasons ?? initial?.seasons ?? const []);
     _isFavorite = item?.isFavorite ?? initial?.isFavorite ?? false;
+    _extraPhotos.addAll([
+      for (final photo in item?.extraPhotos ?? const <ClothingPhoto>[])
+        ExtraPhotoDraft.saved(photo.path, photo.kind),
+    ]);
     _name = TextEditingController(text: item?.name ?? initial?.name);
     _brand = TextEditingController(text: item?.brand ?? initial?.brand);
     final price = item?.price ?? initial?.price;
@@ -174,6 +181,32 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     }
   }
 
+  Future<void> _addExtraPhoto() async {
+    final picker = context.read<ImagePickerService>();
+    final request = await showAddPhotoSheet(
+      context,
+      supportsCamera: picker.supportsCamera,
+      initialKind: suggestedPhotoKind(_extraPhotos.map((p) => p.kind)),
+    );
+    if (request == null || !mounted) return;
+    try {
+      final path = await picker.pickImage(request.source);
+      if (path != null && mounted) {
+        _update(
+          () => _extraPhotos.add(ExtraPhotoDraft.picked(path, request.kind)),
+        );
+      }
+    } catch (error) {
+      if (mounted) context.showErrorSnack(error);
+    }
+  }
+
+  Future<void> _changeExtraPhotoKind(int index) async {
+    final kind = await showPhotoKindSheet(context, _extraPhotos[index].kind);
+    if (kind == null || !mounted || kind == _extraPhotos[index].kind) return;
+    _update(() => _extraPhotos[index] = _extraPhotos[index].withKind(kind));
+  }
+
   /// Reads a shop's product page into the form for the user to check.
   Future<void> _addFromLink() async {
     final link = await showProductLinkSheet(context);
@@ -201,7 +234,8 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     if (page.brand case final brand?) _brand.text = brand;
     if (page.price case final price?) _price.text = _formatPriceInput(price);
     final link = page.url.toString();
-    if (_notes.text.trim().isEmpty && link.length <= Validators.maxNotesLength) {
+    if (_notes.text.trim().isEmpty &&
+        link.length <= Validators.maxNotesLength) {
       _notes.text = link;
     }
     final path = result.imagePath;
@@ -387,6 +421,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
       notes: _notes.text,
       isFavorite: _isFavorite,
       newImagePath: _newImagePath,
+      extraPhotos: List.of(_extraPhotos),
     );
 
     setState(() => _saving = true);
@@ -532,6 +567,14 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: AppSpacing.lg),
+                    ExtraPhotosField(
+                      photos: _extraPhotos,
+                      existingItem: _existing,
+                      onAdd: _addExtraPhoto,
+                      onRemove: (i) => _update(() => _extraPhotos.removeAt(i)),
+                      onChangeKind: _changeExtraPhotoKind,
+                    ),
                     const SizedBox(height: AppSpacing.xl),
                     TextFormField(
                       controller: _name,
