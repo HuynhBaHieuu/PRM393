@@ -1,6 +1,7 @@
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/season.dart';
 
@@ -14,6 +15,8 @@ class OutfitDraft {
     this.notes,
     this.isFavorite = false,
     this.layout = const [],
+    this.background = BoardBackground.plain,
+    this.stickers = const [],
     this.newPhotoPath,
     this.keepsPhoto = false,
   });
@@ -25,6 +28,8 @@ class OutfitDraft {
   final String? notes;
   final bool isFavorite;
   final List<OutfitPlacement> layout;
+  final BoardBackground background;
+  final List<OutfitSticker> stickers;
 
   /// A just-taken outfit selfie (a temporary file) to store with the outfit.
   final String? newPhotoPath;

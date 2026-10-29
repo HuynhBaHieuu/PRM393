@@ -26,6 +26,7 @@ class ClothingItem {
     this.price,
     this.notes,
     this.materials = const [],
+    this.tags = const [],
     this.purchaseDate,
     this.isFavorite = false,
     this.isArchived = false,
@@ -69,6 +70,7 @@ class ClothingItem {
       price: price != null && price >= 0 ? price : null,
       notes: JsonReader.nonEmptyString(json, 'notes'),
       materials: JsonReader.stringList(json, 'materials').toSet().toList(),
+      tags: normalizeTags(JsonReader.stringList(json, 'tags')),
       purchaseDate: JsonReader.date(json, 'purchaseDate'),
       isFavorite: JsonReader.boolean(json, 'isFavorite'),
       isArchived: JsonReader.boolean(json, 'isArchived'),
@@ -107,6 +109,10 @@ class ClothingItem {
 
   /// Fabrics such as "Cotton" or "Denim", in the order they were added.
   final List<String> materials;
+
+  /// The user's own labels, such as "school" or "vintage", in the order they
+  /// were added. Never two that differ only in case.
+  final List<String> tags;
   final DateTime? purchaseDate;
   final bool isFavorite;
   final bool isArchived;
@@ -138,6 +144,7 @@ class ClothingItem {
     'price': price,
     'notes': notes,
     'materials': materials,
+    'tags': tags,
     'purchaseDate': purchaseDate?.toIso8601String(),
     'isFavorite': isFavorite,
     'isArchived': isArchived,
@@ -164,6 +171,7 @@ class ClothingItem {
     Object? price = _unset,
     Object? notes = _unset,
     List<String>? materials,
+    List<String>? tags,
     Object? purchaseDate = _unset,
     bool? isFavorite,
     bool? isArchived,
@@ -194,6 +202,7 @@ class ClothingItem {
       price: identical(price, _unset) ? this.price : price as double?,
       notes: identical(notes, _unset) ? this.notes : notes as String?,
       materials: materials ?? this.materials,
+      tags: tags == null ? this.tags : normalizeTags(tags),
       purchaseDate: identical(purchaseDate, _unset)
           ? this.purchaseDate
           : purchaseDate as DateTime?,
@@ -222,6 +231,16 @@ class ClothingItem {
         if (ClothingPhoto.tryFromJson(entry) case final photo?
             when seen.add(photo.path))
           photo,
+    ];
+  }
+
+  /// Trims [tags] and drops blanks and case-insensitive repeats, keeping
+  /// the first spelling.
+  static List<String> normalizeTags(Iterable<String> tags) {
+    final seen = <String>{};
+    return [
+      for (final tag in tags.map((t) => t.trim()))
+        if (tag.isNotEmpty && seen.add(tag.toLowerCase())) tag,
     ];
   }
 

@@ -37,6 +37,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       query: _query,
       brands: wardrobe.brands,
       materials: wardrobe.materials,
+      tags: wardrobe.tags,
     );
     if (result != null) _setQuery(result);
   }

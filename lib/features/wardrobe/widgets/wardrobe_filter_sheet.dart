@@ -18,13 +18,18 @@ Future<WardrobeQuery?> showWardrobeFilterSheet(
   required WardrobeQuery query,
   required List<String> brands,
   required List<String> materials,
+  required List<String> tags,
 }) {
   return showModalBottomSheet<WardrobeQuery>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) =>
-        WardrobeFilterSheet(query: query, brands: brands, materials: materials),
+    builder: (_) => WardrobeFilterSheet(
+      query: query,
+      brands: brands,
+      materials: materials,
+      tags: tags,
+    ),
   );
 }
 
@@ -34,11 +39,13 @@ class WardrobeFilterSheet extends StatefulWidget {
     required this.query,
     required this.brands,
     required this.materials,
+    required this.tags,
   });
 
   final WardrobeQuery query;
   final List<String> brands;
   final List<String> materials;
+  final List<String> tags;
 
   @override
   State<WardrobeFilterSheet> createState() => _WardrobeFilterSheetState();
@@ -74,7 +81,7 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
     }
   }
 
-  /// Brands and materials are stored lower-cased; [names] keeps their casing.
+  /// Brands, materials and tags are stored lower-cased; [names] keeps their casing.
   Future<Set<String>?> _pickNames(List<String> names, Set<String> keys) async {
     final result = await showMultiSelectSheet<String>(
       context,
@@ -104,6 +111,17 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
     final result = await _pickNames(widget.materials, _query.materials);
     if (result != null) {
       setState(() => _query = _query.copyWith(materials: result));
+    }
+  }
+
+  Future<void> _pickTags() async {
+    if (widget.tags.isEmpty) {
+      context.showSnack('Add tags to a piece to filter by them.');
+      return;
+    }
+    final result = await _pickNames(widget.tags, _query.tags);
+    if (result != null) {
+      setState(() => _query = _query.copyWith(tags: result));
     }
   }
 
@@ -182,6 +200,16 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
             ),
           ),
           onTap: _pickMaterials,
+        ),
+        const OptionSheetLabel('Tags'),
+        SelectFieldButton(
+          placeholder: 'Select tags',
+          value: _summary(
+            widget.tags
+                .where((t) => _query.tags.contains(t.toLowerCase()))
+                .map((t) => '#$t'),
+          ),
+          onTap: _pickTags,
         ),
         const OptionSheetLabel('Name'),
         TextField(

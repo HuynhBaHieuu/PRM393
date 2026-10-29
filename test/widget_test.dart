@@ -927,4 +927,17 @@ class _FakeSocialAuth implements AuthRepository {
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  bool get passwordResetNeedsCode => true;
+
+  @override
+  Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String newPassword,
+    String? code,
+  }) async {}
 }

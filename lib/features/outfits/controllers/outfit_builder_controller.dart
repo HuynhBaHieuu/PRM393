@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
+import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/models/season.dart';
@@ -18,11 +21,15 @@ class OutfitBuilderController extends ChangeNotifier {
     required this._lookup,
     Outfit? initial,
     List<String> initialItemIds = const [],
-  }) : editingId = initial?.id,
+    IdGenerator idGenerator = const UuidIdGenerator(),
+  }) : _ids = idGenerator,
+       editingId = initial?.id,
        _occasion = initial?.occasion,
        _seasons = {...?initial?.seasons},
        _isFavorite = initial?.isFavorite ?? false,
-       _layout = initial?.layout ?? const [] {
+       _layout = initial?.layout ?? const [],
+       _background = initial?.background ?? BoardBackground.plain,
+       _stickers = initial?.stickers ?? const [] {
     final ids = initial?.itemIds ?? initialItemIds;
     if (initial != null) {
       // Keep the saved order; drop pieces that were deleted since.
@@ -32,7 +39,12 @@ class OutfitBuilderController extends ChangeNotifier {
     }
   }
 
+  /// Default size of a new sticker, as a fraction of the board's width.
+  static const double stickerWidth = 0.22;
+  static const double hairWidth = 0.3;
+
   final ItemLookup _lookup;
+  final IdGenerator _ids;
 
   /// Id of the outfit being edited, or null when creating a new one.
   final String? editingId;
@@ -42,6 +54,9 @@ class OutfitBuilderController extends ChangeNotifier {
   final Set<Season> _seasons;
   bool _isFavorite;
   List<OutfitPlacement> _layout;
+  BoardBackground _background;
+  List<OutfitSticker> _stickers;
+  String? _selectedStickerId;
 
   bool get isEditing => editingId != null;
   List<String> get itemIds => List.unmodifiable(_itemIds);
@@ -52,6 +67,14 @@ class OutfitBuilderController extends ChangeNotifier {
 
   /// Where pieces sit on the canvas; empty until the user moves one.
   List<OutfitPlacement> get layout => _layout;
+
+  BoardBackground get background => _background;
+
+  /// Emoji and hairstyles on the board, back to front.
+  List<OutfitSticker> get stickers => _stickers;
+
+  /// The sticker touched last, which "Remove" acts on.
+  String? get selectedStickerId => _selectedStickerId;
 
   bool contains(String id) => _itemIds.contains(id);
 
@@ -124,6 +147,62 @@ class OutfitBuilderController extends ChangeNotifier {
   /// Puts every piece back in its default spot.
   void resetLayout() => setLayout(const []);
 
+  void setBackground(BoardBackground background) {
+    _background = background;
+    notifyListeners();
+  }
+
+  /// Adds an emoji sticker in the middle of the board and selects it.
+  void addEmojiSticker(String emoji) =>
+      _addSticker((p) => OutfitSticker(placement: p, emoji: emoji), 0.5, 0.5);
+
+  /// Adds a hairstyle at the top of the board and selects it.
+  void addHair(Hairstyle style, HairColor color) => _addSticker(
+    (p) => OutfitSticker(placement: p, hairstyle: style, hairColor: color),
+    0.5,
+    0.12,
+    width: hairWidth,
+  );
+
+  void setStickers(List<OutfitSticker> stickers) {
+    _stickers = List.unmodifiable(stickers);
+    notifyListeners();
+  }
+
+  /// Null clears the selection.
+  void selectSticker(String? id) {
+    if (_selectedStickerId == id) return;
+    _selectedStickerId = id;
+    notifyListeners();
+  }
+
+  void removeSelectedSticker() {
+    final id = _selectedStickerId;
+    if (id == null) return;
+    _selectedStickerId = null;
+    setStickers(_stickers.where((s) => s.id != id).toList());
+  }
+
+  void _addSticker(
+    OutfitSticker Function(OutfitPlacement placement) create,
+    double x,
+    double y, {
+    double width = stickerWidth,
+  }) {
+    // Square on the board, whose height is width / aspect.
+    final sticker = create(
+      OutfitPlacement(
+        itemId: _ids.next(),
+        x: x,
+        y: y,
+        width: width,
+        height: width * AppSizes.outfitImageAspect,
+      ),
+    );
+    _selectedStickerId = sticker.id;
+    setStickers([..._stickers, sticker]);
+  }
+
   OutfitDraft buildDraft({
     required String name,
     required String fallbackName,
@@ -140,6 +219,8 @@ class OutfitBuilderController extends ChangeNotifier {
       notes: notes,
       isFavorite: _isFavorite,
       layout: _layout.where((p) => _itemIds.contains(p.itemId)).toList(),
+      background: _background,
+      stickers: _stickers,
       newPhotoPath: newPhotoPath,
       keepsPhoto: keepsPhoto,
     );

@@ -12,10 +12,12 @@ import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_builder_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
+import 'package:all_fits/features/outfits/widgets/board_decorations.dart';
 import 'package:all_fits/features/outfits/widgets/builder_widgets.dart';
 import 'package:all_fits/features/outfits/widgets/item_picker_sheet.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
@@ -351,6 +353,11 @@ class _Preview extends StatelessWidget {
                 items: items,
                 layout: builder.layout,
                 onChanged: builder.setLayout,
+                background: builder.background,
+                stickers: builder.stickers,
+                onStickersChanged: builder.setStickers,
+                selectedStickerId: builder.selectedStickerId,
+                onStickerSelected: builder.selectSticker,
               ),
             ),
     );
@@ -379,9 +386,79 @@ class _Preview extends StatelessWidget {
                   ),
                 ],
               ),
+            if (items.isNotEmpty) _BoardTools(builder: builder),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Decorates the collage: stickers, a hairstyle and the background colour.
+class _BoardTools extends StatelessWidget {
+  const _BoardTools({required this.builder});
+
+  final OutfitBuilderController builder;
+
+  Future<void> _addSticker(BuildContext context) async {
+    final emoji = await showStickerPicker(context);
+    if (emoji != null) builder.addEmojiSticker(emoji);
+  }
+
+  Future<void> _addHair(BuildContext context) async {
+    final picked = await showHairPicker(context);
+    if (picked != null) builder.addHair(picked.$1, picked.$2);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final hasSelection = builder.selectedStickerId != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.xs,
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _addSticker(context),
+              icon: const Icon(Icons.emoji_emotions_outlined),
+              label: const Text('Sticker'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => _addHair(context),
+              icon: const Icon(Icons.face_retouching_natural_outlined),
+              label: const Text('Hair'),
+            ),
+            if (hasSelection)
+              TextButton.icon(
+                onPressed: builder.removeSelectedSticker,
+                style: TextButton.styleFrom(foregroundColor: palette.danger),
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Remove'),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text('Background', style: context.textTheme.bodySmall),
+        const SizedBox(height: AppSpacing.xxs),
+        SizedBox(
+          height: BoardColorDot.size + 8,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final background in BoardBackground.values)
+                BoardColorDot(
+                  color: background.color ?? palette.surface,
+                  label: background.label,
+                  selected: background == builder.background,
+                  onTap: () => builder.setBackground(background),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

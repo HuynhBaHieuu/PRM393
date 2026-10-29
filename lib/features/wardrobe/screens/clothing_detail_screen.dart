@@ -26,6 +26,7 @@ import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
+import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
@@ -197,6 +198,52 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
       if (typed != null && typed.isNotEmpty) materials.add(typed);
     }
     await _patch((i) => i.copyWith(materials: materials));
+  }
+
+  /// Picks from the tags already in the closet, or adds a new one. A new tag
+  /// needs room in the plan; reusing one never does.
+  Future<void> _pickTags(ClothingItem item) async {
+    const other = '+ New tag';
+    // The piece's own spelling first, so its tags show as selected even when
+    // another piece spells one differently.
+    final options = ClothingItem.normalizeTags([
+      ...item.tags,
+      ..._wardrobe.tags,
+    ]);
+    final picked = await showMultiSelectSheet<String>(
+      context,
+      title: 'Tags',
+      options: [...options, other],
+      selected: item.tags.toSet(),
+      labelOf: (t) => t == other ? t : '#$t',
+    );
+    if (picked == null || !mounted) return;
+    final tags = [
+      for (final t in options)
+        if (picked.contains(t)) t,
+    ];
+    if (picked.contains(other)) {
+      final typed = (await showTextInputDialog(
+        context,
+        title: 'New tag',
+        hint: 'e.g. school, vintage, to wash',
+        maxLength: Validators.maxTagLength,
+      ))?.trim().replaceFirst(RegExp(r'^#+'), '');
+      if (!mounted) return;
+      if (typed != null && typed.isNotEmpty) {
+        final existing = options
+            .where((t) => t.toLowerCase() == typed.toLowerCase())
+            .firstOrNull;
+        if (existing != null) {
+          tags.add(existing);
+        } else if (PremiumFlows.canAddTag(context)) {
+          tags.add(typed);
+        } else {
+          await PremiumFlows.showTagLimit(context);
+        }
+      }
+    }
+    await _patch((i) => i.copyWith(tags: tags));
   }
 
   Future<void> _pickSeasons(ClothingItem item) async {
@@ -716,6 +763,14 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                                   .join('  '),
                         placeholder: 'Add season',
                         onTap: () => _pickSeasons(item),
+                      ),
+                      DetailRow(
+                        icon: Icons.sell_outlined,
+                        label: item.tags.isEmpty
+                            ? null
+                            : item.tags.map((t) => '#$t').join('  '),
+                        placeholder: 'Add tags',
+                        onTap: () => _pickTags(item),
                       ),
                     ],
                   ),

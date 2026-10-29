@@ -203,6 +203,50 @@ void main() {
       );
       expect(user.email, testEmail);
     });
+
+    test('resets a forgotten password without signing in', () async {
+      final user = await repo.register(
+        displayName: 'A',
+        email: testEmail,
+        password: testPassword,
+      );
+      await repo.signOut();
+      expect(repo.passwordResetNeedsCode, isFalse);
+
+      await repo.requestPasswordReset(testEmail.toUpperCase());
+      await repo.resetPassword(email: testEmail, newPassword: 'newpass456');
+
+      expect(await repo.currentUser(), isNull);
+      await expectLater(
+        repo.signIn(email: testEmail, password: testPassword),
+        throwsA(isA<AuthException>()),
+      );
+      final signedIn = await repo.signIn(
+        email: testEmail,
+        password: 'newpass456',
+      );
+      expect(signedIn.id, user.id);
+    });
+
+    test('password reset rejects unknown emails and weak passwords', () async {
+      await expectLater(
+        repo.requestPasswordReset('nobody@example.com'),
+        throwsA(isA<AuthException>()),
+      );
+      await repo.register(
+        displayName: 'A',
+        email: testEmail,
+        password: testPassword,
+      );
+      await expectLater(
+        repo.resetPassword(email: testEmail, newPassword: 'short1'),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        (await repo.signIn(email: testEmail, password: testPassword)).email,
+        testEmail,
+      );
+    });
   });
 
   group('per-user data', () {

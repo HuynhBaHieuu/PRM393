@@ -38,6 +38,10 @@ Log out is under **Profile** and **Settings → Account**.
   are stored under its own key prefix (`user.<id>.`).
 - **Existing data:** data created before accounts existed is moved to the
   first account registered on the device.
+- **Forgot password:** **Log in → Forgot password?** With Supabase it emails
+  a code (see *Password reset email* below); on the device the user picks a
+  new password straight away, since a device-only account has no mailbox to
+  prove.
 - **Going online later:** implement `AuthRepository` (for example with
   Firebase Auth) and swap it in `AppDependencies`. The UI doesn't change.
 
@@ -49,6 +53,10 @@ Plan**) compares the plans and upgrades or cancels.
 - **Free:** up to 30 clothing items (archived ones count); everything else
   except the AI Stylist.
 - **Premium:** unlimited items and the AI Stylist.
+- **Custom tags:** labels such as "school" or "vintage" on a piece's detail
+  screen, to filter, search and group the wardrobe by. Free has
+  `AppConfig.freeTagLimit` (5) different tags, Premium has no limit. After
+  Premium ends, existing tags keep working; only new ones are blocked.
 - **Checkout is simulated:** upgrading asks for confirmation and takes no
   payment. The plan is stored with the account's settings. To sell it for
   real, replace `SettingsController.startPremium` with Google Play Billing.
@@ -86,6 +94,17 @@ when it is not (tests always run on device).
   "SUPABASE_URL": "https://xxxx.supabase.co",
   "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
 }
+```
+
+### Password reset email
+
+**Forgot password?** sends a code, not a link. In **Authentication → Emails →
+Reset Password**, put `{{ .Token }}` in the template (the default one only has
+a link), for example:
+
+```html
+<h2>Reset your All Fits password</h2>
+<p>Your code is <strong>{{ .Token }}</strong>. It expires in an hour.</p>
 ```
 
 ### Google login

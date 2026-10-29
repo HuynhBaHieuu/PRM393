@@ -4,6 +4,7 @@ abstract final class Validators {
   /// Clothing names run longer: shops name pieces like "Áo Thun Cổ Tròn
   /// FlexFit™ Vải Single Co Giãn In Typography Phom Vừa F3 - The Weekend".
   static const int maxItemNameLength = 120;
+  static const int maxTagLength = 24;
   static const int maxNotesLength = 500;
   static const int maxLinkLength = 2000;
   static const double maxPrice = 10000000;
