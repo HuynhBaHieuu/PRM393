@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
@@ -48,6 +49,11 @@ class _PlannerScreenState extends State<PlannerScreen>
       appBar: AppBar(
         title: const Text('Planner'),
         actions: [
+          IconButton(
+            tooltip: 'Trips',
+            icon: const Icon(Icons.luggage_outlined),
+            onPressed: () => AppNavigator.trips(context),
+          ),
           FilledButton(
             onPressed: () => _goTo(_today),
             style: FilledButton.styleFrom(

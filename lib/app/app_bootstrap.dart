@@ -38,6 +38,7 @@ class AppBootstrap {
       outfits.load(),
       planner.load(),
       collections.load(),
+      ?closet.trips?.load(),
     ]);
     if (settings.displayName.isEmpty && settings.username.isEmpty) {
       // A new account starts with the name and handle given at sign-up.
