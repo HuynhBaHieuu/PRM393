@@ -95,6 +95,8 @@ class OutfitController extends ChangeNotifier {
       notes: draft.notes.trimmedOrNull,
       isFavorite: draft.isFavorite,
       layout: draft.layout,
+      background: draft.background,
+      stickers: draft.stickers,
       photoPath: photoRef,
       createdAt: now,
       updatedAt: now,
@@ -120,6 +122,8 @@ class OutfitController extends ChangeNotifier {
       notes: draft.notes.trimmedOrNull,
       isFavorite: draft.isFavorite,
       layout: draft.layout,
+      background: draft.background,
+      stickers: draft.stickers,
       photoPath: photoRef ?? (draft.keepsPhoto ? existing.photoPath : null),
       updatedAt: _clock(),
     );
@@ -159,6 +163,8 @@ class OutfitController extends ChangeNotifier {
       seasons: source.seasons,
       notes: source.notes,
       layout: source.layout,
+      background: source.background,
+      stickers: source.stickers,
       // The copy needs its own stored file, so deleting one keeps the other.
       photoPath: photo == null ? null : await _copyPhoto(photo),
       createdAt: now,

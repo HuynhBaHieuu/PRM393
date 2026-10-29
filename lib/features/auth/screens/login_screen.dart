@@ -7,6 +7,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
 import 'package:all_fits/features/auth/controllers/auth_controller.dart';
+import 'package:all_fits/features/auth/screens/forgot_password_screen.dart';
 import 'package:all_fits/features/auth/screens/register_screen.dart';
 import 'package:all_fits/features/auth/widgets/auth_widgets.dart';
 
@@ -94,6 +95,19 @@ class _LoginScreenState extends State<LoginScreen> {
     context.showSnack('Account created. Log in to continue.');
   }
 
+  Future<void> _openForgotPassword() async {
+    final email = await Navigator.of(context).push(
+      MaterialPageRoute<String>(
+        builder: (_) => ForgotPasswordScreen(initialEmail: _email.text.trim()),
+      ),
+    );
+    if (email == null || !mounted) return;
+    setState(() => _error = null);
+    _email.text = email;
+    _password.clear();
+    context.showSnack('Password changed. Log in with your new password.');
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -124,10 +138,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 validator: Validators.requiredPassword,
                 onSubmitted: (_) => _submit(),
               ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _busy ? null : _openForgotPassword,
+                  child: const Text('Forgot password?'),
+                ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.sm),
         if (error != null) ...[
           AuthErrorBanner(message: error),
           const SizedBox(height: AppSpacing.md),

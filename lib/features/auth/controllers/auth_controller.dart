@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
 import 'package:all_fits/core/errors/app_exceptions.dart';
+import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
 
@@ -80,6 +81,26 @@ class AuthController extends ChangeNotifier {
 
   Future<void> signIn({required String email, required String password}) async {
     _signedIn(await _repository.signIn(email: email, password: password));
+  }
+
+  bool get passwordResetNeedsCode => _repository.passwordResetNeedsCode;
+
+  Future<void> requestPasswordReset(String email) =>
+      _repository.requestPasswordReset(email);
+
+  /// Sets the new password and leaves the user signed out, so they log in
+  /// with it next (as after [register]).
+  Future<void> resetPassword({
+    required String email,
+    required String newPassword,
+    String? code,
+  }) async {
+    await _repository.resetPassword(
+      email: email,
+      newPassword: newPassword,
+      code: code,
+    );
+    _lastEmail = Validators.normalizeEmail(email);
   }
 
   /// Opens [provider] in the browser. The app signs in when it comes back.

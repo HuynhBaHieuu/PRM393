@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/occasion.dart';
+import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/season.dart';
 
@@ -21,6 +22,8 @@ class Outfit {
     this.wearCount = 0,
     this.lastWornAt,
     this.layout = const [],
+    this.background = BoardBackground.plain,
+    this.stickers = const [],
     this.photoPath,
     this.sortIndex,
   });
@@ -48,6 +51,13 @@ class Outfit {
         if (json['layout'] case final List<dynamic> raw)
           ...raw.map(OutfitPlacement.tryFromJson).whereType<OutfitPlacement>(),
       ],
+      background:
+          JsonReader.enumValue(BoardBackground.values, json['background']) ??
+          BoardBackground.plain,
+      stickers: [
+        if (json['stickers'] case final List<dynamic> raw)
+          ...raw.map(OutfitSticker.tryFromJson).whereType<OutfitSticker>(),
+      ],
       photoPath: JsonReader.nonEmptyString(json, 'photoPath'),
       sortIndex: json['sortIndex'] is int ? json['sortIndex'] as int : null,
       createdAt: createdAt,
@@ -71,6 +81,12 @@ class Outfit {
   /// without an entry get a default spot when shown.
   final List<OutfitPlacement> layout;
 
+  /// The collage's backdrop colour.
+  final BoardBackground background;
+
+  /// Emoji and hairstyles on the collage, back to front, over the pieces.
+  final List<OutfitSticker> stickers;
+
   /// An outfit selfie: a photo of the user wearing it, stored like a
   /// clothing photo. Shown instead of the collage when set.
   final String? photoPath;
@@ -91,6 +107,8 @@ class Outfit {
     'wearCount': wearCount,
     'lastWornAt': lastWornAt?.toIso8601String(),
     'layout': layout.map((p) => p.toJson()).toList(),
+    'background': background.name,
+    'stickers': stickers.map((s) => s.toJson()).toList(),
     'photoPath': photoPath,
     'sortIndex': sortIndex,
     'createdAt': createdAt.toIso8601String(),
@@ -107,6 +125,8 @@ class Outfit {
     int? wearCount,
     Object? lastWornAt = _unset,
     List<OutfitPlacement>? layout,
+    BoardBackground? background,
+    List<OutfitSticker>? stickers,
     Object? photoPath = _unset,
     Object? sortIndex = _unset,
     DateTime? updatedAt,
@@ -126,6 +146,8 @@ class Outfit {
           ? this.lastWornAt
           : lastWornAt as DateTime?,
       layout: layout ?? this.layout,
+      background: background ?? this.background,
+      stickers: stickers ?? this.stickers,
       photoPath: identical(photoPath, _unset)
           ? this.photoPath
           : photoPath as String?,

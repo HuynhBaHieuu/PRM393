@@ -73,6 +73,9 @@ abstract final class AppConfig {
   /// Collections a Free account can create; Premium has no limit.
   static const int freeCollectionLimit = 3;
 
+  /// Distinct custom tags a Free account can use; Premium has no limit.
+  static const int freeTagLimit = 5;
+
   /// AI Stylist messages a Free account can send per day; Premium has no
   /// limit.
   static const int freeStylistMessagesPerDay = 3;

@@ -21,6 +21,16 @@ enum SubscriptionPlan {
   /// Most collections the plan can hold, or null for no limit.
   int? get collectionLimit => isPremium ? null : AppConfig.freeCollectionLimit;
 
+  /// Most distinct custom tags the plan can use, or null for no limit.
+  int? get tagLimit => isPremium ? null : AppConfig.freeTagLimit;
+
+  /// Whether [tagCount] distinct tags leave room for a new one. After
+  /// Premium ends, existing tags keep working; only new ones are blocked.
+  bool canAddTag(int tagCount) {
+    final limit = tagLimit;
+    return limit == null || tagCount < limit;
+  }
+
   /// Whether a wardrobe of [itemCount] pieces has room for one more.
   bool canAddItem(int itemCount) {
     final limit = wardrobeLimit;

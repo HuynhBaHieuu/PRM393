@@ -1,5 +1,6 @@
 abstract final class Validators {
   static const int maxNameLength = 60;
+  static const int maxTagLength = 24;
   static const int maxNotesLength = 500;
   static const int maxLinkLength = 2000;
   static const double maxPrice = 10000000;

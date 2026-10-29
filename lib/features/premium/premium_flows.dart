@@ -38,6 +38,23 @@ abstract final class PremiumFlows {
     );
   }
 
+  /// Whether the user's plan has room for another distinct tag.
+  static bool canAddTag(BuildContext context) {
+    final plan = context.read<SettingsController>().plan;
+    return plan.canAddTag(context.read<WardrobeController>().tags.length);
+  }
+
+  /// Explains the Free tag limit and offers Premium.
+  static Future<void> showTagLimit(BuildContext context) => _showLimit(
+    context,
+    title: 'Tag limit reached',
+    message:
+        'The Free plan has '
+        '${AppFormatters.count(AppConfig.freeTagLimit, 'custom tag')}. '
+        'Your tags keep working; go Premium to create more, or reuse one '
+        'you already have.',
+  );
+
   /// Explains the Free wardrobe limit and offers Premium.
   static Future<void> showWardrobeLimit(BuildContext context) => _showLimit(
     context,

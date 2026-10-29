@@ -324,6 +324,51 @@ class SupabaseAuthRepository implements AuthRepository {
         return _toAppUser(state.session!.user);
       });
 
+  @override
+  bool get passwordResetNeedsCode => true;
+
+  /// Needs `{{ .Token }}` in the Supabase "Reset Password" email template;
+  /// the default template only has a link.
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    final normalizedEmail = Validators.normalizeEmail(email);
+    final error = Validators.email(normalizedEmail);
+    if (error != null) throw ValidationException(error);
+    await _guard(() => _auth.resetPasswordForEmail(normalizedEmail));
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String newPassword,
+    String? code,
+  }) async {
+    final error = Validators.newPassword(newPassword);
+    if (error != null) throw ValidationException(error);
+    final token = code?.trim() ?? '';
+    if (token.isEmpty) {
+      throw const ValidationException('Enter the code we emailed you');
+    }
+
+    _awaitingOAuth = false;
+    // The code signs the user in; sign out again either way so they log in
+    // with the new password, and a failed update never leaves a session.
+    try {
+      await _guard(
+        () => _auth.verifyOTP(
+          type: sb.OtpType.recovery,
+          email: Validators.normalizeEmail(email),
+          token: token,
+        ),
+      );
+      await _guard(
+        () => _auth.updateUser(sb.UserAttributes(password: newPassword)),
+      );
+    } finally {
+      if (_auth.currentSession != null) await _guard(_auth.signOut);
+    }
+  }
+
   Future<R> _guard<R>(Future<R> Function() request) async {
     try {
       return await request();
@@ -333,6 +378,10 @@ class SupabaseAuthRepository implements AuthRepository {
         'invalid_credentials' => 'Incorrect email or password.',
         'user_already_exists' => 'An account with this email already exists.',
         'email_not_confirmed' => 'Confirm your email first, then sign in.',
+        'otp_expired' => 'That code is wrong or has expired.',
+        'same_password' => 'Choose a password different from your old one.',
+        'over_email_send_rate_limit' =>
+          'Too many emails. Wait a minute and try again.',
         _ => error.message,
       });
     }

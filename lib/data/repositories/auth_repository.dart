@@ -49,6 +49,21 @@ abstract interface class AuthRepository {
 
   /// Users signed in by a browser flow such as [signInWith].
   Stream<AppUser> get externalSignIns;
+
+  /// Whether [resetPassword] needs the code [requestPasswordReset] emails.
+  /// Device-only accounts have no mailbox to prove, so they reset directly.
+  bool get passwordResetNeedsCode;
+
+  /// Starts a password reset for [email]: emails a code when
+  /// [passwordResetNeedsCode], otherwise checks the account exists.
+  Future<void> requestPasswordReset(String email);
+
+  /// Sets a new password. The user stays signed out and logs in with it.
+  Future<void> resetPassword({
+    required String email,
+    required String newPassword,
+    String? code,
+  });
 }
 
 class LocalAuthRepository implements AuthRepository {
@@ -161,6 +176,39 @@ class LocalAuthRepository implements AuthRepository {
 
   @override
   Stream<AppUser> get externalSignIns => const Stream.empty();
+
+  @override
+  bool get passwordResetNeedsCode => false;
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    final normalizedEmail = Validators.normalizeEmail(email);
+    final error = Validators.email(normalizedEmail);
+    if (error != null) throw ValidationException(error);
+    if (await _findByEmail(normalizedEmail) == null) {
+      throw const AuthException('No account with this email on this device.');
+    }
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String newPassword,
+    String? code,
+  }) async {
+    final error = Validators.newPassword(newPassword);
+    if (error != null) throw ValidationException(error);
+    final account = await _findByEmail(Validators.normalizeEmail(email));
+    if (account == null) {
+      throw const AuthException('No account with this email on this device.');
+    }
+    await _accounts.upsertAll([
+      UserAccount(
+        user: account.user,
+        password: await _hasher.hash(newPassword),
+      ),
+    ]);
+  }
 
   Future<UserAccount?> _findByEmail(String normalizedEmail) async {
     final accounts = await _accounts.readAll();

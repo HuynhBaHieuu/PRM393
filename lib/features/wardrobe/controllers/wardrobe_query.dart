@@ -16,12 +16,13 @@ enum WardrobeSort {
   final String label;
 }
 
-/// Fits' "Group items by" options. Tags come with the custom tags feature.
+/// Fits' "Group items by" options.
 enum WardrobeGroup {
   none('None'),
   categories('Categories'),
   season('Season'),
-  colors('Colors');
+  colors('Colors'),
+  tags('Tags');
 
   const WardrobeGroup(this.label);
 
@@ -52,6 +53,7 @@ class WardrobeQuery {
     this.seasons = const {},
     this.brands = const {},
     this.materials = const {},
+    this.tags = const {},
     this.usage = ItemUsage.all,
     this.favoritesOnly = false,
     this.showArchived = false,
@@ -75,6 +77,9 @@ class WardrobeQuery {
 
   /// Lower-cased material names.
   final Set<String> materials;
+
+  /// Lower-cased tags; a piece matches when it has any of them.
+  final Set<String> tags;
   final ItemUsage usage;
   final bool favoritesOnly;
 
@@ -90,6 +95,7 @@ class WardrobeQuery {
       seasons.length +
       brands.length +
       materials.length +
+      tags.length +
       (searchText.trim().isEmpty ? 0 : 1) +
       (usage == ItemUsage.all ? 0 : 1) +
       (favoritesOnly ? 1 : 0) +
@@ -105,6 +111,7 @@ class WardrobeQuery {
     Set<Season>? seasons,
     Set<String>? brands,
     Set<String>? materials,
+    Set<String>? tags,
     ItemUsage? usage,
     bool? favoritesOnly,
     bool? showArchived,
@@ -121,6 +128,7 @@ class WardrobeQuery {
       seasons: seasons ?? this.seasons,
       brands: brands ?? this.brands,
       materials: materials ?? this.materials,
+      tags: tags ?? this.tags,
       usage: usage ?? this.usage,
       favoritesOnly: favoritesOnly ?? this.favoritesOnly,
       showArchived: showArchived ?? this.showArchived,
@@ -160,6 +168,10 @@ class WardrobeQuery {
       }
       if (materials.isNotEmpty &&
           !item.materials.any((m) => materials.contains(m.toLowerCase()))) {
+        return false;
+      }
+      if (tags.isNotEmpty &&
+          !item.tags.any((t) => tags.contains(t.toLowerCase()))) {
         return false;
       }
       switch (usage) {
@@ -210,6 +222,23 @@ class WardrobeQuery {
           (s) => '${s.emoji} ${s.label}',
           other: 'No season',
         );
+      case WardrobeGroup.tags:
+        // Tags are free text: group by their lower-cased form, labelled with
+        // the first spelling seen, alphabetically.
+        final labels = <String, String>{};
+        for (final item in items) {
+          for (final tag in item.tags) {
+            labels.putIfAbsent(tag.toLowerCase(), () => tag);
+          }
+        }
+        final keys = labels.keys.toList()..sort();
+        return _groups(
+          items,
+          keys,
+          (item) => [for (final t in item.tags) t.toLowerCase()],
+          (key) => '#${labels[key]}',
+          other: 'No tags',
+        );
     }
   }
 
@@ -236,9 +265,11 @@ class WardrobeQuery {
     ];
   }
 
-  /// Matches name, brand, category, subcategory and color. [query] must be lower-case.
+  /// Matches name, brand, category, subcategory, color and tags. [query]
+  /// must be lower-case.
   static bool matchesSearch(ClothingItem item, String query) {
     final fields = [
+      ...item.tags,
       item.name,
       item.brand ?? '',
       item.category.label,

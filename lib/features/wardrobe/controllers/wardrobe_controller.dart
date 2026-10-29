@@ -250,6 +250,19 @@ class WardrobeController extends ChangeNotifier {
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 
+  /// Distinct tags on every piece, archived ones included (they still count
+  /// toward the Free limit), sorted alphabetically.
+  List<String> get tags {
+    final names = <String, String>{};
+    for (final item in _all) {
+      for (final tag in item.tags) {
+        names.putIfAbsent(tag.toLowerCase(), () => tag);
+      }
+    }
+    return names.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
   Future<void> toggleFavorite(String id) async {
     final item = _require(id);
     await _commit([

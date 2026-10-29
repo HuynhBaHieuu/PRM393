@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 
@@ -303,6 +305,76 @@ void main() {
         'Blue',
         'No color',
       ]);
+    });
+
+    test('filters, searches and groups by custom tags', () {
+      final tagged = [
+        items[0].copyWith(tags: ['School', 'vintage']),
+        items[1].copyWith(tags: ['school']),
+        items[3],
+      ];
+      List<String> tagNames(WardrobeQuery q) =>
+          q.apply(tagged).map((i) => i.name).toList();
+      expect(tagNames(const WardrobeQuery(tags: {'school'})), [
+        'Blue Jeans',
+        'White Tee',
+      ]);
+      expect(tagNames(const WardrobeQuery(tags: {'vintage'})), ['White Tee']);
+      expect(tagNames(const WardrobeQuery(searchText: 'vint')), ['White Tee']);
+      expect(const WardrobeQuery(tags: {'school'}).sheetFilterCount, 1);
+
+      const byTag = WardrobeQuery(groupBy: WardrobeGroup.tags);
+      final groups = byTag.group(byTag.apply(tagged));
+      expect(groups.map((g) => g.$1), ['#school', '#vintage', 'No tags']);
+      expect(groups.first.$2.map((i) => i.name), ['Blue Jeans', 'White Tee']);
+    });
+  });
+
+  group('custom tags', () {
+    test('are trimmed, deduplicated ignoring case and saved', () {
+      final item = ClothingItem(
+        id: 'a',
+        name: 'Tee',
+        category: ClothingCategory.tops,
+        createdAt: testNow,
+        updatedAt: testNow,
+      ).copyWith(tags: [' School ', 'school', '', 'Vintage']);
+      expect(item.tags, ['School', 'Vintage']);
+      expect(ClothingItem.fromJson(item.toJson()).tags, ['School', 'Vintage']);
+      expect(ClothingItem.fromJson({'id': 'b', 'name': 'Old'}).tags, isEmpty);
+    });
+
+    test('Free allows a limited number of distinct tags', () {
+      const limit = AppConfig.freeTagLimit;
+      expect(SubscriptionPlan.free.canAddTag(limit - 1), isTrue);
+      expect(SubscriptionPlan.free.canAddTag(limit), isFalse);
+      expect(SubscriptionPlan.premium.canAddTag(limit * 10), isTrue);
+    });
+
+    test('the closet lists distinct tags, archived pieces included', () async {
+      final tee = await closet.wardrobe.addItem(
+        const ClothingDraft(
+          name: 'Tee',
+          category: ClothingCategory.tops,
+          newImagePath: '/tmp/tee.jpg',
+        ),
+      );
+      final coat = await closet.wardrobe.addItem(
+        const ClothingDraft(
+          name: 'Coat',
+          category: ClothingCategory.outerwear,
+          newImagePath: '/tmp/coat.jpg',
+        ),
+      );
+      await closet.wardrobe.patchItem(
+        tee.id,
+        (i) => i.copyWith(tags: ['vintage', 'School']),
+      );
+      await closet.wardrobe.patchItem(
+        coat.id,
+        (i) => i.copyWith(tags: ['school', 'Winter'], isArchived: true),
+      );
+      expect(closet.wardrobe.tags, ['School', 'vintage', 'Winter']);
     });
   });
 }

@@ -38,6 +38,7 @@ class _ClothesSelectScreenState extends State<ClothesSelectScreen> {
       query: _query,
       brands: wardrobe.brands,
       materials: wardrobe.materials,
+      tags: wardrobe.tags,
     );
     if (result != null) setState(() => _query = result);
   }

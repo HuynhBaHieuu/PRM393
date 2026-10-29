@@ -34,6 +34,8 @@ class OutfitCover extends StatelessWidget {
         layout: worn && outfit.layout.isEmpty
             ? OutfitLayout.worn(items)
             : outfit.layout,
+        background: outfit.background,
+        stickers: outfit.stickers,
       );
     }
     return OutfitPhoto(reference: photo);
