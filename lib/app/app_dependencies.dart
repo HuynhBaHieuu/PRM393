@@ -16,6 +16,7 @@ import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/local/password_hasher.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
+import 'package:all_fits/data/remote/product_link_service.dart';
 import 'package:all_fits/data/remote/supabase_backend.dart';
 import 'package:all_fits/data/remote/weather_service.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
@@ -43,6 +44,7 @@ class AppDependencies {
     this.seedSampleData = AppConfig.seedSampleDataOnFirstLaunch,
     this.aiStylist = const AiStylistService(apiKey: ''),
     this.weather = const OpenMeteoWeatherService(),
+    this.productLinks = const WebProductLinkService(),
     this.reminders = const NoReminderService(),
     this.supabase,
     PayOSCheckout? payments,
@@ -111,6 +113,7 @@ class AppDependencies {
   final bool seedSampleData;
   final AiStylistService aiStylist;
   final WeatherService weather;
+  final ProductLinkService productLinks;
   final ReminderService reminders;
   final SupabaseClient? supabase;
 

@@ -1,5 +1,9 @@
 abstract final class Validators {
   static const int maxNameLength = 60;
+
+  /// Clothing names run longer: shops name pieces like "Áo Thun Cổ Tròn
+  /// FlexFit™ Vải Single Co Giãn In Typography Phom Vừa F3 - The Weekend".
+  static const int maxItemNameLength = 120;
   static const int maxNotesLength = 500;
   static const int maxLinkLength = 2000;
   static const double maxPrice = 10000000;
@@ -47,12 +51,14 @@ abstract final class Validators {
     return value == password ? null : 'Passwords don’t match';
   }
 
-  static String? requiredName(String? value, {String subject = 'a name'}) {
+  static String? requiredName(
+    String? value, {
+    String subject = 'a name',
+    int max = maxNameLength,
+  }) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'Please enter $subject';
-    if (text.length > maxNameLength) {
-      return 'Keep it under $maxNameLength characters';
-    }
+    if (text.length > max) return 'Keep it under $max characters';
     return null;
   }
 
