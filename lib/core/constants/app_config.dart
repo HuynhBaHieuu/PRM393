@@ -119,6 +119,9 @@ abstract final class AppConfig {
   /// Images larger than this are rejected before being copied.
   static const int maxImageBytes = 25 * 1024 * 1024;
 
+  /// Photos a piece can have besides its main one (back, label, …).
+  static const int maxExtraPhotos = 8;
+
   /// How far ahead/behind the planner date pickers allow.
   static const int plannerRangeDays = 365 * 2;
 }

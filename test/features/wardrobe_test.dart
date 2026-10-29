@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
@@ -101,6 +103,137 @@ void main() {
     expect(updated.name, 'Tee v2');
     expect(updated.imagePath, isNot(oldImage));
     expect(closet.images.deleted, [oldImage]);
+  });
+
+  group('extra photos', () {
+    test('are stored with the new piece', () async {
+      final item = await closet.wardrobe.addItem(
+        const ClothingDraft(
+          name: 'Tee',
+          category: ClothingCategory.tops,
+          newImagePath: '/tmp/front.jpg',
+          extraPhotos: [
+            ExtraPhotoDraft.picked('/tmp/back.jpg', PhotoKind.back),
+            ExtraPhotoDraft.picked('/tmp/tag.jpg', PhotoKind.tag),
+          ],
+        ),
+      );
+      expect(item.imagePath, closet.images.saved[0]);
+      expect(item.extraPhotos, [
+        ClothingPhoto(path: closet.images.saved[1], kind: PhotoKind.back),
+        ClothingPhoto(path: closet.images.saved[2], kind: PhotoKind.tag),
+      ]);
+    });
+
+    test('a failed save removes every copied photo', () async {
+      closet.storage.failWrites = true;
+      await expectLater(
+        closet.wardrobe.addItem(
+          const ClothingDraft(
+            name: 'Tee',
+            category: ClothingCategory.tops,
+            newImagePath: '/tmp/front.jpg',
+            extraPhotos: [
+              ExtraPhotoDraft.picked('/tmp/back.jpg', PhotoKind.back),
+            ],
+          ),
+        ),
+        throwsA(isA<StorageException>()),
+      );
+      expect(closet.images.saved, hasLength(2));
+      expect(closet.images.deleted, closet.images.saved);
+    });
+
+    test('editing keeps, adds and drops extra photos', () async {
+      final id = await closet.addItem('Tee', ClothingCategory.tops);
+      await closet.wardrobe.addExtraPhoto(id, '/tmp/back.jpg', PhotoKind.back);
+      await closet.wardrobe.addExtraPhoto(id, '/tmp/tag.jpg', PhotoKind.tag);
+      final before = closet.wardrobe.itemById(id)!;
+      final back = before.extraPhotos[0].path;
+      final tag = before.extraPhotos[1].path;
+
+      await closet.wardrobe.updateItem(
+        id,
+        ClothingDraft(
+          name: 'Tee',
+          category: ClothingCategory.tops,
+          extraPhotos: [
+            ExtraPhotoDraft.saved(back, PhotoKind.detail),
+            const ExtraPhotoDraft.picked('/tmp/new.jpg', PhotoKind.other),
+          ],
+        ),
+      );
+      final after = closet.wardrobe.itemById(id)!;
+      expect(after.imagePath, before.imagePath);
+      expect(after.extraPhotos.map((p) => p.kind), [
+        PhotoKind.detail,
+        PhotoKind.other,
+      ]);
+      expect(after.extraPhotos.first.path, back);
+      expect(closet.images.deleted, [tag]);
+    });
+
+    test('a new main photo keeps the extra photos', () async {
+      final id = await closet.addItem('Tee', ClothingCategory.tops);
+      await closet.wardrobe.addExtraPhoto(id, '/tmp/back.jpg', PhotoKind.back);
+      final oldMain = closet.wardrobe.itemById(id)!.imagePath;
+      await closet.wardrobe.replacePhoto(id, '/tmp/new.jpg');
+      expect(closet.images.deleted, [oldMain]);
+      expect(closet.wardrobe.itemById(id)!.extraPhotos, hasLength(1));
+    });
+
+    test('can be relabelled and removed', () async {
+      final id = await closet.addItem('Tee', ClothingCategory.tops);
+      await closet.wardrobe.addExtraPhoto(id, '/tmp/x.jpg', PhotoKind.other);
+      final photo = closet.wardrobe.itemById(id)!.extraPhotos.single.path;
+
+      await closet.wardrobe.setExtraPhotoKind(id, photo, PhotoKind.detail);
+      expect(
+        closet.wardrobe.itemById(id)!.extraPhotos.single.kind,
+        PhotoKind.detail,
+      );
+
+      await closet.wardrobe.removeExtraPhoto(id, photo);
+      expect(closet.wardrobe.itemById(id)!.extraPhotos, isEmpty);
+      expect(closet.images.deleted, [photo]);
+    });
+
+    test('swap places with the main photo', () async {
+      final id = await closet.addItem('Tee', ClothingCategory.tops);
+      await closet.wardrobe.addExtraPhoto(id, '/tmp/back.jpg', PhotoKind.back);
+      final before = closet.wardrobe.itemById(id)!;
+      final back = before.extraPhotos.single.path;
+
+      await closet.wardrobe.makeMainPhoto(id, back);
+      final after = closet.wardrobe.itemById(id)!;
+      expect(after.imagePath, back);
+      expect(after.extraPhotos, [
+        ClothingPhoto(path: before.imagePath!, kind: PhotoKind.front),
+      ]);
+      expect(closet.images.deleted, isEmpty);
+    });
+
+    test('are limited per piece', () async {
+      final id = await closet.addItem('Tee', ClothingCategory.tops);
+      for (var i = 0; i < AppConfig.maxExtraPhotos; i++) {
+        await closet.wardrobe.addExtraPhoto(id, '/tmp/$i.jpg', PhotoKind.other);
+      }
+      await expectLater(
+        closet.wardrobe.addExtraPhoto(id, '/tmp/more.jpg', PhotoKind.other),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('are deleted with the piece', () async {
+      final id = await closet.addItem('Tee', ClothingCategory.tops);
+      await closet.wardrobe.addExtraPhoto(id, '/tmp/back.jpg', PhotoKind.back);
+      final item = closet.wardrobe.itemById(id)!;
+      await closet.closet.deleteItemPermanently(id);
+      expect(closet.images.deleted, [
+        item.imagePath,
+        item.extraPhotos.single.path,
+      ]);
+    });
   });
 
   group('deleting clothing', () {

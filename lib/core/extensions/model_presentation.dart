@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/models/weather.dart';
@@ -16,6 +17,16 @@ extension ClothingCategoryPresentation on ClothingCategory {
     ClothingCategory.bags => Icons.shopping_bag_outlined,
     ClothingCategory.accessories => Icons.watch_outlined,
     ClothingCategory.other => Icons.category_outlined,
+  };
+}
+
+extension PhotoKindPresentation on PhotoKind {
+  IconData get icon => switch (this) {
+    PhotoKind.front => Icons.checkroom_outlined,
+    PhotoKind.back => Icons.flip_outlined,
+    PhotoKind.detail => Icons.zoom_in_rounded,
+    PhotoKind.tag => Icons.sell_outlined,
+    PhotoKind.other => Icons.photo_outlined,
   };
 }
 

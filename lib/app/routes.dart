@@ -32,6 +32,7 @@ import 'package:all_fits/features/try_on/screens/try_on_screen.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
+import 'package:all_fits/features/wardrobe/screens/clothing_photos_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_form_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothes_select_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
@@ -40,6 +41,7 @@ abstract final class AppRoutes {
   static const String addClothing = '/clothing/new';
   static const String editClothing = '/clothing/edit';
   static const String clothingDetail = '/clothing/detail';
+  static const String clothingPhotos = '/clothing/photos';
   static const String outfitBuilder = '/outfits/builder';
   static const String outfitPick = '/outfits/new';
   static const String planner = '/planner';
@@ -88,6 +90,11 @@ abstract final class AppRoutes {
       ),
       AppRoutes.clothingDetail when args is ClothingDetailArgs =>
         ClothingDetailScreen(itemId: args.itemId, siblings: args.siblings),
+      AppRoutes.clothingPhotos when args is ClothingPhotosArgs =>
+        ClothingPhotosScreen(
+          itemId: args.itemId,
+          initialIndex: args.initialIndex,
+        ),
       AppRoutes.selectClothes => ClothesSelectScreen(
         query: args is WardrobeQuery ? args : const WardrobeQuery(),
       ),
@@ -198,6 +205,15 @@ abstract final class AppNavigator {
   }) => Navigator.of(context).pushNamed(
     AppRoutes.clothingDetail,
     arguments: ClothingDetailArgs(itemId, siblings: siblings),
+  );
+
+  static Future<void> clothingPhotos(
+    BuildContext context,
+    String itemId, {
+    int initialIndex = 0,
+  }) => Navigator.of(context).pushNamed(
+    AppRoutes.clothingPhotos,
+    arguments: ClothingPhotosArgs(itemId, initialIndex: initialIndex),
   );
 
   static Future<void> selectClothes(
