@@ -10,6 +10,7 @@ abstract final class StorageKeys {
 
   // Per-user; added after accounts, so never part of the legacy migration.
   static const String collections = 'collections.v1';
+  static const String trips = 'trips.v1';
 
   // Per-user, always kept on the device, even with Supabase.
   static const String stylistChats = 'stylist.chats.v1';

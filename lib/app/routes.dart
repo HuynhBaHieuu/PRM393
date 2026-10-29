@@ -23,6 +23,8 @@ import 'package:all_fits/features/social/screens/style_outfit_screen.dart';
 import 'package:all_fits/features/social/screens/styled_together_screen.dart';
 import 'package:all_fits/features/social/screens/user_profile_screen.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
+import 'package:all_fits/features/trips/screens/trip_detail_screen.dart';
+import 'package:all_fits/features/trips/screens/trips_screen.dart';
 import 'package:all_fits/data/models/try_on.dart';
 import 'package:all_fits/features/try_on/screens/try_on_clothes_screen.dart';
 import 'package:all_fits/features/try_on/screens/try_on_profile_screen.dart';
@@ -48,6 +50,8 @@ abstract final class AppRoutes {
   static const String outfitDetail = '/outfits/detail';
   static const String swipeOutfit = '/outfits/swipe';
   static const String collectionDetail = '/collections/detail';
+  static const String trips = '/trips';
+  static const String tripDetail = '/trips/detail';
   static const String insights = '/insights';
   static const String favorites = '/favorites';
   static const String archived = '/archived';
@@ -108,6 +112,10 @@ abstract final class AppRoutes {
       ),
       AppRoutes.collectionDetail when args is String => CollectionDetailScreen(
         collectionId: args,
+      ),
+      AppRoutes.trips => const TripsScreen(),
+      AppRoutes.tripDetail when args is String => TripDetailScreen(
+        tripId: args,
       ),
       AppRoutes.insights => const InsightsScreen(),
       AppRoutes.favorites => const FavoritesScreen(),
@@ -269,6 +277,12 @@ abstract final class AppNavigator {
   ) =>
       Navigator.of(context)
           .pushNamed(AppRoutes.collectionDetail, arguments: collectionId);
+
+  static Future<void> trips(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.trips);
+
+  static Future<void> tripDetail(BuildContext context, String tripId) =>
+      Navigator.of(context).pushNamed(AppRoutes.tripDetail, arguments: tripId);
 
   static Future<void> insights(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.insights);

@@ -25,11 +25,13 @@ import 'package:all_fits/data/repositories/collection_repository.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
 import 'package:all_fits/data/repositories/social_repository.dart';
+import 'package:all_fits/data/repositories/trip_repository.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/collection.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/outfit_calendar_entry.dart';
+import 'package:all_fits/data/models/trip.dart';
 
 /// Composition root for services and repositories. With [supabase] set,
 /// accounts and per-user data live on the server; otherwise on the device.
@@ -166,6 +168,9 @@ class AppDependencies {
             (c) => c.id,
           ),
         ),
+        trips: LocalTripRepository.fromStore(
+          store('trips', Trip.fromJson, (t) => t.toJson(), (t) => t.id),
+        ),
         settings: SupabaseSettingsRepository(client, userId),
         social: SupabaseSocialRepository(client, userId),
       );
@@ -176,6 +181,7 @@ class AppDependencies {
       outfits: LocalOutfitRepository(scoped),
       calendar: LocalCalendarRepository(scoped),
       collections: LocalCollectionRepository(scoped),
+      trips: LocalTripRepository(scoped),
       settings: LocalSettingsRepository(scoped),
     );
   }
@@ -207,6 +213,7 @@ class UserRepositories {
     required this.outfits,
     required this.calendar,
     required this.collections,
+    required this.trips,
     required this.settings,
     this.social,
   });
@@ -215,6 +222,7 @@ class UserRepositories {
   final OutfitRepository outfits;
   final CalendarRepository calendar;
   final CollectionRepository collections;
+  final TripRepository trips;
   final SettingsRepository settings;
 
   /// The community needs an online account; null when data stays on device.

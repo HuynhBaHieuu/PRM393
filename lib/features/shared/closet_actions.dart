@@ -6,6 +6,7 @@ import 'package:all_fits/data/sample/sample_data.dart';
 import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
+import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 enum WearResult { marked, alreadyWorn }
@@ -18,6 +19,7 @@ class ClosetActions {
     required this.outfits,
     required this.planner,
     required this.collections,
+    this.trips,
     IdGenerator idGenerator = const UuidIdGenerator(),
     this._clock = systemClock,
   }) : _ids = idGenerator;
@@ -26,6 +28,7 @@ class ClosetActions {
   final OutfitController outfits;
   final PlannerController planner;
   final CollectionController collections;
+  final TripController? trips;
   final IdGenerator _ids;
   final Clock _clock;
 
@@ -117,6 +120,7 @@ class ClosetActions {
   Future<void> deleteOutfit(String outfitId) async {
     await planner.removeEntriesForOutfit(outfitId);
     await collections.removeOutfitReferences([outfitId]);
+    await trips?.removeOutfitReferences([outfitId]);
     await outfits.deleteOutfit(outfitId);
   }
 
@@ -165,10 +169,12 @@ class ClosetActions {
       outfits.load(),
       planner.load(),
       collections.load(),
+      ?trips?.load(),
     ]);
   }
 
   Future<void> eraseAllData() async {
+    await trips?.clearAll();
     await collections.clearAll();
     await planner.clearAll();
     await outfits.clearAll();

@@ -23,6 +23,7 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
+import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/data/models/try_on.dart';
@@ -54,6 +55,7 @@ class _UserSessionState extends State<UserSession> {
   late final OutfitController _outfits;
   late final PlannerController _planner;
   late final CollectionController _collections;
+  late final TripController _trips;
   late final WeatherController _weather;
   late final StylistStore _stylist;
   late final TryOnController _tryOn;
@@ -100,6 +102,11 @@ class _UserSessionState extends State<UserSession> {
       idGenerator: deps.idGenerator,
       clock: deps.clock,
     );
+    _trips = TripController(
+      repository: repositories.trips,
+      idGenerator: deps.idGenerator,
+      clock: deps.clock,
+    );
     _weather = WeatherController(service: deps.weather, clock: deps.clock);
     _stylist = StylistStore(
       storage: ScopedStorageService(
@@ -137,6 +144,7 @@ class _UserSessionState extends State<UserSession> {
       outfits: _outfits,
       planner: _planner,
       collections: _collections,
+      trips: _trips,
       idGenerator: deps.idGenerator,
       clock: deps.clock,
     );
@@ -170,6 +178,7 @@ class _UserSessionState extends State<UserSession> {
     _outfits.dispose();
     _planner.dispose();
     _collections.dispose();
+    _trips.dispose();
     _weather.dispose();
     _stylist.dispose();
     _tryOn.dispose();
@@ -229,6 +238,7 @@ class _UserSessionState extends State<UserSession> {
         ChangeNotifierProvider.value(value: _outfits),
         ChangeNotifierProvider.value(value: _planner),
         ChangeNotifierProvider.value(value: _collections),
+        ChangeNotifierProvider.value(value: _trips),
         ChangeNotifierProvider.value(value: _weather),
         ChangeNotifierProvider.value(value: _stylist),
         ChangeNotifierProvider.value(value: _tryOn),
