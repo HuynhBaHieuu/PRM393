@@ -269,6 +269,26 @@ class FakeWeatherService implements WeatherService {
   Future<WeatherLocation?> locate() async => null;
 
   @override
+  Future<List<DayForecast>> forecast(
+    WeatherLocation location, {
+    required DateTime start,
+    required DateTime end,
+  }) async => [
+    for (
+      var day = start;
+      !day.isAfter(end);
+      day = DateTime(day.year, day.month, day.day + 1)
+    )
+      DayForecast(
+        date: day,
+        high: temperature + 3,
+        low: temperature - 3,
+        condition: condition,
+        rainChance: 80,
+      ),
+  ];
+
+  @override
   Future<WeatherReport> today(WeatherLocation location) async => WeatherReport(
     location: location,
     temperature: temperature,

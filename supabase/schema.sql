@@ -222,14 +222,15 @@ as $$
 $$;
 
 -- What others see of a piece or an outfit. A whitelist, so new private fields stay private.
+-- Pieces added from a shop link (sourceUrl) are never shown: the photo is the shop's.
 create or replace function public.public_item(d jsonb) returns jsonb
 language sql immutable set search_path = ''
 as $$
-  select jsonb_strip_nulls(jsonb_build_object(
+  select case when nullif(d->>'sourceUrl', '') is not null then null else jsonb_strip_nulls(jsonb_build_object(
     'id', d->'id', 'name', d->'name', 'imagePath', d->'imagePath', 'cutoutPath', d->'cutoutPath',
     'category', d->'category', 'subcategory', d->'subcategory', 'color', d->'color',
     'seasons', d->'seasons', 'brand', d->'brand', 'createdAt', d->'createdAt',
-    'noStyling', d->'noStyling'))
+    'noStyling', d->'noStyling')) end
 $$;
 
 create or replace function public.public_outfit(d jsonb) returns jsonb
@@ -343,6 +344,7 @@ begin
       select jsonb_agg(public.public_item(c.data) order by c.data->>'createdAt' desc)
       from public.clothing_items c
       where c.user_id = p_user and coalesce((c.data->>'isArchived')::boolean, false) = false
+        and nullif(c.data->>'sourceUrl', '') is null
         and (p_user = auth.uid() or coalesce((c.data->>'hideInProfile')::boolean, false) = false)), '[]'),
     'outfits', coalesce((
       select jsonb_agg(public.public_outfit(o.data) order by o.data->>'createdAt' desc)
@@ -365,7 +367,8 @@ as $$
       'outfit', public.public_outfit(o.data),
       'items', (select coalesce(jsonb_agg(public.public_item(c.data)), '[]')
         from public.clothing_items c
-        where c.user_id = p.user_id and o.data->'itemIds' ? c.id)) as post
+        where c.user_id = p.user_id and o.data->'itemIds' ? c.id
+          and nullif(c.data->>'sourceUrl', '') is null)) as post
     from public.outfit_posts p
     join public.profiles pr on pr.user_id = p.user_id
     join public.outfits o on o.user_id = p.user_id and o.id = p.outfit_id
@@ -451,7 +454,8 @@ begin
   where c.user_id = p_recipient and c.id = any(p_item_ids)
     and coalesce((c.data->>'isArchived')::boolean, false) = false
     and coalesce((c.data->>'hideInProfile')::boolean, false) = false
-    and coalesce((c.data->>'noStyling')::boolean, false) = false;
+    and coalesce((c.data->>'noStyling')::boolean, false) = false
+    and nullif(c.data->>'sourceUrl', '') is null;
   if v_items is null then
     raise exception 'Pick at least one piece.';
   end if;

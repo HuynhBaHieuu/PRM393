@@ -17,8 +17,17 @@ class ProductPage {
     this.brand,
     this.price,
     this.currency,
-    this.imageUrl,
+    this.imageUrls = const [],
   });
+
+  /// A page that gave nothing, e.g. one that could not be read: only the
+  /// link is kept.
+  const ProductPage.empty(this.url)
+    : name = null,
+      brand = null,
+      price = null,
+      currency = null,
+      imageUrls = const [];
 
   final Uri url;
   final String? name;
@@ -27,14 +36,44 @@ class ProductPage {
 
   /// ISO code such as "VND" or "USD", when the page gives one.
   final String? currency;
-  final Uri? imageUrl;
+
+  /// The product's photos, the page's main one first.
+  final List<Uri> imageUrls;
+
+  Uri? get imageUrl => imageUrls.firstOrNull;
 
   bool get isEmpty =>
-      name == null && brand == null && price == null && imageUrl == null;
+      name == null && brand == null && price == null && imageUrls.isEmpty;
+
+  /// Whether the page's price is in the currency the user shows prices in
+  /// ([symbol], e.g. "₫" or "\$"). A page without a currency counts as a
+  /// match.
+  bool isPricedIn(String symbol) {
+    final code = currency;
+    if (code == null) return true;
+    final own = symbol.trim().toLowerCase();
+    return own == code.toLowerCase() ||
+        (_currencySymbols[code] ?? const <String>{}).contains(own);
+  }
+
+  static const Map<String, Set<String>> _currencySymbols = {
+    'VND': {'₫', 'đ', 'vnđ'},
+    'USD': {'\$', 'us\$'},
+    'EUR': {'€'},
+    'GBP': {'£'},
+    'JPY': {'¥', '円'},
+    'CNY': {'¥', '元', 'rmb'},
+    'KRW': {'₩'},
+    'THB': {'฿'},
+    'INR': {'₹'},
+    'SGD': {'s\$'},
+    'AUD': {'a\$'},
+  };
 }
 
-/// A [ProductPage] whose photo has been downloaded to [imagePath], a
-/// temporary file the clothing form imports like a picked photo.
+/// A [ProductPage] whose chosen photo has been downloaded to [imagePath],
+/// a temporary file the clothing form imports like a picked photo. An
+/// empty page means the user chose to fill the form in by hand.
 class ProductLinkResult {
   const ProductLinkResult({required this.page, this.imagePath});
 
@@ -44,8 +83,17 @@ class ProductLinkResult {
 
 abstract interface class ProductLinkService {
   /// Reads the product page at [link]. Throws [ProductLinkException] when
-  /// the link is not a web address or the page can't be read.
-  Future<ProductLinkResult> fetch(String link);
+  /// the link is not a web address or the page can't be read in time.
+  /// Completing [cancel] stops the request; its result is then ignored.
+  Future<ProductPage> read(String link, {Future<void>? cancel});
+
+  /// Downloads one of [page]'s photos to a temporary file. Returns null
+  /// when the photo can't be used; the page's details still can.
+  Future<String?> downloadImage(
+    ProductPage page,
+    Uri imageUrl, {
+    Future<void>? cancel,
+  });
 }
 
 /// Loads the page straight from the shop, as a browser would, and reads
@@ -59,7 +107,8 @@ abstract interface class ProductLinkService {
 class WebProductLinkService implements ProductLinkService {
   const WebProductLinkService();
 
-  static const Duration _timeout = Duration(seconds: 20);
+  /// Longest wait for the page, from asking to having read it.
+  static const Duration timeout = Duration(seconds: 15);
   static const int _maxPageBytes = 4 * 1024 * 1024;
   static const int _maxImageBytes = 15 * 1024 * 1024;
 
@@ -79,16 +128,22 @@ class WebProductLinkService implements ProductLinkService {
   };
 
   @override
-  Future<ProductLinkResult> fetch(String link) async {
+  Future<ProductPage> read(String link, {Future<void>? cancel}) async {
     final url = ProductPageParser.findUrl(link);
     if (url == null) {
       throw const ProductLinkException(
         'That doesn’t look like a link. Copy the product’s web address.',
       );
     }
-    final client = HttpClient()..userAgent = _userAgent;
+    final client = _client(cancel);
     try {
-      final (html, finalUrl) = await _getPage(client, url);
+      final (html, finalUrl) = await _getPage(client, url).timeout(
+        timeout,
+        onTimeout: () => throw const ProductLinkException(
+          'The shop took too long to answer. Try again, or add the photo '
+          'yourself.',
+        ),
+      );
       final page = ProductPageParser.parse(html, finalUrl);
       // Shops behind bot protection (Zara, Shopee…) answer apps with a
       // placeholder page that has no details, rather than an error.
@@ -99,23 +154,40 @@ class WebProductLinkService implements ProductLinkService {
           'your gallery instead.',
         );
       }
-      final imageUrl = page.imageUrl;
-      final imagePath = imageUrl == null
-          ? null
-          : await _downloadImage(client, imageUrl, referer: finalUrl);
-      return ProductLinkResult(page: page, imagePath: imagePath);
+      return page;
     } finally {
       client.close(force: true);
     }
   }
 
+  @override
+  Future<String?> downloadImage(
+    ProductPage page,
+    Uri imageUrl, {
+    Future<void>? cancel,
+  }) async {
+    final client = _client(cancel);
+    try {
+      return await _downloadImage(client, imageUrl, referer: page.url);
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Closing the client aborts whatever it is loading.
+  HttpClient _client(Future<void>? cancel) {
+    final client = HttpClient()..userAgent = _userAgent;
+    cancel?.then((_) => client.close(force: true));
+    return client;
+  }
+
   Future<(String, Uri)> _getPage(HttpClient client, Uri url) async {
     try {
-      final request = await client.getUrl(url).timeout(_timeout);
+      final request = await client.getUrl(url);
       request.headers
         ..set(HttpHeaders.acceptHeader, 'text/html,application/xhtml+xml')
         ..set(HttpHeaders.acceptLanguageHeader, 'vi-VN,vi;q=0.9,en;q=0.8');
-      final response = await request.close().timeout(_timeout);
+      final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         await response.drain<void>();
         throw ProductLinkException(switch (response.statusCode) {
@@ -151,11 +223,11 @@ class WebProductLinkService implements ProductLinkService {
     required Uri referer,
   }) async {
     try {
-      final request = await client.getUrl(url).timeout(_timeout);
+      final request = await client.getUrl(url).timeout(timeout);
       request.headers
         ..set(HttpHeaders.acceptHeader, 'image/webp,image/jpeg,image/png,*/*')
         ..set(HttpHeaders.refererHeader, referer.toString());
-      final response = await request.close().timeout(_timeout);
+      final response = await request.close().timeout(timeout);
       final type = response.headers.contentType?.mimeType.toLowerCase();
       final extension = _imageExtensions[type];
       if (response.statusCode != HttpStatus.ok || extension == null) {
@@ -179,7 +251,7 @@ class WebProductLinkService implements ProductLinkService {
     final done = Completer<List<int>>();
     late final StreamSubscription<List<int>> subscription;
     subscription = stream
-        .timeout(_timeout)
+        .timeout(timeout)
         .listen(
           (chunk) {
             builder.add(chunk);
@@ -203,6 +275,9 @@ class WebProductLinkService implements ProductLinkService {
 
 /// Pure parsing, kept apart from the network so it can be tested.
 abstract final class ProductPageParser {
+  /// Most photos offered to choose from.
+  static const int maxImages = 8;
+
   static final RegExp _urlPattern = RegExp(r'https?://[^\s<>"]+');
   static final RegExp _bareDomain = RegExp(
     r'^[a-z0-9-]+(\.[a-z0-9-]+)+(/\S*)?$',
@@ -289,12 +364,21 @@ abstract final class ProductPageParser {
             ? siteName
             : null);
 
-    final image =
-        _imageUrl(product?['image']) ??
-        _clean(meta['og:image:secure_url']) ??
-        _clean(meta['og:image']) ??
-        _clean(meta['twitter:image']) ??
-        _clean(meta['image']);
+    // Pages often list several photos (angles, colors): the product's own
+    // first, then the link-preview ones.
+    final images = <Uri>{};
+    for (final link in [
+      ..._imageUrls(product?['image']),
+      ..._metaAll(html, const {
+        'og:image:secure_url',
+        'og:image',
+        'twitter:image',
+        'image',
+      }),
+    ]) {
+      if (images.length == maxImages) break;
+      if (_resolve(pageUrl, link) case final image?) images.add(image);
+    }
 
     return ProductPage(
       url: pageUrl,
@@ -302,7 +386,7 @@ abstract final class ProductPageParser {
       brand: brand == null ? null : _limit(brand, Validators.maxNameLength),
       price: parsePrice(priceText, currency: currency),
       currency: currency?.toUpperCase(),
-      imageUrl: _resolve(pageUrl, image),
+      imageUrls: images.toList(),
     );
   }
 
@@ -337,11 +421,7 @@ abstract final class ProductPageParser {
   static Map<String, String> _readMeta(String html) {
     final found = <String, String>{};
     for (final tag in _metaTag.allMatches(html)) {
-      final attributes = <String, String>{};
-      for (final a in _attribute.allMatches(tag.group(0)!)) {
-        attributes[a.group(1)!.toLowerCase()] =
-            a.group(3) ?? a.group(4) ?? a.group(5) ?? '';
-      }
+      final attributes = _attributesOf(tag.group(0)!);
       final key =
           attributes['property'] ??
           attributes['name'] ??
@@ -352,6 +432,11 @@ abstract final class ProductPageParser {
     }
     return found;
   }
+
+  static Map<String, String> _attributesOf(String tag) => {
+    for (final a in _attribute.allMatches(tag))
+      a.group(1)!.toLowerCase(): a.group(3) ?? a.group(4) ?? a.group(5) ?? '',
+  };
 
   static Map<String, dynamic>? _findJsonLdProduct(String html) {
     for (final block in _jsonLd.allMatches(html)) {
@@ -422,11 +507,24 @@ abstract final class ProductPageParser {
     return _text(brand);
   }
 
-  static String? _imageUrl(Object? image) {
-    if (image is List) return image.isEmpty ? null : _imageUrl(image.first);
-    if (image is Map) return _text(image['url'] ?? image['contentUrl']);
-    return _text(image);
+  static List<String> _imageUrls(Object? image) {
+    if (image is List) return [for (final i in image) ..._imageUrls(i)];
+    final link = image is Map
+        ? _text(image['url'] ?? image['contentUrl'])
+        : _text(image);
+    return [?link];
   }
+
+  /// Every `<meta>` content for [keys], in page order; [_readMeta] keeps
+  /// only the first of each.
+  static List<String> _metaAll(String html, Set<String> keys) => [
+    for (final tag in _metaTag.allMatches(html))
+      if (_attributesOf(tag.group(0)!) case final a
+          when keys.contains(
+            (a['property'] ?? a['name'] ?? a['itemprop'])?.toLowerCase(),
+          ))
+        ?_clean(a['content']),
+  ];
 
   static Uri? _resolve(Uri page, String? link) {
     if (link == null) return null;

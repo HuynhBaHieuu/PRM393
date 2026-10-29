@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
+import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/weather.dart';
 
@@ -11,6 +13,14 @@ abstract interface class WeatherService {
   Future<WeatherLocation?> findCity(String name);
 
   Future<WeatherReport> today(WeatherLocation location);
+
+  /// Each day's forecast from [start] to [end]. Days in the past or past
+  /// the forecast range ([AppConfig.forecastDays]) are left out.
+  Future<List<DayForecast>> forecast(
+    WeatherLocation location, {
+    required DateTime start,
+    required DateTime end,
+  });
 
   /// The city the device seems to be in, from its internet address; null
   /// when it can't be told.
@@ -89,6 +99,61 @@ class OpenMeteoWeatherService implements WeatherService {
         rainChance: rain is num ? rain.round().clamp(0, 100) : 0,
         fetchedAt: _clock(),
       );
+    } catch (_) {
+      throw const WeatherException(_unavailable);
+    }
+  }
+
+  @override
+  Future<List<DayForecast>> forecast(
+    WeatherLocation location, {
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final today = DateHelpers.dateOnly(_clock());
+    final last = DateHelpers.addDays(today, AppConfig.forecastDays - 1);
+    final first = start.isBefore(today) ? today : DateHelpers.dateOnly(start);
+    final until = end.isAfter(last) ? last : DateHelpers.dateOnly(end);
+    if (until.isBefore(first)) return const [];
+    final json = await _getJson(
+      Uri.https('api.open-meteo.com', '/v1/forecast', {
+        'latitude': '${location.latitude}',
+        'longitude': '${location.longitude}',
+        'daily':
+            'weather_code,temperature_2m_max,temperature_2m_min,'
+            'precipitation_probability_max',
+        'timezone': 'auto',
+        'start_date': DateHelpers.toKey(first),
+        'end_date': DateHelpers.toKey(until),
+      }),
+    );
+    try {
+      final daily = Map<String, dynamic>.from(json['daily'] as Map);
+      final dates = daily['time'] as List;
+      List<Object?> column(String key) => daily[key] as List;
+      final codes = column('weather_code');
+      final highs = column('temperature_2m_max');
+      final lows = column('temperature_2m_min');
+      final rain = column('precipitation_probability_max');
+      return [
+        for (var i = 0; i < dates.length; i++)
+          if ((DateHelpers.fromKey('${dates[i]}'), highs[i], lows[i]) case (
+            final date?,
+            final num high,
+            final num low,
+          ))
+            DayForecast(
+              date: date,
+              high: high.toDouble(),
+              low: low.toDouble(),
+              condition: WeatherCondition.fromCode(
+                codes[i] is num ? (codes[i]! as num).round() : 0,
+              ),
+              rainChance: rain[i] is num
+                  ? (rain[i]! as num).round().clamp(0, 100)
+                  : 0,
+            ),
+      ];
     } catch (_) {
       throw const WeatherException(_unavailable);
     }

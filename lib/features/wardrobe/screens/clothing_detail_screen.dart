@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_config.dart';
@@ -305,6 +306,14 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     );
     if (note == null) return;
     await _patch((i) => i.copyWith(notes: note.isEmpty ? null : note));
+  }
+
+  Future<void> _openShopPage(String link) async {
+    final url = Uri.tryParse(link.contains('://') ? link : 'https://$link');
+    if (url == null ||
+        !await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) context.showSnack('Could not open the shop page.');
+    }
   }
 
   Future<void> _editPhoto(ClothingItem item) async {
@@ -826,6 +835,18 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       ),
                     ],
                   ),
+                  if (item.sourceUrl case final link?) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    DetailGroup(
+                      children: [
+                        DetailRow(
+                          icon: Icons.storefront_outlined,
+                          label: 'Open shop page · ${_hostOf(link)}',
+                          onTap: () => _openShopPage(link),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.md),
                   DetailGroup(
                     children: [
@@ -925,6 +946,14 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
 }
 
 /// Round grey ‹ / › over the photo.
+/// "yame.vn" for "https://www.yame.vn/products/…".
+String _hostOf(String link) {
+  final host = Uri.tryParse(link.contains('://') ? link : 'https://$link')
+      ?.host;
+  if (host == null || host.isEmpty) return link;
+  return host.startsWith('www.') ? host.substring(4) : host;
+}
+
 class _StepButton extends StatelessWidget {
   const _StepButton({
     required this.icon,

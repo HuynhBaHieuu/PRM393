@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/extensions/model_presentation.dart';
+import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/data/models/trip.dart';
+import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
+import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/trips/packing_list.dart';
 import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/trips/trip_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 
 enum _TripMenu { edit, copy, untick, delete }
 
@@ -62,7 +68,8 @@ class TripDetailScreen extends StatelessWidget {
               Text(trip.name, maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(
                 '${AppFormatters.shortDate(trip.startDate)} – '
-                '${AppFormatters.shortDate(trip.endDate)}',
+                '${AppFormatters.shortDate(trip.endDate)}'
+                '${trip.location == null ? '' : ' · ${trip.location!.name}'}',
                 style: context.textTheme.bodySmall,
               ),
             ],
@@ -106,67 +113,260 @@ class TripDetailScreen extends StatelessWidget {
   }
 }
 
-class _DaysTab extends StatelessWidget {
+class _DaysTab extends StatefulWidget {
   const _DaysTab({required this.trip});
 
   final Trip trip;
 
   @override
+  State<_DaysTab> createState() => _DaysTabState();
+}
+
+class _DaysTabState extends State<_DaysTab> {
+  /// What [_forecast] was loaded for: the city and the dates.
+  (WeatherLocation, DateTime, DateTime)? _loadedFor;
+  Future<Map<DateTime, DayForecast>>? _forecast;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadForecast();
+  }
+
+  @override
+  void didUpdateWidget(_DaysTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadForecast();
+  }
+
+  void _loadForecast({bool force = false}) {
+    final trip = widget.trip;
+    final location = trip.location;
+    if (location == null) {
+      _loadedFor = null;
+      _forecast = null;
+      return;
+    }
+    final key = (location, trip.startDate, trip.endDate);
+    if (!force && key == _loadedFor) return;
+    _loadedFor = key;
+    _forecast = context
+        .read<WeatherController>()
+        .forecast(location, start: trip.startDate, end: trip.endDate)
+        .then((days) => {for (final d in days) d.date: d});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final trip = widget.trip;
     final outfits = context.watch<OutfitController>();
     final wardrobe = context.watch<WardrobeController>();
+    final today = context.read<ClosetActions>().today;
+    final lastForecastDay = DateHelpers.addDays(
+      today,
+      AppConfig.forecastDays - 1,
+    );
     final days = trip.days;
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      itemCount: days.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final day = days[index];
-        final outfitId = trip.outfitOn(day);
-        final outfit = outfitId == null ? null : outfits.outfitById(outfitId);
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.page,
-            vertical: AppSpacing.xxs,
+    return FutureBuilder<Map<DateTime, DayForecast>>(
+      future: _forecast,
+      builder: (context, snapshot) {
+        final forecast = snapshot.data ?? const <DateTime, DayForecast>{};
+        final loading =
+            _forecast != null &&
+            snapshot.connectionState != ConnectionState.done;
+        return ListView.separated(
+          padding: const EdgeInsets.only(
+            top: AppSpacing.sm,
+            bottom: AppSpacing.xxl,
           ),
-          leading: SizedBox(
-            width: 52,
-            height: 64,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: outfit == null
-                  ? ColoredBox(
-                      color: context.palette.surfaceMuted,
-                      child: Icon(
-                        Icons.add_rounded,
-                        color: context.palette.textSecondary,
+          itemCount: days.length + 1,
+          separatorBuilder: (_, index) =>
+              index == 0 ? const SizedBox.shrink() : const Divider(height: 1),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return _DaysHeader(
+                trip: trip,
+                weatherFailed: snapshot.hasError,
+                onRetryWeather: () =>
+                    setState(() => _loadForecast(force: true)),
+                onSuggest: loading
+                    ? null
+                    : () => TripFlows.suggestOutfits(
+                        context,
+                        trip,
+                        forecast: forecast,
                       ),
-                    )
-                  : OutfitCover(
-                      outfit: outfit,
-                      items: wardrobe.itemsByIds(outfit.itemIds),
-                    ),
-            ),
-          ),
-          title: Text(
-            'Day ${index + 1} · ${AppFormatters.weekdayName(day)}, '
-            '${AppFormatters.shortDate(day)}',
-          ),
-          subtitle: Text(
-            outfit?.name ?? 'Tap to choose an outfit',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: outfit == null
-              ? null
-              : IconButton(
-                  tooltip: 'Clear this day',
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => TripFlows.clearDay(context, trip, day),
+              );
+            }
+            final day = days[index - 1];
+            final outfitId = trip.outfitOn(day);
+            final outfit = outfitId == null
+                ? null
+                : outfits.outfitById(outfitId);
+            final weather = trip.location == null || day.isBefore(today)
+                ? null
+                : _DayWeather(
+                    forecast: forecast[day],
+                    loading: loading,
+                    tooFar: day.isAfter(lastForecastDay),
+                  );
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.page,
+                vertical: AppSpacing.xxs,
+              ),
+              leading: SizedBox(
+                width: 52,
+                height: 64,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: outfit == null
+                      ? ColoredBox(
+                          color: context.palette.surfaceMuted,
+                          child: Icon(
+                            Icons.add_rounded,
+                            color: context.palette.textSecondary,
+                          ),
+                        )
+                      : OutfitCover(
+                          outfit: outfit,
+                          items: wardrobe.itemsByIds(outfit.itemIds),
+                        ),
                 ),
-          onTap: () => TripFlows.chooseOutfit(context, trip, day),
+              ),
+              title: Text(
+                'Day $index · ${AppFormatters.weekdayName(day)}, '
+                '${AppFormatters.shortDate(day)}',
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    outfit?.name ?? 'Tap to choose an outfit',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  ?weather,
+                ],
+              ),
+              trailing: outfit == null
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear this day',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => TripFlows.clearDay(context, trip, day),
+                    ),
+              onTap: () => TripFlows.chooseOutfit(context, trip, day),
+            );
+          },
         );
       },
+    );
+  }
+}
+
+/// Where the trip's weather comes from, and the AI stylist button.
+class _DaysHeader extends StatelessWidget {
+  const _DaysHeader({
+    required this.trip,
+    required this.weatherFailed,
+    required this.onRetryWeather,
+    required this.onSuggest,
+  });
+
+  final Trip trip;
+  final bool weatherFailed;
+  final VoidCallback onRetryWeather;
+  final VoidCallback? onSuggest;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = context.textTheme;
+    final location = trip.location;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        AppSpacing.xs,
+        AppSpacing.page,
+        AppSpacing.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (location == null)
+            TextButton.icon(
+              onPressed: () => TripFlows.edit(context, trip),
+              style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+              icon: const Icon(Icons.wb_sunny_outlined),
+              label: const Text('Add a city to see each day’s weather'),
+            )
+          else if (weatherFailed)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Weather for ${location.name} is unavailable right now.',
+                    style: text.bodySmall,
+                  ),
+                ),
+                TextButton(
+                  onPressed: onRetryWeather,
+                  child: const Text('Retry'),
+                ),
+              ],
+            )
+          else
+            Text(
+              'Weather in ${location.label}. Forecasts reach '
+              '${AppConfig.forecastDays} days ahead.',
+              style: text.bodySmall,
+            ),
+          const SizedBox(height: AppSpacing.xs),
+          OutlinedButton.icon(
+            onPressed: onSuggest,
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: const Text('Suggest outfits with AI Stylist'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "☀ 28° / 20° · 10%", or why there is no forecast.
+class _DayWeather extends StatelessWidget {
+  const _DayWeather({
+    required this.forecast,
+    required this.loading,
+    required this.tooFar,
+  });
+
+  final DayForecast? forecast;
+  final bool loading;
+  final bool tooFar;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = context.textTheme.bodySmall;
+    final f = forecast;
+    if (f == null) {
+      if (loading) return const SizedBox.shrink();
+      return Text(tooFar ? 'No forecast yet' : 'No forecast', style: style);
+    }
+    return Row(
+      children: [
+        Icon(f.condition.icon, size: 14, color: style?.color),
+        const SizedBox(width: AppSpacing.xxs),
+        Flexible(
+          child: Text(
+            '${f.condition.label} · ${f.high.round()}° / ${f.low.round()}°'
+            '${f.rainChance >= 30 ? ' · ${f.rainChance}% rain' : ''}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -32,6 +32,7 @@ void main() {
       brand: 'North Thread',
       price: 98.5,
       notes: 'Roll the sleeves.',
+      sourceUrl: 'https://yame.vn/products/denim-jacket',
       isFavorite: true,
       isArchived: false,
       wearCount: 3,
@@ -55,6 +56,7 @@ void main() {
       expect(decoded.brand, item.brand);
       expect(decoded.price, item.price);
       expect(decoded.notes, item.notes);
+      expect(decoded.sourceUrl, item.sourceUrl);
       expect(decoded.isFavorite, isTrue);
       expect(decoded.isArchived, isFalse);
       expect(decoded.wearCount, 3);

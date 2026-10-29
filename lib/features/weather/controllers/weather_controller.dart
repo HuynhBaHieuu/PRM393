@@ -52,6 +52,13 @@ class WeatherController extends ChangeNotifier {
 
   Future<WeatherLocation?> findCity(String name) => _service.findCity(name);
 
+  /// Each day's forecast for [location]; see [WeatherService.forecast].
+  Future<List<DayForecast>> forecast(
+    WeatherLocation location, {
+    required DateTime start,
+    required DateTime end,
+  }) => _service.forecast(location, start: start, end: end);
+
   bool _locateTried = false;
 
   /// The device's city from its internet address, looked up once per

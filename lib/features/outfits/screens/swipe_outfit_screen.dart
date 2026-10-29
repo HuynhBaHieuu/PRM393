@@ -20,10 +20,17 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart'
 /// shoes by default) over a mannequin, then hands the picks to the outfit
 /// builder to name and save.
 class SwipeOutfitScreen extends StatefulWidget {
-  const SwipeOutfitScreen({super.key, this.initialItemIds = const []});
+  const SwipeOutfitScreen({
+    super.key,
+    this.initialItemIds = const [],
+    this.planDate,
+  });
 
   /// Pieces each row starts on, e.g. those picked in "Add outfit".
   final List<String> initialItemIds;
+
+  /// The day the new outfit is planned on, if any.
+  final DateTime? planDate;
 
   /// Rows from head to toe, each placed over its part of the mannequin:
   /// top and bottom edge, and the widest a piece may be, all as fractions
@@ -159,6 +166,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
       AppRoutes.outfitBuilder,
       arguments: OutfitBuilderArgs(
         initialItemIds: [for (final item in picks) item.id],
+        planDate: widget.planDate,
       ),
     );
     // The builder already switched to the Outfits tab; close the swiper too.
@@ -169,31 +177,37 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
           final visible = _visible(available.keys);
           return SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final MapEntry(key: slot, value: pieces)
-                    in available.entries)
-                  SwitchListTile(
-                    title: Text(slot.categories.first.label),
-                    subtitle: Text(
-                      '${pieces.length} ${pieces.length == 1 ? 'piece' : 'pieces'}',
+            top: false,
+            // Scrolls when a big closet has more rows than fit on screen.
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final MapEntry(key: slot, value: pieces)
+                      in available.entries)
+                    SwitchListTile(
+                      title: Text(slot.categories.first.label),
+                      subtitle: Text(
+                        '${pieces.length} ${pieces.length == 1 ? 'piece' : 'pieces'}',
+                      ),
+                      value: visible.contains(slot),
+                      // At least one row stays on.
+                      onChanged: visible.length == 1 && visible.contains(slot)
+                          ? null
+                          : (on) {
+                              _toggleRow(available.keys, slot, on);
+                              setSheetState(() {});
+                            },
                     ),
-                    value: visible.contains(slot),
-                    // At least one row stays on.
-                    onChanged: visible.length == 1 && visible.contains(slot)
-                        ? null
-                        : (on) {
-                            _toggleRow(available.keys, slot, on);
-                            setSheetState(() {});
-                          },
-                  ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+              ),
             ),
           );
         },

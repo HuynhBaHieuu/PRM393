@@ -6,6 +6,7 @@ import 'package:all_fits/core/utils/id_generator.dart';
 import 'package:all_fits/core/utils/load_status.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/trip.dart';
+import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/trip_repository.dart';
 
 /// Owns the user's trips. Trips only point at outfits; putting those
@@ -46,13 +47,36 @@ class TripController extends ChangeNotifier {
     }
   }
 
-  Future<Trip> createTrip(String name, DateTime start, DateTime end) async {
+  /// Trips that haven't ended yet, which the Free plan limits.
+  int get activeCount => _trips.where(isActive).length;
+
+  bool isActive(Trip trip) => !trip.isPast(_clock());
+
+  /// The trip that [day] is part of, if any; the earliest when several are.
+  Trip? tripOn(DateTime day) {
+    Trip? found;
+    for (final trip in _trips) {
+      if (trip.contains(day) &&
+          (found == null || trip.startDate.isBefore(found.startDate))) {
+        found = trip;
+      }
+    }
+    return found;
+  }
+
+  Future<Trip> createTrip(
+    String name,
+    DateTime start,
+    DateTime end, {
+    WeatherLocation? location,
+  }) async {
     final now = _clock();
     final trip = Trip(
       id: _ids.next(),
       name: _validName(name),
       startDate: start,
       endDate: end,
+      location: location,
       createdAt: now,
       updatedAt: now,
     );
@@ -68,6 +92,7 @@ class TripController extends ChangeNotifier {
     required String name,
     required DateTime start,
     required DateTime end,
+    WeatherLocation? location,
   }) async {
     final trip = _require(id);
     final first = DateHelpers.dateOnly(start);
@@ -77,6 +102,7 @@ class TripController extends ChangeNotifier {
       name: _validName(name),
       startDate: first,
       endDate: last,
+      location: location,
       outfitByDay: {
         for (final MapEntry(:key, :value) in trip.outfitByDay.entries)
           if (DateHelpers.fromKey(key) case final day?

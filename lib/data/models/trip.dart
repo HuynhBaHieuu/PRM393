@@ -1,5 +1,8 @@
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
+import 'package:all_fits/data/models/weather.dart';
+
+const Object _unset = Object();
 
 /// Something to pack that isn't in the wardrobe, e.g. "Phone charger".
 class PackingExtra {
@@ -49,6 +52,7 @@ class Trip {
     required DateTime endDate,
     required this.createdAt,
     required this.updatedAt,
+    this.location,
     this.outfitByDay = const {},
     this.packedItemIds = const [],
     this.extras = const [],
@@ -72,6 +76,7 @@ class Trip {
       name: JsonReader.nonEmptyString(json, 'name') ?? 'Untitled trip',
       startDate: start,
       endDate: end.isBefore(start) ? start : end,
+      location: WeatherLocation.tryFromJson(json['location']),
       outfitByDay: {
         if (days is Map)
           for (final MapEntry(:key, :value) in days.entries)
@@ -102,6 +107,9 @@ class Trip {
   /// First and last day, without a time.
   final DateTime startDate;
   final DateTime endDate;
+
+  /// The city the trip goes to, for its weather; null when not given.
+  final WeatherLocation? location;
 
   /// Outfit id by day key (`DateHelpers.toKey`). Days without an outfit
   /// are missing.
@@ -136,6 +144,7 @@ class Trip {
     'name': name,
     'startDate': DateHelpers.toKey(startDate),
     'endDate': DateHelpers.toKey(endDate),
+    'location': location?.toJson(),
     'outfitByDay': outfitByDay,
     'packedItemIds': packedItemIds,
     'extras': extras.map((e) => e.toJson()).toList(),
@@ -147,6 +156,7 @@ class Trip {
     String? name,
     DateTime? startDate,
     DateTime? endDate,
+    Object? location = _unset,
     Map<String, String>? outfitByDay,
     List<String>? packedItemIds,
     List<PackingExtra>? extras,
@@ -157,6 +167,9 @@ class Trip {
       name: name ?? this.name,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
+      location: identical(location, _unset)
+          ? this.location
+          : location as WeatherLocation?,
       outfitByDay: outfitByDay ?? this.outfitByDay,
       packedItemIds: packedItemIds ?? this.packedItemIds,
       extras: extras ?? this.extras,

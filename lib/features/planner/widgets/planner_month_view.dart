@@ -5,10 +5,12 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/core/utils/formatters.dart';
+import 'package:all_fits/data/models/trip.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/planner/widgets/planner_actions.dart';
+import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 /// Fits' Month tab: a Sunday-first grid where every day is a tile, showing
@@ -83,6 +85,12 @@ class _MonthPage extends StatelessWidget {
       for (var w = 0; w < DateHelpers.calendarWeeks; w++)
         if (!days[w * 7].isAfter(lastDay)) days.sublist(w * 7, w * 7 + 7),
     ];
+    // Room for trip bands only in months that have a trip.
+    final hasTrips = context.select<TripController, bool>(
+      (c) => c.trips.any(
+        (t) => !t.startDate.isAfter(lastDay) && !t.endDate.isBefore(month),
+      ),
+    );
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xs,
@@ -123,6 +131,7 @@ class _MonthPage extends StatelessWidget {
                       day: day,
                       inMonth: day.month == month.month,
                       isToday: DateHelpers.isSameDay(day, today),
+                      showTrips: hasTrips,
                       onOpenDay: onOpenDay,
                     ),
                   ),
@@ -140,15 +149,20 @@ class _DayCell extends StatelessWidget {
     required this.day,
     required this.inMonth,
     required this.isToday,
+    required this.showTrips,
     required this.onOpenDay,
   });
 
   final DateTime day;
   final bool inMonth;
   final bool isToday;
+
+  /// Leaves room for a trip band, so tiles line up across the week.
+  final bool showTrips;
   final ValueChanged<DateTime> onOpenDay;
 
   static const double _tileAspect = 0.58;
+  static const double _bandHeight = 14;
 
   @override
   Widget build(BuildContext context) {
@@ -184,10 +198,21 @@ class _DayCell extends StatelessWidget {
         ? const []
         : context.watch<WardrobeController>().itemsByIds(outfit.itemIds);
 
+    final trip = showTrips
+        ? context.select<TripController, Trip?>((c) => c.tripOn(day))
+        : null;
+
     return Column(
       children: [
         number,
         const SizedBox(height: AppSpacing.xxs),
+        if (showTrips) ...[
+          SizedBox(
+            height: _bandHeight,
+            child: trip == null ? null : _TripBand(trip: trip, day: day),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+        ],
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3),
           child: AspectRatio(
@@ -222,6 +247,51 @@ class _DayCell extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The part of a trip's band on [day]: rounded where the trip starts and
+/// ends, named where it starts and at the start of each week.
+class _TripBand extends StatelessWidget {
+  const _TripBand({required this.trip, required this.day});
+
+  final Trip trip;
+  final DateTime day;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final first = DateHelpers.isSameDay(day, trip.startDate);
+    final last = DateHelpers.isSameDay(day, trip.endDate);
+    const radius = Radius.circular(AppRadius.sm);
+    return Semantics(
+      label: first ? 'Trip ${trip.name} starts' : null,
+      child: Container(
+        margin: EdgeInsets.only(left: first ? 3 : 0, right: last ? 3 : 0),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          color: palette.ink,
+          borderRadius: BorderRadius.horizontal(
+            left: first ? radius : Radius.zero,
+            right: last ? radius : Radius.zero,
+          ),
+        ),
+        child: first || day.weekday == DateTime.sunday
+            ? Text(
+                trip.name,
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+                softWrap: false,
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: palette.onInk,
+                  fontSize: 9,
+                  height: 1,
+                ),
+              )
+            : null,
+      ),
     );
   }
 }

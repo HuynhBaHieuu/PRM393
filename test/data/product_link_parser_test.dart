@@ -147,6 +147,56 @@ void main() {
     });
   });
 
+  group('ProductPage photos and currency', () {
+    final page = Uri.parse('https://shop.example.com/p/linen-shirt');
+
+    test('offers every photo, the product’s own first, without repeats', () {
+      const html = '''
+<head>
+<meta property="og:image" content="https://shop.example.com/img/front.jpg">
+<meta property="og:image" content="/img/back.jpg">
+<meta name="twitter:image" content="https://shop.example.com/img/front.jpg">
+<script type="application/ld+json">
+{"@type":"Product","name":"Linen Shirt",
+ "image":["/img/main.jpg",{"url":"/img/side.jpg"}]}
+</script></head>''';
+      final result = ProductPageParser.parse(html, page);
+      expect(result.imageUrls.map((u) => u.path), [
+        '/img/main.jpg',
+        '/img/side.jpg',
+        '/img/front.jpg',
+        '/img/back.jpg',
+      ]);
+      expect(result.imageUrl!.path, '/img/main.jpg');
+    });
+
+    test('keeps at most ${ProductPageParser.maxImages} photos', () {
+      final tags = [
+        for (var i = 0; i < 12; i++)
+          '<meta property="og:image" content="/img/$i.jpg">',
+      ].join('\n');
+      final result = ProductPageParser.parse('<head>$tags</head>', page);
+      expect(result.imageUrls, hasLength(ProductPageParser.maxImages));
+    });
+
+    test('tells a foreign price from the user’s own currency', () {
+      ProductPage priced(String? currency) =>
+          ProductPage(url: page, price: 29.9, currency: currency);
+      expect(priced('VND').isPricedIn('₫'), isTrue);
+      expect(priced('VND').isPricedIn('VND'), isTrue);
+      expect(priced('USD').isPricedIn('\$'), isTrue);
+      expect(priced('USD').isPricedIn('₫'), isFalse);
+      expect(priced('EUR').isPricedIn('\$'), isFalse);
+      expect(priced(null).isPricedIn('₫'), isTrue);
+    });
+
+    test('an empty page keeps only the link', () {
+      final empty = ProductPage.empty(page);
+      expect(empty.isEmpty, isTrue);
+      expect(empty.url, page);
+    });
+  });
+
   group('ProductPageParser.parsePrice', () {
     test('reads common price formats', () {
       expect(ProductPageParser.parsePrice('499000'), 499000);

@@ -78,6 +78,26 @@ enum WeatherCondition {
       this == WeatherCondition.storm;
 }
 
+/// The forecast for one day. Temperatures are in °C.
+class DayForecast {
+  const DayForecast({
+    required this.date,
+    required this.high,
+    required this.low,
+    required this.condition,
+    required this.rainChance,
+  });
+
+  /// The day, without a time.
+  final DateTime date;
+  final double high;
+  final double low;
+  final WeatherCondition condition;
+
+  /// Highest chance of precipitation that day, 0-100.
+  final int rainChance;
+}
+
 /// Today's weather for one location. Temperatures are in °C.
 class WeatherReport {
   const WeatherReport({

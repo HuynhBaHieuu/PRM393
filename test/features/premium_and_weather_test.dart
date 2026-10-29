@@ -214,6 +214,7 @@ void main() {
     Future<void> create(WidgetTester tester, String option) async {
       await tap(tester, find.byTooltip('Create'));
       await tap(tester, find.text(option));
+      if (option == 'Add clothes') await tap(tester, find.text('From a photo'));
     }
 
     testWidgets('Free gets a few stylist messages a day, Premium unlimited', (

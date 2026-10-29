@@ -211,7 +211,7 @@ Future<void> _showCreateSheet(BuildContext context) {
               _CreateRow(
                 leading: const Icon(Icons.checkroom_outlined, size: 30),
                 label: 'Add clothes',
-                onTap: () => go(() => AppNavigator.addClothing(context)),
+                onTap: () => go(() => _showAddClothesSheet(context)),
               ),
               const SizedBox(height: AppSpacing.sm),
               _CreateRow(
@@ -230,6 +230,47 @@ Future<void> _showCreateSheet(BuildContext context) {
                 ),
                 label: 'Chat with AI stylist',
                 onTap: () => go(() => AppNavigator.stylist(context)),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// "Add clothes": from a photo, or from a shop's product link.
+Future<void> _showAddClothesSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) {
+      void go({required bool fromLink}) {
+        Navigator.of(sheetContext).pop();
+        AppNavigator.addClothing(context, fromLink: fromLink);
+      }
+
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            0,
+            AppSpacing.page,
+            AppSpacing.md,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CreateRow(
+                leading: const Icon(Icons.photo_camera_outlined, size: 30),
+                label: 'From a photo',
+                onTap: () => go(fromLink: false),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _CreateRow(
+                leading: const Icon(Icons.link_rounded, size: 30),
+                label: 'From a web link',
+                onTap: () => go(fromLink: true),
               ),
             ],
           ),

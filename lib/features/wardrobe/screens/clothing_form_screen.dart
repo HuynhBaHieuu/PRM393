@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
@@ -52,12 +53,20 @@ typedef _BeforeAi = ({
 
 /// Add a new clothing item, or edit one when [itemId] is given.
 class ClothingFormScreen extends StatefulWidget {
-  const ClothingFormScreen({super.key, this.itemId, this.initial});
+  const ClothingFormScreen({
+    super.key,
+    this.itemId,
+    this.initial,
+    this.fromLink = false,
+  });
 
   final String? itemId;
 
   /// Values to start a new item with, e.g. prefilled by another screen.
   final ClothingDraft? initial;
+
+  /// Opens "Add from a shop link" straight away.
+  final bool fromLink;
 
   @override
   State<ClothingFormScreen> createState() => _ClothingFormScreenState();
@@ -69,6 +78,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   late final TextEditingController _brand;
   late final TextEditingController _price;
   late final TextEditingController _notes;
+  late final TextEditingController _link;
 
   ClothingItem? _existing;
   ClothingCategory? _category;
@@ -80,7 +90,6 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   final List<ExtraPhotoDraft> _extraPhotos = [];
 
   bool _saving = false;
-  bool _readingLink = false;
   bool _dirty = false;
   bool _showErrors = false;
 
@@ -122,7 +131,8 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
       text: price == null ? '' : _formatPriceInput(price),
     );
     _notes = TextEditingController(text: item?.notes ?? initial?.notes);
-    for (final controller in [_name, _brand, _price, _notes]) {
+    _link = TextEditingController(text: item?.sourceUrl ?? initial?.sourceUrl);
+    for (final controller in [_name, _brand, _price, _notes, _link]) {
       controller.addListener(_markDirty);
     }
     // Typing over an AI value makes it the user's own.
@@ -132,6 +142,11 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     _brand.addListener(() {
       if (_brand.text != _detection?.brand) _unmark(_AiField.brand);
     });
+    if (widget.fromLink && !_isEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addFromLink();
+      });
+    }
   }
 
   @override
@@ -141,6 +156,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     _brand.dispose();
     _price.dispose();
     _notes.dispose();
+    _link.dispose();
     super.dispose();
   }
 
@@ -209,34 +225,33 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
 
   /// Reads a shop's product page into the form for the user to check.
   Future<void> _addFromLink() async {
-    final link = await showProductLinkSheet(context);
-    if (link == null || !mounted) return;
-    final service = context.read<ProductLinkService>();
-    setState(() => _readingLink = true);
-    try {
-      final result = await service.fetch(link);
-      if (mounted) _fillFromLink(result);
-    } catch (error) {
-      if (mounted) context.showErrorSnack(error);
-    } finally {
-      if (mounted) setState(() => _readingLink = false);
-    }
+    final result = await showProductLinkSheet(context);
+    if (result != null && mounted) _fillFromLink(result);
   }
 
   /// The user asked for this page's details, so they replace what was
   /// typed; fields the page doesn't give keep their value. The downloaded
-  /// photo is treated like a picked one, so the AI fills in the rest.
+  /// photo is treated like a picked one, so the AI fills in the rest. The
+  /// link is kept with the piece, even when the page couldn't be read.
   void _fillFromLink(ProductLinkResult result) {
     final page = result.page;
+    final link = page.url.toString();
+    if (link.length <= Validators.maxLinkLength) _link.text = link;
+    if (page.isEmpty) {
+      context.showSnack('Add a photo of the piece, then fill in the rest.');
+      return;
+    }
     _stopDetection();
     _undoAi();
     if (page.name case final name?) _name.text = name;
     if (page.brand case final brand?) _brand.text = brand;
-    if (page.price case final price?) _price.text = _formatPriceInput(price);
-    final link = page.url.toString();
-    if (_notes.text.trim().isEmpty &&
-        link.length <= Validators.maxNotesLength) {
-      _notes.text = link;
+    if (page.price case final price?) {
+      _price.text = _formatPriceInput(price);
+      // The number is kept as the shop wrote it, never converted.
+      final symbol = context.read<SettingsController>().currencySymbol;
+      if (page.currency case final currency? when !page.isPricedIn(symbol)) {
+        _addNote('Shop price: ${_formatPriceInput(price)} $currency');
+      }
     }
     final path = result.imagePath;
     _update(() {
@@ -249,6 +264,24 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                 'downloaded, so add one yourself.'
           : 'Added from ${page.url.host}. Check the details before saving.',
     );
+  }
+
+  /// Adds [line] to the notes unless it is there already or won't fit.
+  void _addNote(String line) {
+    final notes = _notes.text.trim();
+    if (notes.contains(line)) return;
+    final updated = notes.isEmpty ? line : '$notes\n$line';
+    if (updated.length <= Validators.maxNotesLength) _notes.text = updated;
+  }
+
+  Future<void> _openLink() async {
+    final text = _link.text.trim();
+    final url = Uri.tryParse(text.contains('://') ? text : 'https://$text');
+    if (url == null || Validators.optionalLink(text) != null) return;
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      context.showSnack('Could not open the browser.');
+    }
   }
 
   /// Has the AI fill in the empty fields from the new photo at [path]. A
@@ -419,6 +452,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
       brand: _brand.text,
       price: Validators.parsePrice(_price.text),
       notes: _notes.text,
+      sourceUrl: _link.text,
       isFavorite: _isFavorite,
       newImagePath: _newImagePath,
       extraPhotos: List.of(_extraPhotos),
@@ -539,31 +573,18 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                       const SizedBox(height: AppSpacing.md),
                       Center(
                         child: OutlinedButton.icon(
-                          onPressed: _readingLink || _saving
-                              ? null
-                              : _addFromLink,
+                          onPressed: _saving ? null : _addFromLink,
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(
                               0,
                               AppSizes.compactButtonHeight,
                             ),
                           ),
-                          icon: _readingLink
-                              ? const SizedBox.square(
-                                  dimension: AppSizes.iconSm,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.link_rounded,
-                                  size: AppSizes.iconSm,
-                                ),
-                          label: Text(
-                            _readingLink
-                                ? 'Reading the shop page…'
-                                : 'Add from a shop link',
+                          icon: const Icon(
+                            Icons.link_rounded,
+                            size: AppSizes.iconSm,
                           ),
+                          label: const Text('Add from a shop link'),
                         ),
                       ),
                     ],
@@ -765,6 +786,30 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                         hintText:
                             'Fit, care instructions, where you bought it…',
                         alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _link,
+                      builder: (context, value, _) => TextFormField(
+                        controller: _link,
+                        keyboardType: TextInputType.url,
+                        autocorrect: false,
+                        maxLines: 1,
+                        decoration: InputDecoration(
+                          labelText: 'Shop link',
+                          hintText: 'Where the piece is sold',
+                          suffixIcon:
+                              Validators.optionalLink(value.text) == null &&
+                                  value.text.trim().isNotEmpty
+                              ? IconButton(
+                                  tooltip: 'Open the shop page',
+                                  icon: const Icon(Icons.open_in_new_rounded),
+                                  onPressed: _openLink,
+                                )
+                              : null,
+                        ),
+                        validator: Validators.optionalLink,
                       ),
                     ),
                     SwitchListTile(

@@ -25,6 +25,7 @@ class ClothingItem {
     this.brand,
     this.price,
     this.notes,
+    this.sourceUrl,
     this.materials = const [],
     this.tags = const [],
     this.purchaseDate,
@@ -69,6 +70,7 @@ class ClothingItem {
       brand: JsonReader.nonEmptyString(json, 'brand'),
       price: price != null && price >= 0 ? price : null,
       notes: JsonReader.nonEmptyString(json, 'notes'),
+      sourceUrl: JsonReader.nonEmptyString(json, 'sourceUrl'),
       materials: JsonReader.stringList(json, 'materials').toSet().toList(),
       tags: normalizeTags(JsonReader.stringList(json, 'tags')),
       purchaseDate: JsonReader.date(json, 'purchaseDate'),
@@ -107,6 +109,10 @@ class ClothingItem {
   final double? price;
   final String? notes;
 
+  /// The shop's product page the piece was added from, if any. Pieces with
+  /// one are never shown to other people, since the photo is the shop's.
+  final String? sourceUrl;
+
   /// Fabrics such as "Cotton" or "Denim", in the order they were added.
   final List<String> materials;
 
@@ -143,6 +149,7 @@ class ClothingItem {
     'brand': brand,
     'price': price,
     'notes': notes,
+    'sourceUrl': sourceUrl,
     'materials': materials,
     'tags': tags,
     'purchaseDate': purchaseDate?.toIso8601String(),
@@ -170,6 +177,7 @@ class ClothingItem {
     Object? brand = _unset,
     Object? price = _unset,
     Object? notes = _unset,
+    Object? sourceUrl = _unset,
     List<String>? materials,
     List<String>? tags,
     Object? purchaseDate = _unset,
@@ -201,6 +209,9 @@ class ClothingItem {
       brand: identical(brand, _unset) ? this.brand : brand as String?,
       price: identical(price, _unset) ? this.price : price as double?,
       notes: identical(notes, _unset) ? this.notes : notes as String?,
+      sourceUrl: identical(sourceUrl, _unset)
+          ? this.sourceUrl
+          : sourceUrl as String?,
       materials: materials ?? this.materials,
       tags: tags == null ? this.tags : normalizeTags(tags),
       purchaseDate: identical(purchaseDate, _unset)

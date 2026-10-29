@@ -73,6 +73,10 @@ abstract final class AppConfig {
   /// Collections a Free account can create; Premium has no limit.
   static const int freeCollectionLimit = 3;
 
+  /// Trips a Free account can have that haven't ended yet; Premium has no
+  /// limit.
+  static const int freeActiveTripLimit = 1;
+
   /// Distinct custom tags a Free account can use; Premium has no limit.
   static const int freeTagLimit = 5;
 
@@ -106,6 +110,9 @@ abstract final class AppConfig {
   /// Edge Function, so keep them in step.
   static const int premiumPriceVnd = 2000;
   static const int premiumDays = 30;
+
+  /// Days ahead, today included, that the weather service forecasts.
+  static const int forecastDays = 16;
 
   /// Weather is fetched again once it is older than this.
   static const Duration weatherMaxAge = Duration(minutes: 30);

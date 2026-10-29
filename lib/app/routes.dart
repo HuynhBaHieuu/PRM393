@@ -39,6 +39,7 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 
 abstract final class AppRoutes {
   static const String addClothing = '/clothing/new';
+  static const String addClothingFromLink = '/clothing/new/link';
   static const String editClothing = '/clothing/edit';
   static const String clothingDetail = '/clothing/detail';
   static const String clothingPhotos = '/clothing/photos';
@@ -82,6 +83,7 @@ abstract final class AppRoutes {
       AppRoutes.addClothing => ClothingFormScreen(
         initial: args is ClothingDraft ? args : null,
       ),
+      AppRoutes.addClothingFromLink => const ClothingFormScreen(fromLink: true),
       AppRoutes.editClothing when args is String => ClothingFormScreen(
         itemId: args,
       ),
@@ -115,7 +117,8 @@ abstract final class AppRoutes {
         outfitId: args,
       ),
       AppRoutes.swipeOutfit => SwipeOutfitScreen(
-        initialItemIds: args is List<String> ? args : const [],
+        initialItemIds: args is (List<String>, DateTime?) ? args.$1 : const [],
+        planDate: args is (List<String>, DateTime?) ? args.$2 : null,
       ),
       AppRoutes.collectionDetail when args is String => CollectionDetailScreen(
         collectionId: args,
@@ -162,6 +165,7 @@ abstract final class AppRoutes {
     };
     final isModalForm =
         settings.name == AppRoutes.addClothing ||
+        settings.name == AppRoutes.addClothingFromLink ||
         settings.name == AppRoutes.editClothing ||
         settings.name == AppRoutes.outfitBuilder ||
         settings.name == AppRoutes.swipeOutfit ||
@@ -181,14 +185,17 @@ abstract final class AppNavigator {
   static Future<String?> addClothing(
     BuildContext context, {
     ClothingDraft? initial,
+    bool fromLink = false,
   }) async {
     if (!PremiumFlows.canAddClothing(context)) {
       await PremiumFlows.showWardrobeLimit(context);
       return null;
     }
     // Routes are built as Route<dynamic>, so push untyped and narrow after.
-    final result = await Navigator.of(context)
-        .pushNamed<Object?>(AppRoutes.addClothing, arguments: initial);
+    final result = await Navigator.of(context).pushNamed<Object?>(
+      fromLink ? AppRoutes.addClothingFromLink : AppRoutes.addClothing,
+      arguments: initial,
+    );
     return result is String ? result : null;
   }
 
@@ -273,13 +280,17 @@ abstract final class AppNavigator {
         arguments: OutfitBuilderArgs(outfitId: outfitId),
       );
 
-  /// Fits' Dressing Room; resolves to true once an outfit was saved.
+  /// Fits' Dressing Room; resolves to true once an outfit was saved. With
+  /// [planDate], the new outfit is planned on that day.
   static Future<bool> swipeOutfit(
     BuildContext context, {
     List<String> initialItemIds = const [],
+    DateTime? planDate,
   }) async {
-    final result = await Navigator.of(context)
-        .pushNamed<Object?>(AppRoutes.swipeOutfit, arguments: initialItemIds);
+    final result = await Navigator.of(context).pushNamed<Object?>(
+      AppRoutes.swipeOutfit,
+      arguments: (initialItemIds, planDate),
+    );
     return result == true;
   }
 

@@ -13,6 +13,7 @@ import 'package:all_fits/features/collections/controllers/collection_controller.
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 
 /// Plan checks and the upgrade / cancel flows: payOS with Supabase, a
@@ -37,6 +38,27 @@ abstract final class PremiumFlows {
       context.read<CollectionController>().collections.length,
     );
   }
+
+  /// Whether the user's plan has room for another trip that hasn't ended.
+  /// [excluding] is a trip being edited, which doesn't count.
+  static bool canAddTrip(BuildContext context, {String? excluding}) {
+    final plan = context.read<SettingsController>().plan;
+    final trips = context.read<TripController>();
+    final editing = excluding == null ? null : trips.tripById(excluding);
+    final counted = editing != null && trips.isActive(editing) ? 1 : 0;
+    return plan.canAddTrip(trips.activeCount - counted);
+  }
+
+  /// Explains the Free trip limit and offers Premium.
+  static Future<void> showTripLimit(BuildContext context) => _showLimit(
+    context,
+    title: 'You already have a trip planned',
+    message:
+        'The Free plan has '
+        '${AppFormatters.count(AppConfig.freeActiveTripLimit, 'trip')} at a '
+        'time until it ends. Go Premium to plan as many trips as you like, '
+        'or delete the one you have.',
+  );
 
   /// Whether the user's plan has room for another distinct tag.
   static bool canAddTag(BuildContext context) {

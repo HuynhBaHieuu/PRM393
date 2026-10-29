@@ -18,6 +18,7 @@ class ClothingDraft {
     this.brand,
     this.price,
     this.notes,
+    this.sourceUrl,
     this.isFavorite = false,
     this.newImagePath,
     this.extraPhotos,
@@ -31,6 +32,9 @@ class ClothingDraft {
   final String? brand;
   final double? price;
   final String? notes;
+
+  /// The shop page the piece came from; see `ClothingItem.sourceUrl`.
+  final String? sourceUrl;
   final bool isFavorite;
 
   /// Temporary path of a newly picked photo, imported on save.
@@ -59,6 +63,8 @@ class ClothingDraft {
     if (value != null && (value < 0 || value > Validators.maxPrice)) {
       throw const ValidationException('Enter a valid price.');
     }
+    final linkError = Validators.optionalLink(sourceUrl);
+    if (linkError != null) throw ValidationException(linkError);
     if ((extraPhotos?.length ?? 0) > AppConfig.maxExtraPhotos) {
       throw const ValidationException(
         'A piece can have up to ${AppConfig.maxExtraPhotos} extra photos.',

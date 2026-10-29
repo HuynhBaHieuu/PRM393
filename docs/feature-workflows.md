@@ -206,7 +206,7 @@ Bước 4, khám phá:
 Về quyền riêng tư và an toàn:
 1. Chuyển sang "Private account" thì outfit đã đăng rời khỏi Latest; chỉ người theo dõi đã duyệt thấy chúng ở Following. Chuyển lại công khai thì các yêu cầu đang chờ được duyệt luôn.
 2. Chặn một người thì hai bên hết theo dõi nhau, họ biến khỏi Discover và tìm kiếm, không gửi outfit cho bạn được nữa, và outfit họ đã gửi mà bạn chưa trả lời bị xóa. Họ không nhận được thông báo. Bỏ chặn ở Account, "Blocked users".
-3. Món đồ lấy từ link web (mục 3) không được đăng công khai, vì ảnh thuộc bản quyền của shop. Mục 3 chưa làm; khi làm thì loại các món đó trong hàm public_item ở supabase/schema.sql.
+3. Món đồ lấy từ link web (mục 3) không được đăng công khai, vì ảnh thuộc bản quyền của shop. Các món này có trường sourceUrl; hàm public_item và các truy vấn profile_closet, discover_feed, gửi outfit cho bạn bè trong supabase/schema.sql đều bỏ qua chúng.
 4. Xóa tài khoản thì xóa luôn hồ sơ, lượt theo dõi và các outfit đã chia sẻ (khóa ngoại on delete cascade).
 5. Username chỉ gồm chữ thường không dấu, số, dấu gạch dưới và dấu chấm, dài 3 đến 20 ký tự (kiểm tra cả trong app lẫn trong database).
 

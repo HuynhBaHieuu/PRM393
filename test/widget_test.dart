@@ -98,6 +98,8 @@ final Finder _homeScroll = find
 Future<void> _create(WidgetTester tester, String option) async {
   await _tap(tester, find.byTooltip('Create'));
   await _tap(tester, find.text(option));
+  // "Add clothes" then asks how: from a photo or from a shop link.
+  if (option == 'Add clothes') await _tap(tester, find.text('From a photo'));
 }
 
 Future<void> _addClothing(

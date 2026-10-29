@@ -21,6 +21,14 @@ enum SubscriptionPlan {
   /// Most collections the plan can hold, or null for no limit.
   int? get collectionLimit => isPremium ? null : AppConfig.freeCollectionLimit;
 
+  /// Most trips that haven't ended the plan can hold, or null for no limit.
+  int? get activeTripLimit => isPremium ? null : AppConfig.freeActiveTripLimit;
+
+  bool canAddTrip(int activeTripCount) {
+    final limit = activeTripLimit;
+    return limit == null || activeTripCount < limit;
+  }
+
   /// Most distinct custom tags the plan can use, or null for no limit.
   int? get tagLimit => isPremium ? null : AppConfig.freeTagLimit;
 

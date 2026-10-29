@@ -5,6 +5,7 @@ import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
+import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/trip.dart';
 import 'package:all_fits/data/repositories/trip_repository.dart';
 import 'package:all_fits/features/trips/packing_list.dart';
@@ -121,7 +122,11 @@ void main() {
           .copyWith(
             extras: const [PackingExtra(id: 'e1', label: 'Charger')],
           );
-      final copy = Trip.fromJson(original.toJson());
+      final copy = Trip.fromJson(
+        original.copyWith(location: testCity).toJson(),
+      );
+      expect(copy.location, testCity);
+      expect(copy.location!.name, testCity.name);
       expect(copy.startDate, start);
       expect(copy.endDate, day(2));
       expect(copy.outfitOn(day(1)), 'smart');
@@ -206,6 +211,46 @@ void main() {
 
       await controller.removeExtra(t.id, extra.id);
       expect(controller.tripById(t.id)!.extras, isEmpty);
+    });
+
+    test('keeps the city, and clears it when edited away', () async {
+      final t = await controller.createTrip(
+        'Beach',
+        start,
+        day(2),
+        location: testCity,
+      );
+      expect(controller.tripById(t.id)!.location, testCity);
+      final updated = await controller.updateDetails(
+        t.id,
+        name: 'Beach',
+        start: start,
+        end: day(2),
+      );
+      expect(updated.location, isNull);
+    });
+
+    test(
+      'counts trips that have not ended, and finds the trip of a day',
+      () async {
+        final past = await controller.createTrip(
+          'Last summer',
+          DateTime(2026, 7, 1),
+          DateTime(2026, 7, 5),
+        );
+        final next = await controller.createTrip('Beach', start, day(2));
+        expect(controller.isActive(past), isFalse);
+        expect(controller.activeCount, 1);
+        expect(controller.tripOn(day(1)), next);
+        expect(controller.tripOn(DateTime(2026, 7, 3)), past);
+        expect(controller.tripOn(day(3)), isNull);
+      },
+    );
+
+    test('Free has one trip at a time, Premium any number', () {
+      expect(SubscriptionPlan.free.canAddTrip(0), isTrue);
+      expect(SubscriptionPlan.free.canAddTrip(1), isFalse);
+      expect(SubscriptionPlan.premium.canAddTrip(5), isTrue);
     });
 
     test('keeps trips after a reload', () async {

@@ -112,6 +112,7 @@ class WardrobeController extends ChangeNotifier {
         brand: draft.brand.trimmedOrNull,
         price: draft.price,
         notes: draft.notes.trimmedOrNull,
+        sourceUrl: draft.sourceUrl.trimmedOrNull,
         isFavorite: draft.isFavorite,
         createdAt: now,
         updatedAt: now,
@@ -155,6 +156,7 @@ class WardrobeController extends ChangeNotifier {
         brand: draft.brand.trimmedOrNull,
         price: draft.price,
         notes: draft.notes.trimmedOrNull,
+        sourceUrl: draft.sourceUrl.trimmedOrNull,
         isFavorite: draft.isFavorite,
         updatedAt: _clock(),
       );

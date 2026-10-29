@@ -39,6 +39,7 @@ abstract final class OutfitFlows {
         saved = await AppNavigator.swipeOutfit(
           context,
           initialItemIds: itemIds,
+          planDate: planDate,
         );
       case OutfitCreateMode.tryOn:
         await TryOnFlows.start(context, itemIds: itemIds);
