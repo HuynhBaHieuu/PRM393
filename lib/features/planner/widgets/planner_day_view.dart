@@ -21,11 +21,15 @@ class PlannerDayView extends StatefulWidget {
     required this.today,
     required this.initialDay,
     required this.onDayChanged,
+    this.onPlanWeek,
   });
 
   final DateTime today;
   final DateTime initialDay;
   final ValueChanged<DateTime> onDayChanged;
+
+  /// Offered on empty days: fill the whole week at once.
+  final VoidCallback? onPlanWeek;
 
   @override
   State<PlannerDayView> createState() => _PlannerDayViewState();
@@ -130,7 +134,12 @@ class _PlannerDayViewState extends State<PlannerDayView> {
                 AppSpacing.xs,
                 AppSpacing.lg,
               ),
-              child: _DayCard(day: _dayOf(page)),
+              child: _DayCard(
+                day: _dayOf(page),
+                onPlanWeek: _dayOf(page).isBefore(widget.today)
+                    ? null
+                    : widget.onPlanWeek,
+              ),
             ),
           ),
         ),
@@ -210,9 +219,10 @@ class _WeekDay extends StatelessWidget {
 /// One day: its outfit filling a white card with "⋯" and a note, or
 /// "+ Add outfit".
 class _DayCard extends StatelessWidget {
-  const _DayCard({required this.day});
+  const _DayCard({required this.day, this.onPlanWeek});
 
   final DateTime day;
+  final VoidCallback? onPlanWeek;
 
   @override
   Widget build(BuildContext context) {
@@ -242,16 +252,32 @@ class _DayCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.xl),
         child: outfit == null || entry == null
             ? Center(
-                child: FilledButton.icon(
-                  onPressed: () => PlannerActions.addOutfit(context, day),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add outfit'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, AppSizes.buttonHeight),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => PlannerActions.addOutfit(context, day),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Add outfit'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, AppSizes.buttonHeight),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (onPlanWeek != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      TextButton.icon(
+                        onPressed: onPlanWeek,
+                        icon: const Icon(
+                          Icons.auto_awesome_outlined,
+                          size: AppSizes.iconSm,
+                        ),
+                        label: const Text('Plan my week'),
+                      ),
+                    ],
+                  ],
                 ),
               )
             : Stack(

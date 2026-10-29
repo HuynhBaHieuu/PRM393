@@ -34,6 +34,11 @@ class _PlannerScreenState extends State<PlannerScreen>
     super.dispose();
   }
 
+  Future<void> _planWeek() async {
+    final first = await AppNavigator.planWeek(context);
+    if (first != null && mounted) _goTo(first, showDay: true);
+  }
+
   void _goTo(DateTime day, {bool showDay = false}) {
     setState(() {
       _selected = DateHelpers.dateOnly(day);
@@ -49,6 +54,11 @@ class _PlannerScreenState extends State<PlannerScreen>
       appBar: AppBar(
         title: const Text('Planner'),
         actions: [
+          IconButton(
+            tooltip: 'Plan my week',
+            icon: const Icon(Icons.auto_awesome_outlined),
+            onPressed: _planWeek,
+          ),
           IconButton(
             tooltip: 'Trips',
             icon: const Icon(Icons.luggage_outlined),
@@ -83,6 +93,7 @@ class _PlannerScreenState extends State<PlannerScreen>
             today: _today,
             initialDay: _selected,
             onDayChanged: (day) => _selected = day,
+            onPlanWeek: _planWeek,
           ),
           PlannerMonthView(
             key: ValueKey('month$_jump'),

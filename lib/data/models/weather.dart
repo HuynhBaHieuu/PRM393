@@ -96,6 +96,18 @@ class DayForecast {
 
   /// Highest chance of precipitation that day, 0-100.
   final int rainChance;
+
+  /// The day as a report, for advice that only needs its numbers. The
+  /// temperature is midway between [low] and [high].
+  WeatherReport toReport(WeatherLocation location) => WeatherReport(
+    location: location,
+    temperature: (high + low) / 2,
+    high: high,
+    low: low,
+    condition: condition,
+    rainChance: rainChance,
+    fetchedAt: date,
+  );
 }
 
 /// Today's weather for one location. Temperatures are in °C.
