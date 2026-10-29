@@ -1,10 +1,14 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
+import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/data/repositories/social_repository.dart';
 import 'package:all_fits/features/social/screens/edit_profile_screen.dart';
+import 'package:all_fits/features/social/screens/people_screens.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 
 import '../helpers/test_harness.dart';
@@ -48,6 +52,7 @@ StyledOutfit _styled(
 class _FakeSocialRepository implements SocialRepository {
   List<Connection> connectionList = [];
   List<StyledOutfit> styledList = [];
+  List<SocialProfile> peopleList = [];
 
   @override
   Future<SocialProfile?> myProfile() async =>
@@ -55,6 +60,9 @@ class _FakeSocialRepository implements SocialRepository {
 
   @override
   Future<List<Connection>> connections() async => connectionList;
+
+  @override
+  Future<List<SocialProfile>> people() async => peopleList;
 
   @override
   Future<List<StyledOutfit>> styledOutfits() async => styledList;
@@ -239,6 +247,58 @@ void main() {
       expect(social.hasProfile, isFalse);
       expect(social.notificationCount, 0);
       expect(social.error, isNotNull);
+    });
+  });
+
+  group('Find friends', () {
+    test('folding drops Vietnamese accents and case', () {
+      expect('Huỳnh Bá Hiếu'.folded, 'huynh ba hieu');
+      expect('Đặng Thị Ưng'.folded, 'dang thi ung');
+      expect('hieu_dev.05'.folded, 'hieu_dev.05');
+    });
+
+    testWidgets('lists everyone, then narrows by username or name', (
+      tester,
+    ) async {
+      final repository = _FakeSocialRepository()
+        ..peopleList = const [
+          SocialProfile(
+            userId: 'u1',
+            username: 'huynhbahieu',
+            displayName: 'Huỳnh Bá Hiếu',
+          ),
+          SocialProfile(userId: 'u2', username: 'hieu_dev'),
+          SocialProfile(userId: 'u3', username: 'mia'),
+        ];
+      final social = SocialController(
+        repository: repository,
+        imageStorage: FakeImageStorageService(),
+      );
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: social,
+          child: const MaterialApp(home: UserSearchScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('huynhbahieu'), findsOneWidget);
+      expect(find.text('hieu_dev'), findsOneWidget);
+      expect(find.text('mia'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Hiếu');
+      await tester.pump();
+      expect(find.text('huynhbahieu'), findsOneWidget); // by name, no accents
+      expect(find.text('hieu_dev'), findsOneWidget); // middle of a username
+      expect(find.text('mia'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), '@hieu_d');
+      await tester.pump();
+      expect(find.text('hieu_dev'), findsOneWidget);
+      expect(find.text('huynhbahieu'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'zzz');
+      await tester.pump();
+      expect(find.text('No users found'), findsOneWidget);
     });
   });
 }

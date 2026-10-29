@@ -515,3 +515,62 @@ begin
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;
 end $$;
+
+-- Every account gets a profile, so everyone shows up in Find friends (as in Fits,
+-- where a username comes with the account). The username comes from the email
+-- and can be changed in Edit profile.
+create or replace function public.default_username(p_email text) returns text
+language plpgsql stable set search_path = ''
+as $$
+declare
+  v_base text := left(regexp_replace(lower(split_part(coalesce(p_email, ''), '@', 1)), '[^a-z0-9_.]', '', 'g'), 14);
+  v_name text;
+  v_n integer := 0;
+begin
+  if char_length(v_base) < 3 then
+    v_base := 'user';
+  end if;
+  v_name := v_base;
+  while exists (select 1 from public.profiles where username = v_name) loop
+    v_n := v_n + 1;
+    v_name := v_base || v_n;
+  end loop;
+  return v_name;
+end $$;
+
+create or replace function public.create_profile_for_user() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  insert into public.profiles (user_id, username, display_name, avatar_url)
+  values (new.id, public.default_username(new.email),
+    left(coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', ''), 60),
+    new.raw_user_meta_data->>'avatar_url')
+  on conflict (user_id) do nothing;
+  return new;
+exception when others then
+  -- Never block a sign-up; the app still offers to create the profile.
+  return new;
+end $$;
+
+revoke execute on function public.default_username(text) from public, anon, authenticated;
+revoke execute on function public.create_profile_for_user() from public, anon, authenticated;
+
+drop trigger if exists create_profile_for_user on auth.users;
+create trigger create_profile_for_user after insert on auth.users
+  for each row execute function public.create_profile_for_user();
+
+-- Accounts made before this trigger existed.
+do $$
+declare u record;
+begin
+  for u in
+    select au.id, au.email, au.raw_user_meta_data as meta from auth.users au
+    where not exists (select 1 from public.profiles p where p.user_id = au.id)
+    order by au.created_at
+  loop
+    insert into public.profiles (user_id, username, display_name, avatar_url)
+    values (u.id, public.default_username(u.email),
+      left(coalesce(u.meta->>'full_name', u.meta->>'name', ''), 60), u.meta->>'avatar_url');
+  end loop;
+end $$;

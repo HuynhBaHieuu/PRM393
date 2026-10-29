@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
@@ -15,7 +14,7 @@ import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 
-/// Find people by username.
+/// Everyone with a profile; typing narrows it by username or name.
 class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key});
 
@@ -24,58 +23,58 @@ class UserSearchScreen extends StatefulWidget {
 }
 
 class _UserSearchScreenState extends State<UserSearchScreen> {
-  static const Duration _debounce = Duration(milliseconds: 300);
-
   final TextEditingController _query = TextEditingController();
-  Timer? _timer;
-  List<SocialProfile>? _results;
+  List<SocialProfile>? _people;
   Object? _error;
-  int _request = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _query.dispose();
     super.dispose();
   }
 
-  void _onChanged(String value) {
-    _timer?.cancel();
-    if (value.trim().isEmpty) {
-      setState(() => _results = null);
-      return;
-    }
-    _timer = Timer(_debounce, () => _search(value));
-  }
-
-  Future<void> _search(String value) async {
-    final request = ++_request;
+  Future<void> _load() async {
     try {
-      final results = await context.read<SocialController>().repository.search(
-        value.replaceAll('@', ''),
-      );
-      if (mounted && request == _request) {
+      final people = await context.read<SocialController>().repository.people();
+      if (mounted) {
         setState(() {
-          _results = results;
+          _people = people;
           _error = null;
         });
       }
     } catch (error) {
-      if (mounted && request == _request) setState(() => _error = error);
+      if (mounted) setState(() => _error = error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
+    final people = _people;
+    final term = _query.text.replaceAll('@', '').trim().folded;
+    final results = people == null || term.isEmpty
+        ? people
+        : [
+            for (final p in people)
+              if (p.username.contains(term) ||
+                  p.displayName.folded.contains(term))
+                p,
+          ];
     final Widget body;
-    if (_error != null) {
-      body = AppErrorView(error: _error!, onRetry: () => _search(_query.text));
+    if (_error != null && people == null) {
+      body = AppErrorView(error: _error!, onRetry: _load);
     } else if (results == null) {
+      body = const AppLoadingView();
+    } else if (people!.isEmpty) {
       body = const AppEmptyState(
         icon: Icons.person_search_outlined,
-        title: 'Find friends',
-        message: 'Search for a username to see their clothes and outfits.',
+        title: 'No one here yet',
+        message: 'People appear here once they set up their profile.',
       );
     } else if (results.isEmpty) {
       body = const AppEmptyState(
@@ -84,11 +83,16 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
         message: 'Check the spelling, or ask them for their username.',
       );
     } else {
-      body = ListView.builder(
-        itemCount: results.length,
-        itemBuilder: (context, index) => ProfileRow(
-          profile: results[index],
-          onTap: () => SocialFlows.openProfile(context, results[index].userId),
+      body = RefreshIndicator(
+        onRefresh: _load,
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: results.length,
+          itemBuilder: (context, index) => ProfileRow(
+            profile: results[index],
+            onTap: () =>
+                SocialFlows.openProfile(context, results[index].userId),
+          ),
         ),
       );
     }
@@ -100,10 +104,9 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
           autofocus: true,
           autocorrect: false,
           textInputAction: TextInputAction.search,
-          onChanged: _onChanged,
-          onSubmitted: _search,
+          onChanged: (_) => setState(() {}),
           decoration: const InputDecoration(
-            hintText: 'Search usernames',
+            hintText: 'Search people',
             prefixIcon: Icon(Icons.search_rounded),
           ),
         ),

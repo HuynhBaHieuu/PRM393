@@ -18,8 +18,9 @@ abstract class SocialRepository {
 
   Future<bool> isUsernameAvailable(String username);
 
-  /// Profiles whose username starts with [query].
-  Future<List<SocialProfile>> search(String query);
+  /// Everyone else who has a profile, by username. Profiles across a block
+  /// are left out by the `profiles` read policy.
+  Future<List<SocialProfile>> people();
 
   /// Null when the profile doesn't exist or its owner blocked the caller.
   Future<ProfileSummary?> summary(String userId);
@@ -78,7 +79,9 @@ abstract class SocialRepository {
 class SupabaseSocialRepository implements SocialRepository {
   SupabaseSocialRepository(this._client, this._userId);
 
-  static const int _searchLimit = 20;
+  // ponytail: the whole list is loaded and searched on the phone; page it and
+  // search on the server once there are more people than this.
+  static const int _peopleLimit = 500;
 
   final sb.SupabaseClient _client;
   final String _userId;
@@ -126,21 +129,13 @@ class SupabaseSocialRepository implements SocialRepository {
   });
 
   @override
-  Future<List<SocialProfile>> search(String query) => _guard(() async {
-    // Usernames only hold [a-z0-9_.]; drop anything else so `%` and `_`
-    // typed by the user can't widen the pattern.
-    final term = query.trim().toLowerCase().replaceAll(
-      RegExp(r'[^a-z0-9.]'),
-      '',
-    );
-    if (term.isEmpty) return const [];
+  Future<List<SocialProfile>> people() => _guard(() async {
     final rows = await _client
         .from('profiles')
         .select()
-        .like('username', '$term%')
         .neq('user_id', _userId)
         .order('username')
-        .limit(_searchLimit);
+        .limit(_peopleLimit);
     return rows.map(SocialProfile.fromJson).toList();
   });
 
