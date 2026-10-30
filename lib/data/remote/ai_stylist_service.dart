@@ -308,7 +308,8 @@ class AiStylistService {
       'Give 1 to 3 outfits when the user wants something to wear.\n'
       '4. Style: ${persona.direction} Prefer colors that work together, the '
       'weather when given, what the context says about the user, and items '
-      'with a low "wears" count.\n'
+      'with a low "wears" count. Leave out items with a "laundry" field '
+      '(they are being washed) unless the user attached or asks for them.\n'
       '5. Build outfits around attached pieces. A photo may show the user, a '
       'look they like or one piece: pick wardrobe items that recreate or go '
       'with it.\n'
@@ -489,6 +490,7 @@ class AiStylistService {
                   if (item.seasons.isNotEmpty)
                     'seasons': [for (final s in item.seasons) s.name],
                   'wears': item.wearCount,
+                  if (!item.laundry.isAvailable) 'laundry': item.laundry.name,
                 },
             ],
           }),

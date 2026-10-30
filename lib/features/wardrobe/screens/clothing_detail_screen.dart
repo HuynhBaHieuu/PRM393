@@ -24,6 +24,7 @@ import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
+import 'package:all_fits/data/models/laundry_status.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
@@ -168,6 +169,30 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     );
     if (picked == null) return;
     await _patch((i) => i.copyWith(color: picked.firstOrNull));
+  }
+
+  Future<void> _pickLaundry(ClothingItem item) async {
+    final picked = await showMultiSelectSheet<LaundryStatus>(
+      context,
+      title: 'Laundry',
+      single: true,
+      options: LaundryStatus.values,
+      selected: {item.laundry},
+      labelOf: (status) => status.label,
+    );
+    final status = picked?.firstOrNull;
+    if (status == null || !mounted) return;
+    await ClosetFlows.guard(
+      context,
+      () => _wardrobe.setLaundry([item.id], status),
+    );
+  }
+
+  /// "Clean · worn 2× since washing", or how soon it goes in the hamper.
+  static String _laundryLabel(ClothingItem item) {
+    final wears = item.wearsSinceWash;
+    if (wears == 0) return item.laundry.label;
+    return '${item.laundry.label} · worn $wears× since washing';
   }
 
   Future<void> _pickMaterials(ClothingItem item) async {
@@ -850,6 +875,11 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                   const SizedBox(height: AppSpacing.md),
                   DetailGroup(
                     children: [
+                      DetailRow(
+                        icon: Icons.local_laundry_service_outlined,
+                        label: _laundryLabel(item),
+                        onTap: () => _pickLaundry(item),
+                      ),
                       DetailRow(
                         icon: Icons.checkroom_outlined,
                         label: 'Create outfit',

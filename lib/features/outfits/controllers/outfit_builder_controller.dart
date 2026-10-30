@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
@@ -10,6 +12,7 @@ import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
+import 'package:all_fits/features/outfits/outfit_layout.dart';
 
 typedef ItemLookup = ClothingItem? Function(String id);
 
@@ -152,17 +155,98 @@ class OutfitBuilderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds an emoji sticker in the middle of the board and selects it.
+  /// Adds an emoji sticker in the clearest spot near the middle of the
+  /// board and selects it.
   void addEmojiSticker(String emoji) =>
       _addSticker((p) => OutfitSticker(placement: p, emoji: emoji), 0.5, 0.5);
 
-  /// Adds a hairstyle at the top of the board and selects it.
-  void addHair(Hairstyle style, HairColor color) => _addSticker(
-    (p) => OutfitSticker(placement: p, hairstyle: style, hairColor: color),
-    0.5,
-    0.12,
-    width: hairWidth,
-  );
+  /// Adds a hairstyle above the top, or in the clearest spot near the top of
+  /// the board, and selects it.
+  void addHair(Hairstyle style, HairColor color) {
+    final top = _pieces()
+        .where((p) => _wornAbove.contains(_slotOf(p.itemId)))
+        .fold<OutfitPlacement?>(
+          null,
+          (best, p) =>
+              best == null || p.y - p.height / 2 < best.y - best.height / 2
+              ? p
+              : best,
+        );
+    _addSticker(
+      (p) => OutfitSticker(placement: p, hairstyle: style, hairColor: color),
+      top?.x ?? 0.5,
+      top == null
+          ? 0.12
+          : top.y - top.height / 2 - hairWidth * AppSizes.outfitImageAspect / 3,
+      width: hairWidth,
+      overlap: 0.3,
+    );
+  }
+
+  /// Slots the hair sits above.
+  static const Set<OutfitSlot> _wornAbove = {
+    OutfitSlot.top,
+    OutfitSlot.dress,
+    OutfitSlot.outerwear,
+  };
+
+  /// Where the pieces are on the board right now.
+  List<OutfitPlacement> _pieces() =>
+      OutfitLayout.resolve([for (final id in _itemIds) ?_lookup(id)], _layout);
+
+  /// The centre nearest ([x], [y]) for a [width] × [height] box that covers
+  /// the least of the pieces and stickers, so a new sticker doesn't land on
+  /// the clothes.
+  /// ([x], [y]) itself is kept when it covers no more than [overlap] of the
+  /// box, e.g. hair resting on a collar.
+  (double, double) _clearSpot(
+    double x,
+    double y,
+    double width,
+    double height, {
+    double overlap = 0,
+  }) {
+    final pieces = [..._pieces(), for (final s in _stickers) s.placement];
+    double covered(double cx, double cy) {
+      var area = 0.0;
+      for (final p in pieces) {
+        final w =
+            math.min(cx + width / 2, p.x + p.width / 2) -
+            math.max(cx - width / 2, p.x - p.width / 2);
+        final h =
+            math.min(cy + height / 2, p.y + p.height / 2) -
+            math.max(cy - height / 2, p.y - p.height / 2);
+        if (w > 0 && h > 0) area += w * h;
+      }
+      return area;
+    }
+
+    final halfW = math.min(width / 2, 0.5);
+    final halfH = math.min(height / 2, 0.5);
+    double clampX(double v) => v.clamp(halfW, 1 - halfW);
+    double clampY(double v) => v.clamp(halfH, 1 - halfH);
+    var best = (clampX(x), clampY(y));
+    var bestCover = covered(best.$1, best.$2);
+    if (bestCover <= overlap * width * height + 1e-9) return best;
+    var bestDistance = 0.0;
+    const steps = 10;
+    for (var i = 0; i <= steps; i++) {
+      for (var j = 0; j <= steps; j++) {
+        final cx = clampX(i / steps);
+        final cy = clampY(j / steps);
+        final cover = covered(cx, cy);
+        final distance = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+        // A clearly clearer spot wins; between similar ones, the nearer.
+        if (cover < bestCover - 0.005 ||
+            (cover <= bestCover + 0.005 && distance < bestDistance)) {
+          best = (cx, cy);
+          bestCover = cover;
+          bestDistance = distance;
+        }
+      }
+    }
+    return best;
+  }
 
   void setStickers(List<OutfitSticker> stickers) {
     _stickers = List.unmodifiable(stickers);
@@ -188,15 +272,18 @@ class OutfitBuilderController extends ChangeNotifier {
     double x,
     double y, {
     double width = stickerWidth,
+    double overlap = 0,
   }) {
     // Square on the board, whose height is width / aspect.
+    final height = width * AppSizes.outfitImageAspect;
+    final (cx, cy) = _clearSpot(x, y, width, height, overlap: overlap);
     final sticker = create(
       OutfitPlacement(
         itemId: _ids.next(),
-        x: x,
-        y: y,
+        x: cx,
+        y: cy,
         width: width,
-        height: width * AppSizes.outfitImageAspect,
+        height: height,
       ),
     );
     _selectedStickerId = sticker.id;

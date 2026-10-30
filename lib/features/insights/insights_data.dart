@@ -180,6 +180,22 @@ class InsightsData {
       active.where((i) => i.wearCount == 0).toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
+  /// Days without a wear before a piece is suggested for letting go.
+  static const int idleDays = 180;
+
+  /// Pieces not worn for [idleDays] (or never worn since being added that
+  /// long ago), with how many days they have sat idle, longest first:
+  /// candidates to archive, give away or sell.
+  List<RankedItem> get letGo {
+    final ranked = <RankedItem>[];
+    for (final item in active) {
+      final since = DateHelpers.dateOnly(item.lastWornAt ?? item.createdAt);
+      final idle = today.difference(since).inDays;
+      if (idle >= idleDays) ranked.add((item, idle.toDouble()));
+    }
+    return ranked..sort((a, b) => b.$2.compareTo(a.$2));
+  }
+
   List<ClothingItem> get recentlyAdded =>
       [...active]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }

@@ -290,11 +290,19 @@ class InsightSection extends StatelessWidget {
     required this.title,
     required this.child,
     this.premiumBadge = false,
+    this.subtitle,
+    this.action,
   });
 
   final String title;
   final Widget child;
   final bool premiumBadge;
+
+  /// A line under the title explaining the section.
+  final String? subtitle;
+
+  /// E.g. a text button at the end of the title row.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -341,8 +349,16 @@ class InsightSection extends StatelessWidget {
                     ],
                   ),
                 ),
+              ?action,
             ],
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              subtitle!,
+              style: text.bodyMedium?.copyWith(color: palette.textSecondary),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           child,
         ],

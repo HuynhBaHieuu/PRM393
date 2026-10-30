@@ -5,6 +5,7 @@ import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
+import 'package:all_fits/data/models/laundry_status.dart';
 import 'package:all_fits/data/models/season.dart';
 
 const Object _unset = Object();
@@ -36,6 +37,8 @@ class ClothingItem {
     this.sortIndex,
     this.wearCount = 0,
     this.lastWornAt,
+    this.laundry = LaundryStatus.clean,
+    this.wearsSinceWash = 0,
   });
 
   /// Throws [FormatException] when required fields are missing; all other
@@ -81,6 +84,10 @@ class ClothingItem {
       sortIndex: json['sortIndex'] is int ? json['sortIndex'] as int : null,
       wearCount: math.max(0, JsonReader.integer(json, 'wearCount')),
       lastWornAt: JsonReader.date(json, 'lastWornAt'),
+      laundry:
+          JsonReader.enumValue(LaundryStatus.values, json['laundry']) ??
+          LaundryStatus.clean,
+      wearsSinceWash: math.max(0, JsonReader.integer(json, 'wearsSinceWash')),
       createdAt: createdAt,
       updatedAt: JsonReader.date(json, 'updatedAt') ?? createdAt,
     );
@@ -133,6 +140,13 @@ class ClothingItem {
   final int? sortIndex;
   final int wearCount;
   final DateTime? lastWornAt;
+
+  /// Clean, in the hamper or in the wash. Wearing a piece moves it to the
+  /// hamper once it reaches [LaundryStatus.wearsBeforeWash].
+  final LaundryStatus laundry;
+
+  /// Wears since the piece was last marked clean.
+  final int wearsSinceWash;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -160,6 +174,8 @@ class ClothingItem {
     'sortIndex': sortIndex,
     'wearCount': wearCount,
     'lastWornAt': lastWornAt?.toIso8601String(),
+    'laundry': laundry.name,
+    'wearsSinceWash': wearsSinceWash,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -188,6 +204,8 @@ class ClothingItem {
     Object? sortIndex = _unset,
     int? wearCount,
     Object? lastWornAt = _unset,
+    LaundryStatus? laundry,
+    int? wearsSinceWash,
     DateTime? updatedAt,
   }) {
     return ClothingItem(
@@ -228,8 +246,40 @@ class ClothingItem {
       lastWornAt: identical(lastWornAt, _unset)
           ? this.lastWornAt
           : lastWornAt as DateTime?,
+      laundry: laundry ?? this.laundry,
+      wearsSinceWash: wearsSinceWash ?? this.wearsSinceWash,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  /// Whether the piece can be suggested for an outfit right now.
+  bool get isAvailable => !isArchived && laundry.isAvailable;
+
+  /// The same piece after one more wear: it goes in the hamper once it has
+  /// been worn as often as its category allows between washes.
+  ClothingItem afterWear() {
+    final wears = wearsSinceWash + 1;
+    final limit = LaundryStatus.wearsBeforeWash(category);
+    return copyWith(
+      wearsSinceWash: wears,
+      laundry: limit != null && wears >= limit ? LaundryStatus.dirty : null,
+    );
+  }
+
+  /// Undoes [afterWear]: takes the piece back out of the hamper when the
+  /// wear being reversed is what put it there.
+  ClothingItem beforeWear() {
+    final wears = math.max(0, wearsSinceWash - 1);
+    final limit = LaundryStatus.wearsBeforeWash(category);
+    final backOut =
+        laundry == LaundryStatus.dirty &&
+        limit != null &&
+        wearsSinceWash >= limit &&
+        wears < limit;
+    return copyWith(
+      wearsSinceWash: wears,
+      laundry: backOut ? LaundryStatus.clean : null,
     );
   }
 

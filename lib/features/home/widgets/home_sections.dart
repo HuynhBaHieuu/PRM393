@@ -687,7 +687,7 @@ class NewestIdeasSection extends StatelessWidget {
     );
     final today = context.read<ClosetActions>().today;
     final ideas = [
-      for (final piece in wardrobe.activeItems.take(_pieces))
+      for (final piece in wardrobe.availableItems.take(_pieces))
         ...OutfitIdeas.generate(
           wardrobe.activeItems,
           day: today,

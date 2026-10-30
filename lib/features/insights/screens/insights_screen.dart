@@ -5,16 +5,19 @@ import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/formatters.dart';
+import 'package:all_fits/core/widgets/app_dialogs.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/features/insights/insights_data.dart';
 import 'package:all_fits/features/insights/widgets/insight_widgets.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
 
@@ -36,6 +39,40 @@ class _InsightsScreenState extends State<InsightsScreen> {
   void _upgrade() => AppNavigator.premium(context);
 
   void _openItem(String id) => AppNavigator.clothingDetail(context, id);
+
+  /// Archives every piece in "Time to let go?", with an undo.
+  Future<void> _archiveIdle(List<ClothingItem> items) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Archive ${AppFormatters.count(items.length, 'piece')}?',
+      message:
+          'They’ll leave your wardrobe and outfit ideas but stay in Archived '
+          'items, so you can restore them, give them away or sell them.',
+      confirmLabel: 'Archive',
+    );
+    if (!confirmed || !mounted) return;
+    final wardrobe = context.read<WardrobeController>();
+    final ids = [for (final item in items) item.id];
+    final done = await ClosetFlows.guard(
+      context,
+      () => wardrobe.setArchivedMany(ids, archived: true),
+    );
+    if (!done || !mounted) return;
+    context.showSnack(
+      'Archived ${AppFormatters.count(ids.length, 'piece')}',
+      actionLabel: 'Undo',
+      onAction: () => ClosetFlows.guard(
+        context,
+        () => wardrobe.setArchivedMany(ids, archived: false),
+      ),
+    );
+  }
+
+  /// "7 mo idle" or "45 days idle".
+  static String _idle(double days) {
+    final months = days ~/ 30;
+    return months >= 1 ? '$months mo idle' : '${days.round()} days idle';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +251,24 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ),
                     ),
                   ),
+                  if (data.letGo case final idle when idle.isNotEmpty)
+                    InsightSection(
+                      title: 'Time to let go?',
+                      subtitle:
+                          'Not worn in 6 months. Archive, give away or sell '
+                          'them to keep your closet light.',
+                      action: TextButton(
+                        onPressed: () =>
+                            _archiveIdle([for (final r in idle) r.$1]),
+                        child: const Text('Archive all'),
+                      ),
+                      child: _RankedStrip(
+                        ranked: idle,
+                        caption: _idle,
+                        onTap: _openItem,
+                        emptyText: '',
+                      ),
+                    ),
                   InsightSection(
                     title: 'Recently added',
                     child: InsightItemStrip(

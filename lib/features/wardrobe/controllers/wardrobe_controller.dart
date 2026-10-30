@@ -14,6 +14,7 @@ import 'package:all_fits/data/local/background_remover.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/clothing_photo.dart';
+import 'package:all_fits/data/models/laundry_status.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 
@@ -53,6 +54,17 @@ class WardrobeController extends ChangeNotifier {
   List<ClothingItem> get activeItems => _active;
 
   List<ClothingItem> get archivedItems => _archived;
+
+  /// Active pieces that are clean, i.e. the ones outfit ideas and the AI
+  /// stylist may pick from.
+  List<ClothingItem> get availableItems =>
+      _active.where((item) => item.laundry.isAvailable).toList();
+
+  /// Active pieces in the hamper or in the wash, hamper first.
+  List<ClothingItem> get laundryItems => [
+    ..._active.where((item) => item.laundry == LaundryStatus.dirty),
+    ..._active.where((item) => item.laundry == LaundryStatus.washing),
+  ];
 
   List<ClothingItem> get favoriteItems =>
       _active.where((item) => item.isFavorite).toList();
@@ -395,7 +407,7 @@ class WardrobeController extends ChangeNotifier {
   Future<void> recordWear(Iterable<String> itemIds, DateTime date) async {
     final day = DateHelpers.dateOnly(date);
     final updated = itemsByIds(itemIds.toSet()).map((item) {
-      return item.copyWith(
+      return item.afterWear().copyWith(
         wearCount: item.wearCount + 1,
         lastWornAt: DateHelpers.latest([item.lastWornAt, day]),
       );
@@ -406,11 +418,49 @@ class WardrobeController extends ChangeNotifier {
   /// Reverses one wear for each item, restoring the given last-worn dates.
   Future<void> revertWear(Map<String, DateTime?> lastWornById) async {
     final updated = itemsByIds(lastWornById.keys).map((item) {
-      return item.copyWith(
+      return item.beforeWear().copyWith(
         wearCount: math.max(0, item.wearCount - 1),
         lastWornAt: lastWornById[item.id],
       );
     }).toList();
+    if (updated.isNotEmpty) await _commit(updated);
+  }
+
+  /// Moves pieces to [status]. Marking them clean starts their wear count
+  /// over. Returns the pieces as they were, for undo.
+  Future<List<ClothingItem>> setLaundry(
+    Iterable<String> ids,
+    LaundryStatus status,
+  ) async {
+    final before = [
+      for (final item in itemsByIds(ids.toSet()))
+        if (item.laundry != status ||
+            (status == LaundryStatus.clean && item.wearsSinceWash > 0))
+          item,
+    ];
+    if (before.isEmpty) return before;
+    final now = _clock();
+    await _commit([
+      for (final item in before)
+        item.copyWith(
+          laundry: status,
+          wearsSinceWash: status == LaundryStatus.clean ? 0 : null,
+          updatedAt: now,
+        ),
+    ]);
+    return before;
+  }
+
+  /// Puts pieces back the way [setLaundry] found them.
+  Future<void> restoreLaundry(List<ClothingItem> previous) async {
+    final updated = [
+      for (final old in previous)
+        if (_byId[old.id] case final item?)
+          item.copyWith(
+            laundry: old.laundry,
+            wearsSinceWash: old.wearsSinceWash,
+          ),
+    ];
     if (updated.isNotEmpty) await _commit(updated);
   }
 
