@@ -27,12 +27,20 @@ abstract final class OutfitIdeas {
 
   /// Up to [count] different looks for [day]. With [anchor], every look is
   /// built around that piece. Without [weather], the month picks the season.
+  ///
+  /// [usage] counts how often each piece is already used elsewhere (e.g. on
+  /// other days of a week plan); the least used pieces are picked first.
+  /// Looks whose [lookKey] is in [avoidLooks] are skipped, and [variant]
+  /// reshuffles the same day.
   static List<OutfitIdea> generate(
     List<ClothingItem> wardrobe, {
     required DateTime day,
     WeatherReport? weather,
     ClothingItem? anchor,
     int count = 3,
+    Map<String, int> usage = const {},
+    Set<String> avoidLooks = const {},
+    int variant = 0,
   }) {
     final advice = weather == null ? null : WeatherAdvice(weather);
     final seasons = advice?.seasons ?? {_seasonOf(day)};
@@ -56,7 +64,11 @@ abstract final class OutfitIdeas {
         ? null
         : OutfitSlot.forCategory(anchor.category);
     final random = math.Random(
-      day.year * 400 + day.month * 32 + day.day + (anchor?.id.hashCode ?? 0),
+      day.year * 400 +
+          day.month * 32 +
+          day.day +
+          (anchor?.id.hashCode ?? 0) +
+          variant * 7919,
     );
     final layered =
         advice?.needsOuterwear ??
@@ -64,16 +76,19 @@ abstract final class OutfitIdeas {
 
     // Pieces already in an idea; others are tried first so the looks differ.
     final used = <String>{};
+    int cost(ClothingItem item) =>
+        (used.contains(item.id) ? _usedHere : 0) + (usage[item.id] ?? 0);
     ClothingItem? pick(OutfitSlot slot) {
       if (slot == anchorSlot) return anchor;
       final all = pool(slot);
-      final fresh = all.where((i) => !used.contains(i.id)).toList();
-      final options = fresh.isEmpty ? all : fresh;
-      return options.isEmpty ? null : options[random.nextInt(options.length)];
+      if (all.isEmpty) return null;
+      final least = all.map(cost).reduce(math.min);
+      final options = all.where((i) => cost(i) == least).toList();
+      return options[random.nextInt(options.length)];
     }
 
     final ideas = <OutfitIdea>[];
-    final seen = <String>{};
+    final seen = {...avoidLooks};
     for (
       var attempt = 0;
       attempt < count * 6 && ideas.length < count;
@@ -107,7 +122,7 @@ abstract final class OutfitIdeas {
           slots.contains(OutfitSlot.dress) ||
           (slots.contains(OutfitSlot.top) && slots.contains(OutfitSlot.bottom));
       if (!complete) continue;
-      if (!seen.add((items.map((i) => i.id).toList()..sort()).join())) continue;
+      if (!seen.add(lookKey(items.map((i) => i.id)))) continue;
       used.addAll(items.map((i) => i.id));
       ideas.add(
         OutfitIdea(
@@ -118,6 +133,14 @@ abstract final class OutfitIdeas {
     }
     return ideas;
   }
+
+  /// The same for any order of the same pieces.
+  static String lookKey(Iterable<String> itemIds) =>
+      (itemIds.toList()..sort()).join(',');
+
+  /// Outweighs any [generate] usage count: a piece already in one of this
+  /// call's ideas comes last.
+  static const int _usedHere = 1000;
 
   static Season _seasonOf(DateTime day) {
     return switch (day.month) {

@@ -10,6 +10,7 @@ import 'package:all_fits/features/outfits/screens/outfit_pick_screen.dart';
 import 'package:all_fits/features/outfits/screens/outfits_select_screen.dart';
 import 'package:all_fits/features/outfits/screens/swipe_outfit_screen.dart';
 import 'package:all_fits/features/planner/screens/planner_screen.dart';
+import 'package:all_fits/features/planner/screens/week_plan_screen.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
@@ -46,6 +47,7 @@ abstract final class AppRoutes {
   static const String outfitBuilder = '/outfits/builder';
   static const String outfitPick = '/outfits/new';
   static const String planner = '/planner';
+  static const String weekPlan = '/planner/week';
   static const String selectClothes = '/clothing/select';
   static const String reorderClothes = '/clothing/reorder';
   static const String selectOutfits = '/outfits/select';
@@ -110,6 +112,7 @@ abstract final class AppRoutes {
         planDate: args is (List<String>, DateTime?) ? args.$2 : null,
       ),
       AppRoutes.planner => const PlannerScreen(),
+      AppRoutes.weekPlan => const WeekPlanScreen(),
       AppRoutes.outfitBuilder => OutfitBuilderScreen(
         args: args is OutfitBuilderArgs ? args : const OutfitBuilderArgs(),
       ),
@@ -245,6 +248,15 @@ abstract final class AppNavigator {
 
   static Future<void> planner(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.planner);
+
+  /// Smart Outfit Planner; resolves to the first day it planned, if any.
+  static Future<DateTime?> planWeek(BuildContext context) async {
+    // Routes are built as Route<dynamic>, so push untyped and narrow after.
+    final result = await Navigator.of(
+      context,
+    ).pushNamed<Object?>(AppRoutes.weekPlan);
+    return result is DateTime ? result : null;
+  }
 
   /// Fits' "Add outfit": choose pieces first (starting with
   /// [initialItemIds]), then how to put them together. With [planDate], the
