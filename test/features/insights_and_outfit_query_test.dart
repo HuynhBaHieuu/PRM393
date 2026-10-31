@@ -151,6 +151,26 @@ void main() {
       expect(slices.last.label, InsightsData.other);
       expect(slices.last.count, 3);
     });
+
+    test('suggests letting go of pieces idle for six months', () {
+      final today = DateTime(testNow.year, testNow.month, testNow.day);
+      DateTime daysAgo(int n) => today.subtract(Duration(days: n));
+      final idle = InsightsData(
+        items: [
+          _item('fresh', ageDays: 400).copyWith(lastWornAt: daysAgo(10)),
+          _item('stale', ageDays: 400).copyWith(lastWornAt: daysAgo(200)),
+          _item('forgotten', ageDays: 300),
+          _item('new', ageDays: 30),
+          _item('gone', ageDays: 400, archived: true),
+        ],
+        outfits: const [],
+        entries: const [],
+        today: today,
+      );
+      expect([
+        for (final (item, days) in idle.letGo) (item.id, days.round()),
+      ], [('stale', 200), ('forgotten', 300)]..sort((a, b) => b.$2 - a.$2));
+    });
   });
 
   group('OutfitQuery', () {

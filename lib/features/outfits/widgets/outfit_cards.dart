@@ -224,15 +224,11 @@ class OutfitTileGrid extends StatelessWidget {
                 children: [
                   Opacity(
                     opacity: checkable && selected ? 0.45 : 1,
-                    child: Padding(
-                      padding: EdgeInsets.all(
-                        outfit.photoPath == null ? AppSpacing.xs : 0,
-                      ),
-                      child: OutfitCover(
-                        outfit: outfit,
-                        items: items,
-                        worn: true,
-                      ),
+                    child: OutfitCover(
+                      outfit: outfit,
+                      items: items,
+                      worn: true,
+                      padding: const EdgeInsets.all(AppSpacing.xs),
                     ),
                   ),
                   if (checkable)

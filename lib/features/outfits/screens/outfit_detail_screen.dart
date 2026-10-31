@@ -283,15 +283,11 @@ class OutfitDetailScreen extends StatelessWidget {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              Padding(
-                                padding: EdgeInsets.all(
-                                  outfit.photoPath == null ? AppSpacing.lg : 0,
-                                ),
-                                child: OutfitCover(
-                                  outfit: outfit,
-                                  items: items,
-                                  worn: true,
-                                ),
+                              OutfitCover(
+                                outfit: outfit,
+                                items: items,
+                                worn: true,
+                                padding: const EdgeInsets.all(AppSpacing.lg),
                               ),
                               Positioned(
                                 left: AppSpacing.sm,
@@ -575,6 +571,7 @@ class OutfitDetailScreen extends StatelessWidget {
   }
 }
 
+/// A small "Add photo" pill in the board's corner, kept clear of the pieces.
 class _AddPhotoTile extends StatelessWidget {
   const _AddPhotoTile({required this.onTap});
 
@@ -583,29 +580,38 @@ class _AddPhotoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Material(
-      color: palette.surfaceMuted,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: SizedBox(
-          width: 88,
-          height: 120,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.add_photo_alternate_outlined,
-                color: palette.textSecondary,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Add outfit photo',
-                textAlign: TextAlign.center,
-                style: context.textTheme.bodySmall,
-              ),
-            ],
+    return Semantics(
+      button: true,
+      label: 'Add outfit photo',
+      child: Material(
+        color: palette.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        elevation: 1,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm + 2,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add_a_photo_outlined,
+                  size: AppSizes.iconSm,
+                  color: palette.ink,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                ExcludeSemantics(
+                  child: Text(
+                    'Add photo',
+                    style: context.textTheme.labelMedium,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -34,6 +34,7 @@ import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_photos_screen.dart';
+import 'package:all_fits/features/wardrobe/screens/laundry_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_form_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothes_select_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
@@ -60,6 +61,7 @@ abstract final class AppRoutes {
   static const String insights = '/insights';
   static const String favorites = '/favorites';
   static const String archived = '/archived';
+  static const String laundry = '/laundry';
   static const String settings = '/settings';
   static const String stylist = '/stylist';
   static const String premium = '/premium';
@@ -133,6 +135,7 @@ abstract final class AppRoutes {
       AppRoutes.insights => const InsightsScreen(),
       AppRoutes.favorites => const FavoritesScreen(),
       AppRoutes.archived => const ArchivedItemsScreen(),
+      AppRoutes.laundry => const LaundryScreen(),
       AppRoutes.settings => const SettingsScreen(),
       AppRoutes.stylist => StylistScreen(
         launch: args is StylistLaunch ? args : null,
@@ -252,9 +255,8 @@ abstract final class AppNavigator {
   /// Smart Outfit Planner; resolves to the first day it planned, if any.
   static Future<DateTime?> planWeek(BuildContext context) async {
     // Routes are built as Route<dynamic>, so push untyped and narrow after.
-    final result = await Navigator.of(
-      context,
-    ).pushNamed<Object?>(AppRoutes.weekPlan);
+    final result = await Navigator.of(context)
+        .pushNamed<Object?>(AppRoutes.weekPlan);
     return result is DateTime ? result : null;
   }
 
@@ -331,6 +333,9 @@ abstract final class AppNavigator {
 
   static Future<void> archived(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.archived);
+
+  static Future<void> laundry(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.laundry);
 
   static Future<void> settings(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.settings);

@@ -285,13 +285,11 @@ class _DayCard extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () => AppNavigator.outfitDetail(context, outfit.id),
-                    child: Padding(
+                    child: OutfitCover(
+                      outfit: outfit,
+                      items: [...items],
+                      worn: true,
                       padding: const EdgeInsets.all(AppSpacing.md),
-                      child: OutfitCover(
-                        outfit: outfit,
-                        items: [...items],
-                        worn: true,
-                      ),
                     ),
                   ),
                   Positioned(

@@ -45,8 +45,9 @@ abstract final class OutfitIdeas {
     final advice = weather == null ? null : WeatherAdvice(weather);
     final seasons = advice?.seasons ?? {_seasonOf(day)};
     final bySlot = <OutfitSlot, List<ClothingItem>>{};
+    // Archived pieces and ones in the laundry are left out.
     for (final item in wardrobe) {
-      if (item.isArchived) continue;
+      if (!item.isAvailable) continue;
       bySlot
           .putIfAbsent(OutfitSlot.forCategory(item.category), () => [])
           .add(item);

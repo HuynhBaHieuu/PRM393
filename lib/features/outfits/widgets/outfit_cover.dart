@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/core/extensions/context_extensions.dart';
+
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
@@ -16,6 +18,7 @@ class OutfitCover extends StatelessWidget {
     required this.outfit,
     required this.items,
     this.worn = false,
+    this.padding = EdgeInsets.zero,
   });
 
   final Outfit outfit;
@@ -25,17 +28,26 @@ class OutfitCover extends StatelessWidget {
   /// tall outfit cards) instead of the flat-lay.
   final bool worn;
 
+  /// Space around the collage, filled with the board's background so the
+  /// colour reaches the card's edges. Photos always fill the card.
+  final EdgeInsets padding;
+
   @override
   Widget build(BuildContext context) {
     final photo = outfit.photoPath;
     if (photo == null) {
-      return OutfitCanvas(
+      final canvas = OutfitCanvas(
         items: items,
         layout: worn && outfit.layout.isEmpty
             ? OutfitLayout.worn(items)
             : outfit.layout,
         background: outfit.background,
         stickers: outfit.stickers,
+      );
+      if (padding == EdgeInsets.zero) return canvas;
+      return ColoredBox(
+        color: outfit.background.color ?? context.palette.surface,
+        child: Padding(padding: padding, child: canvas),
       );
     }
     return OutfitPhoto(reference: photo);

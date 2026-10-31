@@ -141,7 +141,10 @@ class OutfitController extends ChangeNotifier {
   }
 
   /// Saves one edit made on the detail screen, e.g. a new occasion.
-  Future<Outfit> patchOutfit(String id, Outfit Function(Outfit o) change) async {
+  Future<Outfit> patchOutfit(
+    String id,
+    Outfit Function(Outfit o) change,
+  ) async {
     final updated = change(_require(id)).copyWith(updatedAt: _clock());
     if (updated.name.trim().isEmpty) {
       throw const ValidationException('Give this outfit a name.');

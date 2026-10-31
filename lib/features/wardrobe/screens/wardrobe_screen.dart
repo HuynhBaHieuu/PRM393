@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/option_sheets.dart';
@@ -23,7 +24,7 @@ class WardrobeScreen extends StatefulWidget {
   State<WardrobeScreen> createState() => _WardrobeScreenState();
 }
 
-enum _MoreAction { select, reorder }
+enum _MoreAction { select, reorder, laundry }
 
 class _WardrobeScreenState extends State<WardrobeScreen> {
   WardrobeQuery _query = const WardrobeQuery();
@@ -63,6 +64,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_MoreAction.reorder),
               ),
+              SheetActionTile(
+                icon: Icons.local_laundry_service_outlined,
+                label: 'Laundry',
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_MoreAction.laundry),
+              ),
             ],
           ),
         ),
@@ -76,6 +83,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         await AppNavigator.reorderClothes(context);
         // Show the new order straight away.
         if (mounted) _setQuery(_query.copyWith(sort: WardrobeSort.custom));
+      case _MoreAction.laundry:
+        await AppNavigator.laundry(context);
     }
   }
 
@@ -105,6 +114,21 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
+          if (wardrobe.laundryItems.length case final count when count > 0)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  0,
+                  AppSpacing.page,
+                  AppSpacing.sm,
+                ),
+                child: _LaundryBanner(
+                  count: count,
+                  onTap: () => AppNavigator.laundry(context),
+                ),
+              ),
+            ),
           if (wardrobe.activeItems.isEmpty && !_query.showArchived)
             SliverFillRemaining(
               hasScrollBody: false,
@@ -151,6 +175,49 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             ],
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
         ],
+      ),
+    );
+  }
+}
+
+/// "3 pieces in the laundry" above the grid, opening the laundry basket.
+class _LaundryBanner extends StatelessWidget {
+  const _LaundryBanner({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Material(
+      color: palette.surfaceMuted,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.local_laundry_service_outlined,
+                size: AppSizes.iconSm,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  '${AppFormatters.count(count, 'piece')} in the laundry',
+                  style: context.textTheme.bodyMedium,
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: palette.textSecondary),
+            ],
+          ),
+        ),
       ),
     );
   }

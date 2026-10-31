@@ -231,6 +231,42 @@ void main() {
       expect(draft.background, BoardBackground.blush);
       expect(draft.stickers.single.emoji, '🌸');
     });
+
+    test('new stickers land clear of the pieces, hair above the top', () {
+      final builder = OutfitBuilderController(
+        lookup: (id) => id == 'tee' ? tee : null,
+        initialItemIds: const ['tee'],
+        idGenerator: SequentialIdGenerator(),
+      );
+      addTearDown(builder.dispose);
+      final top = OutfitLayout.resolve([tee], const []).single;
+      // Share of [a]'s box that [b] covers.
+      double covered(OutfitPlacement a, OutfitPlacement b) {
+        final w =
+            (a.width + b.width) / 2 - (a.x - b.x).abs().clamp(0, 1).toDouble();
+        final h =
+            (a.height + b.height) / 2 -
+            (a.y - b.y).abs().clamp(0, 1).toDouble();
+        if (w <= 0 || h <= 0) return 0;
+        return w.clamp(0, a.width) *
+            h.clamp(0, a.height) /
+            (a.width * a.height);
+      }
+
+      builder
+        ..addEmojiSticker('🌸')
+        ..addHair(Hairstyle.bob, HairColor.brown);
+      final emoji = builder.stickers.first.placement;
+      final hair = builder.stickers.last.placement;
+      expect(covered(emoji, top), 0);
+      // The flat-lay's top is at the very top, so the hair moves beside it.
+      expect(covered(hair, top), lessThanOrEqualTo(0.3));
+      expect(covered(hair, emoji), 0);
+      for (final p in [emoji, hair]) {
+        expect(p.x - p.width / 2, greaterThanOrEqualTo(0));
+        expect(p.y + p.height / 2, lessThanOrEqualTo(1));
+      }
+    });
   });
 
   testWidgets('dragging a sticker moves it and selects it', (tester) async {
