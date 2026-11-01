@@ -12,7 +12,6 @@ import 'package:all_fits/features/outfits/outfit_layout.dart';
 import 'package:all_fits/features/outfits/screens/outfit_pick_screen.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
-import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 
@@ -27,24 +26,12 @@ abstract final class OutfitFlows {
     DateTime? planDate,
   }) async {
     final navigator = Navigator.of(context);
-    final bool saved;
-    switch (mode) {
-      case OutfitCreateMode.collage:
-        saved = await AppNavigator.composeOutfit(
-          context,
-          itemIds: itemIds,
-          planDate: planDate,
-        );
-      case OutfitCreateMode.dressingRoom:
-        saved = await AppNavigator.swipeOutfit(
-          context,
-          initialItemIds: itemIds,
-          planDate: planDate,
-        );
-      case OutfitCreateMode.tryOn:
-        await TryOnFlows.start(context, itemIds: itemIds);
-        saved = false;
-    }
+    final saved = await AppNavigator.buildOutfit(
+      context,
+      mode: mode,
+      itemIds: itemIds,
+      planDate: planDate,
+    );
     // Close "Add outfit" once its outfit exists.
     if (saved && navigator.canPop()) navigator.pop(true);
     return saved;

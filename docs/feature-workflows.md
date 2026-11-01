@@ -138,18 +138,23 @@ Khi có lỗi: nếu gửi không được, tin nhắn hiện thông báo lỗi 
 
 Khi ghép outfit trên bảng, bạn có thể thêm sticker trang trí, gắn kiểu tóc, và đổi màu nền cho outfit đẹp hơn.
 
-Cách dùng:
-1. Mở màn tạo hoặc sửa outfit.
-2. Thanh dưới có ba nút: "Wardrobe" để thêm quần áo như hiện tại, "Stickers" để thêm sticker và kiểu tóc, "Background" để đổi màu nền.
-3. Bấm một sticker, nó hiện giữa bảng. Kéo để di chuyển, dùng hai ngón tay để phóng to và xoay, giống như với quần áo.
-4. Nhấn giữ sticker để đưa lên trên, đưa xuống dưới, hoặc xóa.
-5. Chọn một màu nền: trắng, kem, hồng nhạt, xanh nhạt, đen…
+Cách dùng (theo màn ghép outfit của Fits):
+1. Chọn đồ trong "Add outfit", chọn chế độ (Collage, Dressing Room hoặc AI Try On; mỗi chế độ có ảnh xem trước vẽ từ đồ của bạn) rồi bấm Next.
+2. Collage: bảng trắng bo góc trên nền đen, nút back và "Next →" nằm trên bảng. Quần áo xếp dọc giữa bảng như đang mặc, chừa chỗ cho đầu. Thanh dưới có bốn ô: "Add clothes" (chọn thêm hoặc bỏ bớt đồ), "Stickers", "Background", "Switch mode".
+3. "Stickers" mở một bảng có các tab Hair, Scribbles, Shapes, Arrows, Objects và Emoji. Tab Hair, Shapes, Arrows có hàng màu ở dưới; chọn màu thì cả lưới đổi màu theo. Tab Hair có 23 kiểu: 12 kiểu có sẵn (Pixie, Bob, Long, Quiff, Buzz cut, …) và 11 kiểu nam mới (Undercut, Layered, Short quiff, Side part, Slick back, Crew cut, French crop, Curtains, Mullet, Faux hawk, Short curls). Gói Free chỉ dùng được 3 kiểu đầu.
+4. Bấm một sticker, nó hiện trên bảng. Tóc to bằng cỡ một cái đầu và nằm trên vai áo, có khoảng cổ giữa cằm và cổ áo. Kéo để di chuyển, dùng hai ngón tay để phóng to và xoay, giống như với quần áo.
+5. Chạm vào một sticker hay một món đồ để chọn nó. Thanh dưới đổi thành: Done, Duplicate (chỉ sticker), Flip, Send to back / Bring to front, Lock, Delete. Món bị khóa không kéo được cho tới khi mở khóa. Chạm chỗ trống trên bảng để bỏ chọn.
+6. "Background" mở hàng màu nền: trắng, kem, hồng nhạt, xanh nhạt, đen…
+7. "Next →" mở màn "New outfit": ảnh xem trước của bảng, tên, dịp, mùa, ghi chú, yêu thích và nút "Save outfit".
+8. Dressing Room: ma-nơ-canh đứng giữa màn hình, có nút back và "Next →" ở trên. Thanh dưới có bốn ô: "Clothes" (chọn các lớp đồ đang mặc), "Hair & Body", "Shuffle" (đổi ngẫu nhiên cả bộ), "Switch mode". Vuốt hoặc chạm vào một món để mở khay chọn đồ của hàng đó; bên phải có nút ✓ (đóng khay), xáo riêng hàng đó, và cởi hàng đó ra. "Next →" đi thẳng tới màn "New outfit".
+9. "Hair & Body" có công tắc "Show hair", dòng "Change hair style" (mở lưới kiểu tóc với hàng màu ở dưới) và công tắc "Show body".
+10. "Switch mode" ở cả Collage và Dressing Room mở lại bảng "Select how to create outfits". Đồ đang chọn và tóc được mang sang chế độ mới. Chọn AI Try On thì mở thử đồ bằng AI với các món đó.
 
-App làm gì phía sau: outfit lưu lại vị trí sticker và màu nền, nên ở mọi nơi hiện outfit (Home, Planner, danh sách outfit, màn chi tiết) đều thấy giống hệt. Sticker không được tính vào số món của outfit.
+App làm gì phía sau: outfit lưu lại vị trí sticker, màu, lớp (trước hay sau quần áo), lật, khóa và màu nền, nên ở mọi nơi hiện outfit (Home, Planner, danh sách outfit, màn chi tiết) đều thấy giống hệt. Sticker không được tính vào số món của outfit.
 
-Về nguồn sticker: không dùng sticker của Fits. Nhóm tự vẽ, hoặc dùng bộ biểu tượng miễn phí có giấy phép cho phép và ghi nguồn trong màn giấy phép của app.
+Về nguồn sticker: không dùng sticker của Fits. Mọi sticker và kiểu tóc đều vẽ bằng code trong lib/features/outfits/widgets/sticker_art.dart, nên không cần ghi nguồn.
 
-Miễn phí và Premium: bản miễn phí có khoảng 10 sticker, 3 kiểu tóc và mọi màu nền. Premium mở toàn bộ. Hết Premium thì sticker đã đặt vẫn còn, chỉ không thêm được sticker Premium mới.
+Miễn phí và Premium: bản miễn phí có 10 sticker vẽ, toàn bộ emoji, 3 kiểu tóc và mọi màu nền. Premium mở toàn bộ. Hết Premium thì sticker đã đặt vẫn còn, chỉ không thêm được sticker Premium mới.
 
 
 ## 9. Thử đồ bằng AI

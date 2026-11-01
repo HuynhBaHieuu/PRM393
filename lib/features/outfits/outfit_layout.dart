@@ -36,6 +36,35 @@ abstract final class OutfitLayout {
     OutfitSlot.accessories: [(0.15, 0.5, 0.24, 0.16), (0.85, 0.5, 0.24, 0.16)],
   };
 
+  /// Spots for [dressed]: head to toe down the middle with room for a head
+  /// above, as on Fits' collage board.
+  static const Map<OutfitSlot, List<(double, double, double, double)>>
+  _dressedSpots = {
+    OutfitSlot.outerwear: [(0.5, 0.39, 0.64, 0.38)],
+    OutfitSlot.top: [(0.5, 0.38, 0.6, 0.36)],
+    OutfitSlot.dress: [(0.5, 0.56, 0.64, 0.72)],
+    OutfitSlot.bottom: [(0.5, 0.72, 0.56, 0.4)],
+    OutfitSlot.shoes: [(0.5, 0.94, 0.4, 0.1)],
+    OutfitSlot.accessories: [
+      (0.13, 0.55, 0.22, 0.15),
+      (0.87, 0.55, 0.22, 0.15),
+    ],
+  };
+
+  /// [_dressedSpots] for a jacket over a top: side by side, so both show.
+  static const Map<OutfitSlot, List<(double, double, double, double)>>
+  _layeredSpots = {
+    OutfitSlot.outerwear: [(0.4, 0.39, 0.6, 0.38)],
+    OutfitSlot.top: [(0.64, 0.38, 0.5, 0.34)],
+    OutfitSlot.dress: [(0.62, 0.56, 0.56, 0.72)],
+    OutfitSlot.bottom: [(0.5, 0.72, 0.56, 0.4)],
+    OutfitSlot.shoes: [(0.5, 0.94, 0.4, 0.1)],
+    OutfitSlot.accessories: [
+      (0.13, 0.55, 0.22, 0.15),
+      (0.87, 0.55, 0.22, 0.15),
+    ],
+  };
+
   /// Back to front, so tops sit over bottoms and accessories over all.
   static const List<OutfitSlot> _paintOrder = [
     OutfitSlot.bottom,
@@ -50,22 +79,37 @@ abstract final class OutfitLayout {
   static const double _stagger = 0.06;
 
   /// Placements for [items], back to front: [saved] ones in their saved
-  /// order, then default spots for pieces that have none.
+  /// order, then default spots for pieces that have none: [dressed] ones,
+  /// or the flat-lay.
   static List<OutfitPlacement> resolve(
     List<ClothingItem> items,
-    List<OutfitPlacement> saved,
-  ) {
+    List<OutfitPlacement> saved, {
+    bool dressed = false,
+  }) {
     final unplaced = {for (final item in items) item.id};
     final kept = saved.where((p) => unplaced.remove(p.itemId)).toList();
+    final rest = items.where((item) => unplaced.contains(item.id)).toList();
     return [
       ...kept,
-      ...defaults(items.where((item) => unplaced.contains(item.id)).toList()),
+      ...(dressed ? OutfitLayout.dressed(rest) : defaults(rest)),
     ];
   }
 
   /// The pieces stacked head to toe, for previews of suggested looks.
   static List<OutfitPlacement> worn(List<ClothingItem> items) =>
       defaults(items, spots: _wornSpots);
+
+  /// The pieces stacked head to toe with room for hair above, where a new
+  /// collage starts, as in Fits.
+  static List<OutfitPlacement> dressed(List<ClothingItem> items) {
+    final slots = {
+      for (final item in items) OutfitSlot.forCategory(item.category),
+    };
+    final layered =
+        slots.contains(OutfitSlot.outerwear) &&
+        (slots.contains(OutfitSlot.top) || slots.contains(OutfitSlot.dress));
+    return defaults(items, spots: layered ? _layeredSpots : _dressedSpots);
+  }
 
   static List<OutfitPlacement> defaults(
     List<ClothingItem> items, {

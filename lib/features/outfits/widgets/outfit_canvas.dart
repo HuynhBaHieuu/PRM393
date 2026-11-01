@@ -12,11 +12,14 @@ import 'package:all_fits/features/outfits/outfit_layout.dart';
 import 'package:all_fits/features/outfits/widgets/board_decorations.dart';
 
 /// An outfit as a flat-lay: each piece cut out of its photo and placed on a
-/// coloured board, with stickers and hairstyles over the pieces. Pieces
-/// without a saved spot get a default one by category.
+/// coloured board, with stickers and hairstyles over the pieces (or under
+/// them, when sent to the back). Pieces without a saved spot get a default
+/// one by category.
 ///
 /// With [onChanged], pieces and stickers can be arranged: drag to move, pinch
-/// to resize and turn. Touching one brings it to the front.
+/// to resize and turn. Touching one selects it and brings it to the front of
+/// its layer; locked ones are selected but stay put. Tapping the empty board
+/// clears the selection.
 class OutfitCanvas extends StatefulWidget {
   const OutfitCanvas({
     super.key,
@@ -26,8 +29,8 @@ class OutfitCanvas extends StatefulWidget {
     this.stickers = const [],
     this.onChanged,
     this.onStickersChanged,
-    this.selectedStickerId,
-    this.onStickerSelected,
+    this.selectedId,
+    this.onSelected,
   });
 
   final List<ClothingItem> items;
@@ -41,11 +44,11 @@ class OutfitCanvas extends StatefulWidget {
   /// Receives every sticker, back to front, after one is moved.
   final ValueChanged<List<OutfitSticker>>? onStickersChanged;
 
-  /// Outlined, so the user sees which sticker "Remove" acts on.
-  final String? selectedStickerId;
+  /// The piece or sticker the selection tools act on; outlined.
+  final String? selectedId;
 
-  /// The sticker just touched, or null when a piece was.
-  final ValueChanged<String?>? onStickerSelected;
+  /// The piece or sticker just touched, or null when the empty board was.
+  final ValueChanged<String?>? onSelected;
 
   @override
   State<OutfitCanvas> createState() => _OutfitCanvasState();
@@ -80,33 +83,43 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
     _placements = OutfitLayout.resolve(widget.items, widget.layout);
     _stickers = widget.stickers;
     final byId = {for (final item in widget.items) item.id: item};
-    Widget placed(OutfitPlacement p, Size size, bool outlined, Widget child) =>
-        Positioned(
-          left: (p.x - p.width / 2) * size.width,
-          top: (p.y - p.height / 2) * size.height,
-          width: p.width * size.width,
-          height: p.height * size.height,
-          child: Transform.rotate(
-            angle: p.rotation,
-            child: DecoratedBox(
-              position: DecorationPosition.foreground,
-              decoration: BoxDecoration(
-                border: outlined ? Border.all(color: palette.ink) : null,
-              ),
-              child: child,
+    Widget placed(OutfitPlacement p, Size size, Widget child) {
+      final outlined = p.itemId == _activeId || p.itemId == widget.selectedId;
+      return Positioned(
+        left: (p.x - p.width / 2) * size.width,
+        top: (p.y - p.height / 2) * size.height,
+        width: p.width * size.width,
+        height: p.height * size.height,
+        child: Transform.rotate(
+          angle: p.rotation,
+          child: DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              border: outlined
+                  ? Border.all(color: palette.ink, width: p.locked ? 2 : 1)
+                  : null,
             ),
+            child: p.flipped
+                ? Transform.flip(flipX: true, child: child)
+                : child,
           ),
-        );
+        ),
+      );
+    }
+
+    Widget sticker(OutfitSticker s, Size size) =>
+        placed(s.placement, size, StickerView(sticker: s));
     Widget canvas = LayoutBuilder(
       builder: (context, constraints) {
         final size = _size = constraints.biggest;
         return Stack(
           children: [
+            for (final s in _stickers)
+              if (s.behind) sticker(s, size),
             for (final p in _placements)
               placed(
                 p,
                 size,
-                p.itemId == _activeId,
                 ClothingImage(
                   item: byId[p.itemId]!,
                   cutout: true,
@@ -115,14 +128,8 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
                   decodeWidth: size.width,
                 ),
               ),
-            for (final sticker in _stickers)
-              placed(
-                sticker.placement,
-                size,
-                sticker.id == _activeId ||
-                    sticker.id == widget.selectedStickerId,
-                StickerView(sticker: sticker),
-              ),
+            for (final s in _stickers)
+              if (!s.behind) sticker(s, size),
           ],
         );
       },
@@ -144,6 +151,14 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
         },
         child: canvas,
       );
+      if (widget.onSelected != null) {
+        canvas = GestureDetector(
+          onTapUp: (details) {
+            if (_hit(details.localPosition) == null) widget.onSelected!(null);
+          },
+          child: canvas,
+        );
+      }
     }
     return ClipRect(
       child: ColoredBox(
@@ -153,8 +168,9 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
     );
   }
 
-  /// The top-most sticker, then piece, whose (turned) box contains [point],
-  /// and whether it is a sticker.
+  /// The top-most sticker or piece whose (turned) box contains [point], and
+  /// whether it is a sticker: stickers in front, then pieces, then stickers
+  /// sent behind them.
   (String, bool)? _hit(Offset point) {
     bool contains(OutfitPlacement p) {
       final center = Offset(p.x * _size.width, p.y * _size.height);
@@ -163,13 +179,17 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
           local.dy.abs() <= p.height * _size.height / 2;
     }
 
-    if (widget.onStickersChanged != null) {
-      for (final sticker in _stickers.reversed) {
-        if (contains(sticker.placement)) return (sticker.id, true);
-      }
+    final stickers = widget.onStickersChanged != null
+        ? _stickers.reversed
+        : const <OutfitSticker>[];
+    for (final s in stickers) {
+      if (!s.behind && contains(s.placement)) return (s.id, true);
     }
     for (final p in _placements.reversed) {
       if (contains(p)) return (p.itemId, false);
+    }
+    for (final s in stickers) {
+      if (s.behind && contains(s.placement)) return (s.id, true);
     }
     return null;
   }
@@ -188,10 +208,12 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
       _activeIsSticker = isSticker;
     });
     _startFocal = details.focalPoint;
+    if (active == null) widget.onSelected?.call(id);
     if (isSticker) {
       final index = _stickers.indexWhere((s) => s.id == id);
       if (index < 0) return;
       final sticker = _stickers[index];
+      if (sticker.placement.locked) return;
       _start = sticker.placement;
       _emitStickers(
         [..._stickers]
@@ -202,6 +224,7 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
       final index = _placements.indexWhere((p) => p.itemId == id);
       if (index < 0) return;
       final piece = _placements[index];
+      if (piece.locked) return;
       _start = piece;
       _emit(
         [..._placements]
@@ -209,7 +232,6 @@ class _OutfitCanvasState extends State<OutfitCanvas> {
           ..add(piece),
       );
     }
-    if (active == null) widget.onStickerSelected?.call(isSticker ? id : null);
   }
 
   void _onUpdate(ScaleUpdateDetails details) {

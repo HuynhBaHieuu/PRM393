@@ -15,6 +15,7 @@ import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/premium/screens/premium_screen.dart';
 import 'package:all_fits/features/profile/screens/archived_items_screen.dart';
 import 'package:all_fits/features/profile/screens/favorites_screen.dart';
+import 'package:all_fits/data/models/outfit_create_mode.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
 import 'package:all_fits/features/social/screens/discover_screen.dart';
@@ -34,7 +35,6 @@ import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_detail_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_photos_screen.dart';
-import 'package:all_fits/features/wardrobe/screens/laundry_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothing_form_screen.dart';
 import 'package:all_fits/features/wardrobe/screens/clothes_select_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
@@ -61,7 +61,6 @@ abstract final class AppRoutes {
   static const String insights = '/insights';
   static const String favorites = '/favorites';
   static const String archived = '/archived';
-  static const String laundry = '/laundry';
   static const String settings = '/settings';
   static const String stylist = '/stylist';
   static const String premium = '/premium';
@@ -122,8 +121,7 @@ abstract final class AppRoutes {
         outfitId: args,
       ),
       AppRoutes.swipeOutfit => SwipeOutfitScreen(
-        initialItemIds: args is (List<String>, DateTime?) ? args.$1 : const [],
-        planDate: args is (List<String>, DateTime?) ? args.$2 : null,
+        args: args is SwipeOutfitArgs ? args : const SwipeOutfitArgs(),
       ),
       AppRoutes.collectionDetail when args is String => CollectionDetailScreen(
         collectionId: args,
@@ -135,7 +133,6 @@ abstract final class AppRoutes {
       AppRoutes.insights => const InsightsScreen(),
       AppRoutes.favorites => const FavoritesScreen(),
       AppRoutes.archived => const ArchivedItemsScreen(),
-      AppRoutes.laundry => const LaundryScreen(),
       AppRoutes.settings => const SettingsScreen(),
       AppRoutes.stylist => StylistScreen(
         launch: args is StylistLaunch ? args : null,
@@ -276,17 +273,13 @@ abstract final class AppNavigator {
     List<String> itemIds = const [],
     String? photoFile,
     DateTime? planDate,
-  }) async {
-    final result = await Navigator.of(context).pushNamed<Object?>(
-      AppRoutes.outfitBuilder,
-      arguments: OutfitBuilderArgs(
-        initialItemIds: itemIds,
-        photoFile: photoFile,
-        planDate: planDate,
-      ),
-    );
-    return result == true;
-  }
+  }) => buildOutfit(
+    context,
+    mode: OutfitCreateMode.collage,
+    itemIds: itemIds,
+    photoFile: photoFile,
+    planDate: planDate,
+  );
 
   static Future<void> editOutfit(BuildContext context, String outfitId) =>
       Navigator.of(context).pushNamed(
@@ -300,12 +293,59 @@ abstract final class AppNavigator {
     BuildContext context, {
     List<String> initialItemIds = const [],
     DateTime? planDate,
+  }) => buildOutfit(
+    context,
+    mode: OutfitCreateMode.dressingRoom,
+    itemIds: initialItemIds,
+    planDate: planDate,
+  );
+
+  /// Opens [mode] for a new outfit and follows Fits' "Switch mode" from
+  /// there to the others, carrying the pieces and hair along. An outfit
+  /// selfie ([photoFile]) has no other mode. Resolves to true once an
+  /// outfit was saved.
+  static Future<bool> buildOutfit(
+    BuildContext context, {
+    required OutfitCreateMode mode,
+    List<String> itemIds = const [],
+    String? photoFile,
+    DateTime? planDate,
   }) async {
-    final result = await Navigator.of(context).pushNamed<Object?>(
-      AppRoutes.swipeOutfit,
-      arguments: (initialItemIds, planDate),
-    );
-    return result == true;
+    final navigator = Navigator.of(context);
+    var next = OutfitModeSwitch(mode, itemIds: itemIds);
+    while (true) {
+      // Routes are built as Route<dynamic>, so push untyped and narrow after.
+      final Object? result;
+      switch (next.mode) {
+        case OutfitCreateMode.collage:
+          result = await navigator.pushNamed<Object?>(
+            AppRoutes.outfitBuilder,
+            arguments: OutfitBuilderArgs(
+              initialItemIds: next.itemIds,
+              photoFile: photoFile,
+              planDate: planDate,
+              hair: next.hair,
+              canSwitchMode: photoFile == null,
+            ),
+          );
+        case OutfitCreateMode.dressingRoom:
+          result = await navigator.pushNamed<Object?>(
+            AppRoutes.swipeOutfit,
+            arguments: SwipeOutfitArgs(
+              initialItemIds: next.itemIds,
+              planDate: planDate,
+              hair: next.hair,
+            ),
+          );
+        case OutfitCreateMode.tryOn:
+          if (context.mounted) {
+            await TryOnFlows.start(context, itemIds: next.itemIds);
+          }
+          return false;
+      }
+      if (result is! OutfitModeSwitch) return result == true;
+      next = result;
+    }
   }
 
   static Future<void> outfitDetail(BuildContext context, String outfitId) =>
@@ -333,9 +373,6 @@ abstract final class AppNavigator {
 
   static Future<void> archived(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.archived);
-
-  static Future<void> laundry(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.laundry);
 
   static Future<void> settings(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.settings);

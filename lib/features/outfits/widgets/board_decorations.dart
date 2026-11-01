@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/outfit_board.dart';
+import 'package:all_fits/data/models/outfit_placement.dart';
+import 'package:all_fits/features/outfits/widgets/sticker_art.dart';
 
-/// What a sticker shows: its emoji, or a head with its hairstyle. Fills its
-/// box, kept square.
+/// What a sticker shows: its drawing, emoji or hairstyle. Fills its box,
+/// kept square.
 class StickerView extends StatelessWidget {
   const StickerView({super.key, required this.sticker});
 
@@ -15,11 +18,17 @@ class StickerView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hairstyle = sticker.hairstyle;
+    final art = sticker.art;
     return Center(
       child: AspectRatio(
         aspectRatio: 1,
         child: hairstyle != null
             ? HairView(style: hairstyle, color: sticker.hairColor)
+            : art != null
+            ? CustomPaint(
+                painter: StickerArtPainter(art: art, ink: sticker.ink.color),
+                size: Size.infinite,
+              )
             : FittedBox(
                 child: Text(
                   sticker.emoji ?? '',
@@ -44,230 +53,330 @@ class HairView extends StatelessWidget {
   );
 }
 
-/// A plain mannequin head wearing [style], drawn in a square.
-class HairPainter extends CustomPainter {
-  const HairPainter({required this.style, required this.color});
+/// Fits' Stickers sheet: tabs for hair and each kind of sticker, a grid,
+/// and a colour row for those that can be tinted. Resolves to the picked
+/// sticker (its placement is a placeholder), or null.
+///
+/// Without [premium], only free stickers can be picked; tapping another
+/// calls [onLocked].
+Future<OutfitSticker?> showStickerSheet(
+  BuildContext context, {
+  required bool premium,
+  required VoidCallback onLocked,
+}) {
+  return showModalBottomSheet<OutfitSticker>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => _StickerSheet(premium: premium, onLocked: onLocked),
+  );
+}
 
-  /// Same neutral as the mannequin behind the swipe rows.
-  static const Color head = Color(0xFFE6DDD3);
+/// Where a picked sticker goes until the board places it.
+const OutfitPlacement _unplaced = OutfitPlacement(
+  itemId: '',
+  x: 0.5,
+  y: 0.5,
+  width: 0.2,
+  height: 0.2,
+);
 
-  final Hairstyle style;
-  final Color color;
+class _StickerSheet extends StatefulWidget {
+  const _StickerSheet({required this.premium, required this.onLocked});
+
+  final bool premium;
+  final VoidCallback onLocked;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    // Every measure is a fraction of the side.
-    final s = size.shortestSide;
-    canvas.save();
-    canvas.translate((size.width - s) / 2, (size.height - s) / 2);
-    canvas.scale(s);
-    final hair = Paint()..color = color;
-    final skin = Paint()..color = head;
-    Rect box(double l, double t, double r, double b) =>
-        Rect.fromLTRB(l, t, r, b);
+  State<_StickerSheet> createState() => _StickerSheetState();
+}
 
-    // Hair behind the head.
-    switch (style) {
-      case Hairstyle.long:
-        canvas.drawRRect(
-          RRect.fromRectAndCorners(
-            box(0.25, 0.18, 0.75, 0.94),
-            topLeft: const Radius.circular(0.25),
-            topRight: const Radius.circular(0.25),
-            bottomLeft: const Radius.circular(0.06),
-            bottomRight: const Radius.circular(0.06),
-          ),
-          hair,
-        );
-      case Hairstyle.bob:
-        canvas.drawRRect(
-          RRect.fromRectAndCorners(
-            box(0.27, 0.18, 0.73, 0.7),
-            topLeft: const Radius.circular(0.23),
-            topRight: const Radius.circular(0.23),
-            bottomLeft: const Radius.circular(0.04),
-            bottomRight: const Radius.circular(0.04),
-          ),
-          hair,
-        );
-      case Hairstyle.curly:
-        canvas.drawOval(box(0.2, 0.12, 0.8, 0.68), hair);
-        for (final (x, y) in const [
-          (0.24, 0.24), (0.36, 0.13), (0.5, 0.1), (0.64, 0.13), //
-          (0.76, 0.24), (0.8, 0.4), (0.78, 0.56), (0.22, 0.56), (0.2, 0.4),
-        ]) {
-          canvas.drawCircle(Offset(x, y), 0.1, hair);
-        }
-      case Hairstyle.ponytail:
-        canvas.save();
-        canvas.translate(0.72, 0.42);
-        canvas.rotate(-0.35);
-        canvas.drawOval(box(-0.08, -0.04, 0.08, 0.42), hair);
-        canvas.restore();
-      case Hairstyle.bun:
-        canvas.drawCircle(const Offset(0.5, 0.13), 0.11, hair);
-      case Hairstyle.short:
-        break;
+class _StickerSheetState extends State<_StickerSheet> {
+  StickerCategory _tab = StickerCategory.hair;
+  HairColor _hairColor = HairColor.black;
+  StickerInk _ink = StickerInk.black;
+
+  void _pick(OutfitSticker sticker) {
+    if (!widget.premium && !sticker.isFree) {
+      widget.onLocked();
+      return;
     }
-
-    // Neck and face.
-    canvas.drawRect(box(0.44, 0.6, 0.56, 0.86), skin);
-    canvas.drawOval(box(0.33, 0.26, 0.67, 0.7), skin);
-
-    // Hair over the top of the head.
-    canvas.save();
-    canvas.clipRect(box(0, 0, 1, style == Hairstyle.short ? 0.38 : 0.36));
-    canvas.drawOval(box(0.29, 0.17, 0.71, 0.6), hair);
-    canvas.restore();
-    switch (style) {
-      case Hairstyle.short:
-        // Sideburns.
-        canvas.drawRect(box(0.31, 0.3, 0.355, 0.45), hair);
-        canvas.drawRect(box(0.645, 0.3, 0.69, 0.45), hair);
-      case Hairstyle.bob || Hairstyle.long:
-        // Locks framing the face.
-        canvas.drawRect(box(0.29, 0.3, 0.36, 0.62), hair);
-        canvas.drawRect(box(0.64, 0.3, 0.71, 0.62), hair);
-      case Hairstyle.curly:
-        for (final x in const [0.36, 0.45, 0.55, 0.64]) {
-          canvas.drawCircle(Offset(x, 0.3), 0.065, hair);
-        }
-      case Hairstyle.ponytail:
-        // The hair tie.
-        canvas.drawCircle(
-          const Offset(0.7, 0.4),
-          0.035,
-          Paint()..color = Color.lerp(color, Colors.black, 0.35)!,
-        );
-      case Hairstyle.bun:
-        break;
-    }
-    canvas.restore();
+    Navigator.of(context).pop(sticker);
   }
 
   @override
-  bool shouldRepaint(HairPainter old) =>
-      old.style != style || old.color != color;
-}
-
-/// Grid of emoji stickers; resolves to the picked one, or null.
-Future<String?> showStickerPicker(BuildContext context) {
-  return showModalBottomSheet<String>(
-    context: context,
-    builder: (sheetContext) => SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SheetHeader(title: 'Stickers'),
-          GridView.count(
-            crossAxisCount: 6,
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.page,
-              0,
-              AppSpacing.page,
-              AppSpacing.lg,
-            ),
-            children: [
-              for (final emoji in boardStickerEmoji)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  onTap: () => Navigator.of(sheetContext).pop(emoji),
-                  child: Center(
-                    child: Text(emoji, style: const TextStyle(fontSize: 30)),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-/// Hairstyles in a chosen colour; resolves to the picked pair, or null.
-Future<(Hairstyle, HairColor)?> showHairPicker(BuildContext context) {
-  return showModalBottomSheet<(Hairstyle, HairColor)>(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) => const _HairPicker(),
-  );
-}
-
-class _HairPicker extends StatefulWidget {
-  const _HairPicker();
-
-  @override
-  State<_HairPicker> createState() => _HairPickerState();
-}
-
-class _HairPickerState extends State<_HairPicker> {
-  HairColor _color = HairColor.brown;
-
-  @override
   Widget build(BuildContext context) {
-    final palette = context.palette;
-    return SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.8,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) => Column(
         children: [
-          const SheetHeader(title: 'Hairstyle'),
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-              children: [
-                for (final color in HairColor.values)
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.sm),
-                    child: BoardColorDot(
-                      color: color.color,
-                      label: color.label,
-                      selected: color == _color,
-                      onTap: () => setState(() => _color = color),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            mainAxisSpacing: AppSpacing.sm,
-            crossAxisSpacing: AppSpacing.sm,
-            padding: const EdgeInsets.all(AppSpacing.page),
-            children: [
-              for (final style in Hairstyle.values)
-                Material(
-                  color: palette.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => Navigator.of(context).pop((style, _color)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xs),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: HairView(style: style, color: _color),
-                          ),
-                          Text(style.label, style: context.textTheme.bodySmall),
-                        ],
-                      ),
-                    ),
-                  ),
+          const SizedBox(height: AppSpacing.md),
+          PillBar(
+            pills: [
+              for (final tab in StickerCategory.values)
+                SelectablePill(
+                  label: tab.label,
+                  selected: tab == _tab,
+                  onTap: () => setState(() => _tab = tab),
                 ),
             ],
           ),
+          const SizedBox(height: AppSpacing.sm),
+          Expanded(child: _grid(scrollController)),
+          if (_tab.tintable) ...[
+            const Divider(height: 1),
+            SafeArea(
+              top: false,
+              child: _tab == StickerCategory.hair
+                  ? ColorRow<HairColor>(
+                      options: HairColor.values,
+                      selected: _hairColor,
+                      colorOf: (c) => c.color,
+                      labelOf: (c) => c.label,
+                      onSelect: (c) => setState(() => _hairColor = c),
+                    )
+                  : ColorRow<StickerInk>(
+                      options: StickerInk.values,
+                      selected: _ink,
+                      colorOf: (c) => c.color,
+                      labelOf: (c) => c.label,
+                      onSelect: (c) => setState(() => _ink = c),
+                    ),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  Widget _grid(ScrollController controller) {
+    final tiles = switch (_tab) {
+      StickerCategory.hair => [
+        for (final style in Hairstyle.values)
+          _StickerTile(
+            label: style.label,
+            locked: !widget.premium && !style.isFree,
+            onTap: () => _pick(
+              OutfitSticker(
+                placement: _unplaced,
+                hairstyle: style,
+                hairColor: _hairColor,
+              ),
+            ),
+            child: HairView(style: style, color: _hairColor),
+          ),
+      ],
+      StickerCategory.emoji => [
+        for (final emoji in boardStickerEmoji)
+          _StickerTile(
+            label: emoji,
+            locked: false,
+            onTap: () =>
+                _pick(OutfitSticker(placement: _unplaced, emoji: emoji)),
+            child: FittedBox(
+              child: Text(emoji, style: const TextStyle(fontSize: 48)),
+            ),
+          ),
+      ],
+      final category => [
+        for (final art in StickerArt.of(category))
+          _StickerTile(
+            label: art.name,
+            locked: !widget.premium && !art.free,
+            onTap: () =>
+                _pick(OutfitSticker(placement: _unplaced, art: art, ink: _ink)),
+            child: CustomPaint(
+              painter: StickerArtPainter(art: art, ink: _ink.color),
+              size: Size.infinite,
+            ),
+          ),
+      ],
+    };
+    return GridView.count(
+      controller: controller,
+      crossAxisCount: 3,
+      mainAxisSpacing: AppSpacing.md,
+      crossAxisSpacing: AppSpacing.md,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        AppSpacing.sm,
+        AppSpacing.page,
+        AppSpacing.xl,
+      ),
+      children: tiles,
+    );
+  }
+}
+
+class _StickerTile extends StatelessWidget {
+  const _StickerTile({
+    required this.label,
+    required this.locked,
+    required this.onTap,
+    required this.child,
+  });
+
+  final String label;
+  final bool locked;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Semantics(
+      button: true,
+      label: locked ? '$label, Premium' : label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: Opacity(opacity: locked ? 0.45 : 1, child: child),
+              ),
+            ),
+            if (locked)
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Icon(
+                  Icons.lock_rounded,
+                  size: 16,
+                  color: palette.textSecondary,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A row of colour dots, as at the bottom of Fits' Stickers sheet.
+class ColorRow<T> extends StatelessWidget {
+  const ColorRow({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.colorOf,
+    required this.labelOf,
+    required this.onSelect,
+  });
+
+  final List<T> options;
+  final T selected;
+  final Color Function(T option) colorOf;
+  final String Function(T option) labelOf;
+  final ValueChanged<T> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: BoardColorDot.size + 8 + AppSpacing.md * 2,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.page,
+          vertical: AppSpacing.md,
+        ),
+        children: [
+          for (final option in options)
+            BoardColorDot(
+              color: colorOf(option),
+              label: labelOf(option),
+              selected: option == selected,
+              onTap: () => onSelect(option),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Every hairstyle in [color], for the Dressing Room's "Change hair style".
+class HairGrid extends StatelessWidget {
+  const HairGrid({
+    super.key,
+    required this.color,
+    required this.selected,
+    required this.premium,
+    required this.onSelect,
+    required this.onLocked,
+  });
+
+  final HairColor color;
+  final Hairstyle? selected;
+  final bool premium;
+  final ValueChanged<Hairstyle> onSelect;
+  final VoidCallback onLocked;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: AppSpacing.sm,
+      crossAxisSpacing: AppSpacing.sm,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+      children: [
+        for (final style in Hairstyle.values)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: style == selected ? palette.ink : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: _StickerTile(
+              label: style.label,
+              locked: !premium && !style.isFree,
+              onTap: !premium && !style.isFree
+                  ? onLocked
+                  : () => onSelect(style),
+              child: HairView(style: style, color: color),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The board colours; resolves to the picked one, or null.
+Future<BoardBackground?> showBackgroundSheet(
+  BuildContext context,
+  BoardBackground current,
+) {
+  return showModalBottomSheet<BoardBackground>(
+    context: context,
+    builder: (sheetContext) {
+      final palette = sheetContext.palette;
+      return SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SheetHeader(title: 'Background'),
+            ColorRow<BoardBackground>(
+              options: BoardBackground.values,
+              selected: current,
+              colorOf: (b) => b.color ?? palette.surface,
+              labelOf: (b) => b.label,
+              onSelect: (b) => Navigator.of(sheetContext).pop(b),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 /// Round colour choice with a ring when [selected].

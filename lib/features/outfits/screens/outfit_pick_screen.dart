@@ -9,9 +9,15 @@ import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/core/widgets/option_sheets.dart';
+import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_create_mode.dart';
+import 'package:all_fits/data/models/outfit_slot.dart';
+import 'package:all_fits/features/outfits/controllers/outfit_builder_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/outfit_flows.dart';
+import 'package:all_fits/features/outfits/outfit_layout.dart';
+import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
@@ -417,6 +423,9 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
     final palette = context.palette;
     final text = context.textTheme;
     final defaultMode = context.watch<SettingsController>().outfitMode;
+    final look = _ModePreview.sampleLook(
+      context.read<WardrobeController>().activeItems,
+    );
     final checked = _editingDefault ? defaultMode : widget.current;
     return SafeArea(
       top: false,
@@ -446,6 +455,7 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
                           AspectRatio(
                             aspectRatio: 0.75,
                             child: Container(
+                              clipBehavior: Clip.antiAlias,
                               decoration: BoxDecoration(
                                 color: palette.surfaceMuted,
                                 borderRadius: BorderRadius.circular(
@@ -460,10 +470,11 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
                               ),
                               child: Stack(
                                 children: [
-                                  Center(
-                                    child: Icon(
-                                      _iconOf(mode),
-                                      size: AppSizes.iconXl + 8,
+                                  Positioned.fill(
+                                    child: _ModePreview(
+                                      mode: mode,
+                                      look: look,
+                                      icon: _iconOf(mode),
                                     ),
                                   ),
                                   if (mode == checked)
@@ -505,5 +516,58 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
         ],
       ),
     );
+  }
+}
+
+/// A small picture of [mode] made from the user's own clothes, as on Fits'
+/// cards; [icon] when the wardrobe can't make a look yet, and for AI Try On.
+class _ModePreview extends StatelessWidget {
+  const _ModePreview({
+    required this.mode,
+    required this.look,
+    required this.icon,
+  });
+
+  final OutfitCreateMode mode;
+  final List<ClothingItem> look;
+  final IconData icon;
+
+  /// A top and bottom (or else a dress) and shoes from [items], where
+  /// there are some.
+  static List<ClothingItem> sampleLook(List<ClothingItem> items) {
+    ClothingItem? first(OutfitSlot slot) => items
+        .where((item) => OutfitSlot.forCategory(item.category) == slot)
+        .firstOrNull;
+    final top = first(OutfitSlot.top);
+    final bottom = first(OutfitSlot.bottom);
+    final separates = top != null && bottom != null;
+    return [
+      if (separates) ...[top, bottom] else ?first(OutfitSlot.dress),
+      ?first(OutfitSlot.shoes),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (mode == OutfitCreateMode.tryOn || look.length < 2) {
+      return Center(child: Icon(icon, size: AppSizes.iconXl + 8));
+    }
+    if (mode == OutfitCreateMode.collage) {
+      return OutfitCanvas(items: look, layout: OutfitLayout.defaults(look));
+    }
+    // The Dressing Room: the look worn, with hair.
+    final byId = {for (final item in look) item.id: item};
+    final board = OutfitBuilderController(
+      lookup: (id) => byId[id],
+      initialItemIds: [for (final item in look) item.id],
+      dressed: true,
+    )..addHair(Hairstyle.short, HairColor.espresso);
+    final canvas = OutfitCanvas(
+      items: look,
+      layout: board.layout,
+      stickers: board.stickers,
+    );
+    board.dispose();
+    return canvas;
   }
 }

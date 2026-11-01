@@ -10,6 +10,8 @@ class OutfitPlacement {
     required this.width,
     required this.height,
     this.rotation = 0,
+    this.flipped = false,
+    this.locked = false,
   });
 
   /// Returns null for an entry that can't be placed.
@@ -32,6 +34,8 @@ class OutfitPlacement {
       width: width,
       height: height,
       rotation: JsonReader.decimal(json, 'rotation') ?? 0,
+      flipped: JsonReader.boolean(json, 'flipped'),
+      locked: JsonReader.boolean(json, 'locked'),
     );
   }
 
@@ -49,6 +53,12 @@ class OutfitPlacement {
   /// Clockwise turn in radians.
   final double rotation;
 
+  /// Mirrored left to right.
+  final bool flipped;
+
+  /// Can't be moved, resized or turned until unlocked.
+  final bool locked;
+
   JsonMap toJson() => {
     'itemId': itemId,
     'x': x,
@@ -56,6 +66,8 @@ class OutfitPlacement {
     'width': width,
     'height': height,
     'rotation': rotation,
+    if (flipped) 'flipped': true,
+    if (locked) 'locked': true,
   };
 
   OutfitPlacement copyWith({
@@ -64,12 +76,17 @@ class OutfitPlacement {
     double? width,
     double? height,
     double? rotation,
+    bool? flipped,
+    bool? locked,
+    String? itemId,
   }) => OutfitPlacement(
-    itemId: itemId,
+    itemId: itemId ?? this.itemId,
     x: x ?? this.x,
     y: y ?? this.y,
     width: width ?? this.width,
     height: height ?? this.height,
     rotation: rotation ?? this.rotation,
+    flipped: flipped ?? this.flipped,
+    locked: locked ?? this.locked,
   );
 }

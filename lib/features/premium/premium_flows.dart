@@ -8,6 +8,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_dialogs.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
+import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/premium/widgets/premium_widgets.dart';
@@ -48,6 +49,17 @@ abstract final class PremiumFlows {
     final counted = editing != null && trips.isActive(editing) ? 1 : 0;
     return plan.canAddTrip(trips.activeCount - counted);
   }
+
+  /// Explains which stickers and hairstyles the Free plan has.
+  static Future<void> showStickerLimit(BuildContext context) => _showLimit(
+    context,
+    title: 'A Premium sticker',
+    message:
+        'The Free plan has a few stickers and '
+        '${AppFormatters.count(Hairstyle.freeCount, 'hairstyle')}, and every '
+        'background. Go Premium for all of them. Stickers already on your '
+        'outfits stay either way.',
+  );
 
   /// Explains the Free trip limit and offers Premium.
   static Future<void> showTripLimit(BuildContext context) => _showLimit(

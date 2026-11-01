@@ -323,23 +323,26 @@ void main() {
     expect(find.text('2 selected'), findsOneWidget);
     expect(find.text('Collage'), findsOneWidget);
     await _tap(tester, find.text('Next'));
+
+    // Fits' collage: the board with its tools, then Next to the details.
+    expect(find.byType(OutfitBuilderScreen), findsOneWidget);
+    for (final tool in ['Add clothes', 'Stickers', 'Background']) {
+      expect(find.text(tool), findsOneWidget);
+    }
+    expect(find.text('Switch mode'), findsOneWidget);
+    await _tap(tester, find.byTooltip('Next'));
     expect(find.text('New outfit'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.widgetWithText(TextField, 'Outfit name'),
       200,
-      scrollable: find
-          .descendant(
-            of: find.byType(OutfitBuilderScreen),
-            matching: find.byType(Scrollable),
-          )
-          .first,
+      scrollable: find.byType(Scrollable).last,
     );
     await tester.enterText(
       find.widgetWithText(TextField, 'Outfit name'),
       'Everyday Look',
     );
-    await _tap(tester, find.text('Save'));
+    await _tap(tester, find.text('Save outfit'));
 
     // The new outfit appears in the Outfits tab.
     expect(find.bySemanticsLabel('Everyday Look'), findsOneWidget);
@@ -544,9 +547,10 @@ void main() {
       ),
     );
 
+    // Next goes straight to the details, as in Fits.
     await _tap(tester, find.byTooltip('Next'));
     expect(find.text('New outfit'), findsOneWidget);
-    await _tap(tester, find.text('Save'));
+    await _tap(tester, find.text('Save outfit'));
 
     // Saving closes the swiper and shows the outfit in the Outfits tab.
     expect(find.byType(SwipeOutfitScreen), findsNothing);
@@ -566,7 +570,9 @@ void main() {
       matching: find.bySemanticsLabel(name),
     );
 
-    // Tops is the first row, so its pieces fill the tray.
+    // The tray opens on the row tapped.
+    expect(find.byType(SelectablePill), findsNothing);
+    await _tap(tester, find.byKey(const ValueKey(OutfitSlot.top)));
     expect(inTray('Black Graphic Tee'), findsOneWidget);
     await _tap(tester, find.text('Hoodies'));
     expect(inTray('Black Graphic Tee'), findsNothing);
@@ -579,13 +585,30 @@ void main() {
     await _tap(tester, find.text('All'));
     expect(inTray('Black Graphic Tee'), findsOneWidget);
 
+    // Done closes the tray and brings back the tools.
     expect(find.byType(PageView), findsNWidgets(3));
-    await _tap(tester, find.byTooltip('Rows'));
+    await _tap(tester, find.byTooltip('Done'));
+    await _tap(tester, find.text('Clothes'));
     await _tap(tester, find.widgetWithText(SwitchListTile, 'Outerwear'));
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
     expect(find.byType(PageView), findsNWidgets(4));
+    // Outerwear is worn over the top, so it takes the tap.
+    await _tap(tester, find.byKey(const ValueKey(OutfitSlot.outerwear)));
     expect(find.widgetWithText(SelectablePill, 'Outerwear'), findsOneWidget);
+
+    // Switch mode carries the pieces on to the collage.
+    await _tap(tester, find.byTooltip('Done'));
+    await _tap(tester, find.text('Switch mode'));
+    await _tap(tester, find.text('Collage'));
+    expect(find.byType(SwipeOutfitScreen), findsNothing);
+    expect(find.byType(OutfitBuilderScreen), findsOneWidget);
+    expect(find.text('Add clothes'), findsOneWidget);
+    // ...and back to the Dressing Room.
+    await _tap(tester, find.text('Switch mode'));
+    await _tap(tester, find.text('Dressing Room').last);
+    expect(find.byType(OutfitBuilderScreen), findsNothing);
+    expect(find.byType(SwipeOutfitScreen), findsOneWidget);
   });
 
   group('AI stylist', () {
