@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="today_widget_label">Today\'s outfit</string>
+    <string name="today_widget_description">Today\'s outfit and weather, and mark it as worn.</string>
+    <string name="today_widget_picture">Today\'s outfit</string>
+    <string name="today_widget_heading">Today</string>
+    <string name="today_widget_open">Open All Fits to see today\'s outfit</string>
+    <string name="today_widget_preview_weather">☀️ 29° · Da Nang</string>
+    <string name="today_widget_preview_heading">Planned for today</string>
+    <string name="today_widget_preview_title">Your outfit for today</string>
+    <string name="today_widget_preview_subtitle">Tee · Jeans · Sneakers</string>
+    <string name="today_widget_preview_action">Mark as worn</string>
+</resources>

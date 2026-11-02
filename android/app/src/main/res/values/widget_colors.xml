@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's black-and-white palette (lib/app/theme/app_colors.dart). -->
+<resources>
+    <color name="widget_surface">#FFFFFFFF</color>
+    <color name="widget_text">#FF111111</color>
+    <color name="widget_text_secondary">#FF6E6E6E</color>
+    <color name="widget_accent">#FF111111</color>
+    <color name="widget_on_accent">#FFFFFFFF</color>
+</resources>

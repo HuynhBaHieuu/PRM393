@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
+import 'package:all_fits/data/local/home_screen_widget.dart';
 import 'package:all_fits/data/local/reminder_service.dart';
 import 'package:all_fits/data/local/background_remover.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
@@ -48,6 +49,7 @@ class AppDependencies {
     this.weather = const OpenMeteoWeatherService(),
     this.productLinks = const WebProductLinkService(),
     this.reminders = const NoReminderService(),
+    this.homeWidget = const NoHomeScreenWidget(),
     this.supabase,
     PayOSCheckout? payments,
     PasswordHasher passwordHasher = const Pbkdf2PasswordHasher(),
@@ -91,6 +93,9 @@ class AppDependencies {
       reminders: LocalReminderService.isSupported
           ? LocalReminderService()
           : const NoReminderService(),
+      homeWidget: AndroidHomeScreenWidget.isSupported
+          ? AndroidHomeScreenWidget()
+          : const NoHomeScreenWidget(),
       supabase: supabase,
     );
   }
@@ -117,6 +122,9 @@ class AppDependencies {
   final WeatherService weather;
   final ProductLinkService productLinks;
   final ReminderService reminders;
+
+  /// The "Today" widget on the phone's home screen.
+  final HomeScreenWidget homeWidget;
   final SupabaseClient? supabase;
 
   /// Real Premium payments; null without Supabase, where Premium is a demo.
