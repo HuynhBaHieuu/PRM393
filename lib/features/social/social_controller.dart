@@ -27,6 +27,7 @@ class SocialController extends ChangeNotifier {
   List<Connection> _connections = const [];
   List<StyledOutfit> _styled = const [];
   Set<String> _postedIds = const {};
+  PostActivityFeed _activity = const PostActivityFeed();
 
   LoadStatus get status => _status;
   Object? get error => _error;
@@ -51,8 +52,13 @@ class SocialController extends ChangeNotifier {
   int get unansweredStyledCount =>
       _styled.where((s) => s.incoming && s.isPending).length;
 
-  /// What the bell shows: follow requests plus unanswered outfits.
-  int get notificationCount => incomingRequests.length + unansweredStyledCount;
+  /// Likes and comments on the user's Discover posts.
+  PostActivityFeed get activity => _activity;
+
+  /// What the bell shows: follow requests, unanswered outfits, and likes and
+  /// comments since Notifications was last opened.
+  int get notificationCount =>
+      incomingRequests.length + unansweredStyledCount + _activity.unreadCount;
 
   bool isPosted(String outfitId) => _postedIds.contains(outfitId);
 
@@ -86,6 +92,33 @@ class SocialController extends ChangeNotifier {
       _error = error;
     }
     notifyListeners();
+    if (_status == LoadStatus.ready) await loadActivity();
+  }
+
+  /// Never throws, and is kept apart from [load] so a server without the
+  /// likes and comments tables still shows the rest of the community.
+  Future<void> loadActivity() async {
+    try {
+      _activity = await repository.postActivity();
+      notifyListeners();
+    } catch (error) {
+      developer.log('Activity not loaded', name: 'social', error: error);
+    }
+  }
+
+  /// Clears the bell's likes and comments. Never throws.
+  Future<void> markActivitySeen() async {
+    if (_activity.unreadCount == 0) return;
+    try {
+      await repository.markActivitySeen();
+      _activity = PostActivityFeed(
+        items: _activity.items,
+        seenAt: _activity.items.first.createdAt,
+      );
+      notifyListeners();
+    } catch (error) {
+      developer.log('Activity not marked seen', name: 'social', error: error);
+    }
   }
 
   /// Uploads [photoPath] when given, then saves [profile].

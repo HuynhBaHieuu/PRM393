@@ -441,8 +441,10 @@ abstract final class AppNavigator {
     return result is TryOnWearer ? result : null;
   }
 
-  /// Resolves to true when the post changed (saved, unsaved, owner blocked).
-  static Future<bool> publicOutfit(
+  /// Resolves to the post as it was left, with its latest likes and
+  /// comments, or null when the list showing it must reload: it was saved,
+  /// unsaved or its owner blocked.
+  static Future<FeedPost?> publicOutfit(
     BuildContext context,
     FeedPost post, {
     bool fromFeed = true,
@@ -450,6 +452,6 @@ abstract final class AppNavigator {
     final result = await Navigator.of(
       context,
     ).pushNamed<Object?>(AppRoutes.publicOutfit, arguments: (post, fromFeed));
-    return result == true;
+    return result is FeedPost ? result : null;
   }
 }

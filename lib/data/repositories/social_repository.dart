@@ -61,6 +61,22 @@ abstract class SocialRepository {
 
   Future<void> setSaved(FeedPost post, {required bool saved});
 
+  Future<void> setLiked(FeedPost post, {required bool liked});
+
+  /// Comments under [post], oldest first.
+  Future<List<PostComment>> comments(FeedPost post);
+
+  Future<PostComment> addComment(FeedPost post, String body);
+
+  /// Deletes a comment the signed-in user wrote, or one on their own post.
+  Future<void> deleteComment(String commentId);
+
+  /// Likes and comments others left on the signed-in user's posts.
+  Future<PostActivityFeed> postActivity();
+
+  /// Marks everything in [postActivity] as seen.
+  Future<void> markActivitySeen();
+
   Future<void> sendStyledOutfit({
     required String recipientId,
     required List<String> itemIds,
@@ -273,6 +289,58 @@ class SupabaseSocialRepository implements SocialRepository {
           await _client.from('saved_posts').delete().match(row);
         }
       });
+
+  @override
+  Future<void> setLiked(FeedPost post, {required bool liked}) =>
+      _guard(() async {
+        final row = {
+          'user_id': _userId,
+          'owner_id': post.owner.userId,
+          'outfit_id': post.outfit.id,
+        };
+        if (liked) {
+          await _client.from('post_likes').upsert(row, ignoreDuplicates: true);
+        } else {
+          await _client.from('post_likes').delete().match(row);
+        }
+      });
+
+  @override
+  Future<List<PostComment>> comments(FeedPost post) => _guard(
+    () async => parseRecords(
+      await _rpc('post_comments_list', {
+        'p_owner': post.owner.userId,
+        'p_outfit': post.outfit.id,
+      }),
+      PostComment.fromJson,
+    ),
+  );
+
+  @override
+  Future<PostComment> addComment(FeedPost post, String body) =>
+      _guard(() async {
+        final json = await _rpc('add_post_comment', {
+          'p_owner': post.owner.userId,
+          'p_outfit': post.outfit.id,
+          'p_body': body,
+        });
+        return PostComment.fromJson(JsonMap.from(json as Map));
+      });
+
+  @override
+  Future<void> deleteComment(String commentId) =>
+      _guard(() => _client.from('post_comments').delete().eq('id', commentId));
+
+  @override
+  Future<PostActivityFeed> postActivity() => _guard(() async {
+    final json = await _rpc('post_activity');
+    return json is Map
+        ? PostActivityFeed.fromJson(JsonMap.from(json))
+        : const PostActivityFeed();
+  });
+
+  @override
+  Future<void> markActivitySeen() => _guard(() => _rpc('mark_activity_seen'));
 
   @override
   Future<void> sendStyledOutfit({

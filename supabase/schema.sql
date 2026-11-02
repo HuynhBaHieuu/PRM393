@@ -189,6 +189,34 @@ create table if not exists public.reports (
   created_at timestamptz not null default now()
 );
 
+-- Likes and comments on Discover posts. Taking an outfit off Discover removes them.
+create table if not exists public.post_likes (
+  user_id uuid not null references auth.users on delete cascade,
+  owner_id uuid not null,
+  outfit_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, owner_id, outfit_id),
+  foreign key (owner_id, outfit_id) references public.outfit_posts (user_id, outfit_id) on delete cascade
+);
+create index if not exists post_likes_post on public.post_likes (owner_id, outfit_id);
+
+create table if not exists public.post_comments (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references auth.users on delete cascade,
+  owner_id uuid not null,
+  outfit_id text not null,
+  body text not null check (char_length(body) between 1 and 300),
+  created_at timestamptz not null default now(),
+  foreign key (owner_id, outfit_id) references public.outfit_posts (user_id, outfit_id) on delete cascade
+);
+create index if not exists post_comments_post on public.post_comments (owner_id, outfit_id, created_at);
+
+-- When someone last opened Notifications, so the bell counts only newer likes and comments.
+create table if not exists public.activity_reads (
+  user_id uuid primary key references auth.users on delete cascade,
+  seen_at timestamptz not null default now()
+);
+
 create or replace function public.is_blocked_between(a uuid, b uuid) returns boolean
 language sql stable security definer set search_path = ''
 as $$
@@ -248,6 +276,37 @@ as $$
     'display_name', p.display_name, 'avatar_url', p.avatar_url, 'is_private', p.is_private)
 $$;
 
+-- A Discover post as the caller sees it, with like and comment counts (people across a
+-- block are not counted); null when the post or its outfit is gone. Only called from the
+-- security-definer functions below, which check first that the caller may see it.
+create or replace function public.post_card(p_owner uuid, p_outfit text) returns jsonb
+language sql stable set search_path = ''
+as $$
+  select jsonb_build_object(
+    'owner', public.profile_card(pr),
+    'posted_at', p.created_at,
+    'saved', exists (select 1 from public.saved_posts s
+      where s.user_id = auth.uid() and s.owner_id = p.user_id and s.outfit_id = p.outfit_id),
+    'outfit', public.public_outfit(o.data),
+    'items', (select coalesce(jsonb_agg(public.public_item(c.data)), '[]')
+      from public.clothing_items c
+      where c.user_id = p.user_id and o.data->'itemIds' ? c.id
+        and nullif(c.data->>'sourceUrl', '') is null),
+    'likes', (select count(*) from public.post_likes l
+      where l.owner_id = p.user_id and l.outfit_id = p.outfit_id
+        and not public.is_blocked_between(auth.uid(), l.user_id)),
+    'liked', exists (select 1 from public.post_likes l
+      where l.user_id = auth.uid() and l.owner_id = p.user_id and l.outfit_id = p.outfit_id),
+    'comments', (select count(*) from public.post_comments c
+      where c.owner_id = p.user_id and c.outfit_id = p.outfit_id
+        and not public.is_blocked_between(auth.uid(), c.author_id)))
+  from public.outfit_posts p
+  join public.profiles pr on pr.user_id = p.user_id
+  join public.outfits o on o.user_id = p.user_id and o.id = p.outfit_id
+  where p.user_id = p_owner and p.outfit_id = p_outfit
+$$;
+revoke execute on function public.post_card(uuid, text) from public, anon, authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.follows enable row level security;
 alter table public.blocks enable row level security;
@@ -255,6 +314,9 @@ alter table public.outfit_posts enable row level security;
 alter table public.saved_posts enable row level security;
 alter table public.styled_outfits enable row level security;
 alter table public.reports enable row level security;
+alter table public.post_likes enable row level security;
+alter table public.post_comments enable row level security;
+alter table public.activity_reads enable row level security;
 
 -- Username, name, photo and bio are public (as in Fits), except across a block.
 drop policy if exists "read unblocked" on public.profiles;
@@ -311,6 +373,28 @@ drop policy if exists "file own" on public.reports;
 create policy "file own" on public.reports for insert to authenticated
   with check ((select auth.uid()) = reporter_id);
 
+-- A like may only go on a post the caller may see. Counts come from post_card().
+drop policy if exists "own rows" on public.post_likes;
+create policy "own rows" on public.post_likes for all to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id and public.can_view_closet((select auth.uid()), owner_id));
+revoke update on public.post_likes from authenticated;
+
+-- Comments are written by add_post_comment() and read through post_comments_list();
+-- the author and the post's owner may delete one.
+drop policy if exists "read own" on public.post_comments;
+create policy "read own" on public.post_comments for select to authenticated
+  using ((select auth.uid()) in (author_id, owner_id));
+drop policy if exists "delete own" on public.post_comments;
+create policy "delete own" on public.post_comments for delete to authenticated
+  using ((select auth.uid()) in (author_id, owner_id));
+revoke insert, update on public.post_comments from authenticated;
+
+-- Written by mark_activity_seen().
+drop policy if exists "read own" on public.activity_reads;
+create policy "read own" on public.activity_reads for select to authenticated
+  using ((select auth.uid()) = user_id);
+
 -- A profile with follower counts and what the caller may do with it; null when the
 -- profile doesn't exist or its owner blocked the caller.
 create or replace function public.profile_summary(p_user uuid) returns jsonb
@@ -358,17 +442,8 @@ create or replace function public.discover_feed(
 returns jsonb
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce(jsonb_agg(post order by posted_at desc), '[]') from (
-    select p.created_at as posted_at, jsonb_build_object(
-      'owner', public.profile_card(pr),
-      'posted_at', p.created_at,
-      'saved', exists (select 1 from public.saved_posts s
-        where s.user_id = auth.uid() and s.owner_id = p.user_id and s.outfit_id = p.outfit_id),
-      'outfit', public.public_outfit(o.data),
-      'items', (select coalesce(jsonb_agg(public.public_item(c.data)), '[]')
-        from public.clothing_items c
-        where c.user_id = p.user_id and o.data->'itemIds' ? c.id
-          and nullif(c.data->>'sourceUrl', '') is null)) as post
+  select coalesce(jsonb_agg(public.post_card(owner_id, outfit_id) order by posted_at desc), '[]') from (
+    select p.user_id as owner_id, p.outfit_id, p.created_at as posted_at
     from public.outfit_posts p
     join public.profiles pr on pr.user_id = p.user_id
     join public.outfits o on o.user_id = p.user_id and o.id = p.outfit_id
@@ -506,6 +581,84 @@ as $$
   where b.blocker_id = auth.uid()
 $$;
 
+-- Comments on a Discover post, oldest first; empty when the caller may not see the post.
+create or replace function public.post_comments_list(p_owner uuid, p_outfit text) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', c.id, 'body', c.body, 'created_at', c.created_at, 'author', public.profile_card(pr))
+    order by c.created_at), '[]')
+  from public.post_comments c
+  join public.profiles pr on pr.user_id = c.author_id
+  where c.owner_id = p_owner and c.outfit_id = p_outfit
+    and public.can_view_closet(auth.uid(), p_owner)
+    and not public.is_blocked_between(auth.uid(), c.author_id)
+$$;
+
+-- ponytail: no rate limit on commenting; add one if people get spammed.
+create or replace function public.add_post_comment(p_owner uuid, p_outfit text, p_body text)
+returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_body text := trim(coalesce(p_body, ''));
+  v_comment public.post_comments;
+begin
+  if not exists (select 1 from public.profiles where user_id = auth.uid()) then
+    raise exception 'Create your profile first.';
+  end if;
+  if not public.can_view_closet(auth.uid(), p_owner)
+     or not exists (select 1 from public.outfit_posts where user_id = p_owner and outfit_id = p_outfit) then
+    raise exception 'This outfit is no longer shared.';
+  end if;
+  if char_length(v_body) not between 1 and 300 then
+    raise exception 'A comment has 1 to 300 characters.';
+  end if;
+  insert into public.post_comments (author_id, owner_id, outfit_id, body)
+  values (auth.uid(), p_owner, p_outfit, v_body)
+  returning * into v_comment;
+  return jsonb_build_object(
+    'id', v_comment.id, 'body', v_comment.body, 'created_at', v_comment.created_at,
+    'author', (select public.profile_card(pr) from public.profiles pr where pr.user_id = auth.uid()));
+end $$;
+
+-- Likes and comments others left on the caller's posts, newest first, and when the
+-- caller last opened Notifications. People across a block are left out.
+create or replace function public.post_activity() returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select jsonb_build_object(
+    'seen_at', (select r.seen_at from public.activity_reads r where r.user_id = auth.uid()),
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'kind', e.kind, 'body', e.body, 'created_at', e.created_at,
+        'actor', public.profile_card(pr), 'post', public.post_card(e.owner_id, e.outfit_id))
+        order by e.created_at desc)
+      from (
+        select * from (
+          select 'like' as kind, null::text as body, l.created_at, l.user_id as actor_id,
+            l.owner_id, l.outfit_id
+          from public.post_likes l
+          where l.owner_id = auth.uid() and l.user_id <> auth.uid()
+          union all
+          select 'comment', c.body, c.created_at, c.author_id, c.owner_id, c.outfit_id
+          from public.post_comments c
+          where c.owner_id = auth.uid() and c.author_id <> auth.uid()
+        ) a
+        where not public.is_blocked_between(auth.uid(), a.actor_id)
+        order by a.created_at desc
+        limit 50
+      ) e
+      join public.profiles pr on pr.user_id = e.actor_id), '[]'))
+$$;
+
+create or replace function public.mark_activity_seen() returns void
+language sql security definer set search_path = ''
+as $$
+  insert into public.activity_reads (user_id) values (auth.uid())
+  on conflict (user_id) do update set seen_at = now()
+$$;
+
 do $$
 declare f text;
 begin
@@ -514,7 +667,9 @@ begin
     'public_item(jsonb)', 'public_outfit(jsonb)', 'profile_card(public.profiles)',
     'profile_summary(uuid)', 'profile_closet(uuid)', 'discover_feed(text, timestamptz, integer)',
     'follow_user(uuid)', 'block_user(uuid)', 'send_styled_outfit(uuid, text, text, text[], jsonb)',
-    'styled_outfits_list()', 'my_connections()', 'blocked_profiles()'] loop
+    'styled_outfits_list()', 'my_connections()', 'blocked_profiles()',
+    'post_comments_list(uuid, text)', 'add_post_comment(uuid, text, text)',
+    'post_activity()', 'mark_activity_seen()'] loop
     execute format('revoke execute on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;
