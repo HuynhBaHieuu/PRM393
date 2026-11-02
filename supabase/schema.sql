@@ -4,7 +4,7 @@
 create table if not exists public.clothing_items (
   user_id uuid not null references auth.users on delete cascade,
   id text not null,
-  data jsonb not null,
+  data jsonb not  null,
   primary key (user_id, id)
 );
 
