@@ -77,7 +77,7 @@ class _StyledGrid extends StatelessWidget {
                   title: tr('No outfits'),
                   message: emptyMessage,
                   actionLabel: tr('Find friends'),
-                  onAction: () => AppNavigator.userSearch(context),
+                  onAction: () => AppNavigator.communitySearch(context),
                 ),
               ],
             )
@@ -87,6 +87,7 @@ class _StyledGrid extends StatelessWidget {
                   padding: const EdgeInsets.all(AppSpacing.page),
                   sliver: OutfitCardSliverGrid(
                     withCaption: true,
+                    bandHeight: SocialOutfitCard.ownerBandHeight,
                     itemCount: outfits.length,
                     itemBuilder: (context, index) {
                       final styled = outfits[index];
@@ -302,7 +303,14 @@ class _StyledOutfitScreenState extends State<StyledOutfitScreen> {
                 child: ClothingTile(
                   item: items[index],
                   decodeWidth: AppSizes.recentItemWidth,
-                  onTap: () => SocialFlows.showPiece(context, items[index]),
+                  // The pieces are the recipient's: yours when it came to you.
+                  onTap: () => styled.incoming
+                      ? AppNavigator.clothingDetail(context, items[index].id)
+                      : SocialFlows.openPiece(
+                          context,
+                          styled.other,
+                          items[index],
+                        ),
                 ),
               ),
             ),

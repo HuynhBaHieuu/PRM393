@@ -211,6 +211,39 @@ create table if not exists public.post_comments (
 );
 create index if not exists post_comments_post on public.post_comments (owner_id, outfit_id, created_at);
 
+-- Likes and comments on pieces in Community > Clothes, and who added a piece to their own
+-- wardrobe. Deleting the piece removes them.
+create table if not exists public.item_likes (
+  user_id uuid not null references auth.users on delete cascade,
+  owner_id uuid not null,
+  item_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, owner_id, item_id),
+  foreign key (owner_id, item_id) references public.clothing_items (user_id, id) on delete cascade
+);
+create index if not exists item_likes_item on public.item_likes (owner_id, item_id);
+
+create table if not exists public.item_comments (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references auth.users on delete cascade,
+  owner_id uuid not null,
+  item_id text not null,
+  body text not null check (char_length(body) between 1 and 300),
+  created_at timestamptz not null default now(),
+  foreign key (owner_id, item_id) references public.clothing_items (user_id, id) on delete cascade
+);
+create index if not exists item_comments_item on public.item_comments (owner_id, item_id, created_at);
+
+create table if not exists public.item_copies (
+  user_id uuid not null references auth.users on delete cascade,
+  owner_id uuid not null,
+  item_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, owner_id, item_id),
+  foreign key (owner_id, item_id) references public.clothing_items (user_id, id) on delete cascade
+);
+create index if not exists item_copies_item on public.item_copies (owner_id, item_id);
+
 -- When someone last opened Notifications, so the bell counts only newer likes and comments.
 create table if not exists public.activity_reads (
   user_id uuid primary key references auth.users on delete cascade,
@@ -257,8 +290,17 @@ as $$
   select case when nullif(d->>'sourceUrl', '') is not null then null else jsonb_strip_nulls(jsonb_build_object(
     'id', d->'id', 'name', d->'name', 'imagePath', d->'imagePath', 'cutoutPath', d->'cutoutPath',
     'category', d->'category', 'subcategory', d->'subcategory', 'color', d->'color',
-    'seasons', d->'seasons', 'brand', d->'brand', 'createdAt', d->'createdAt',
-    'noStyling', d->'noStyling')) end
+    'seasons', d->'seasons', 'brand', d->'brand', 'materials', d->'materials',
+    'createdAt', d->'createdAt', 'noStyling', d->'noStyling')) end
+$$;
+
+-- Pieces others may see: not archived, not hidden from the profile, not from a shop link.
+create or replace function public.is_shared_item(d jsonb) returns boolean
+language sql immutable set search_path = ''
+as $$
+  select coalesce((d->>'isArchived')::boolean, false) = false
+    and coalesce((d->>'hideInProfile')::boolean, false) = false
+    and nullif(d->>'sourceUrl', '') is null
 $$;
 
 create or replace function public.public_outfit(d jsonb) returns jsonb
@@ -307,6 +349,31 @@ as $$
 $$;
 revoke execute on function public.post_card(uuid, text) from public, anon, authenticated;
 
+-- A piece in Community > Clothes as the caller sees it, with its owner, likes, comments
+-- and how many people added it to their wardrobe; null when it is gone or not shared.
+-- Only called from the security-definer functions below, after their checks.
+create or replace function public.item_card(p_owner uuid, p_item text) returns jsonb
+language sql stable set search_path = ''
+as $$
+  select jsonb_build_object(
+    'owner', public.profile_card(pr),
+    'item', public.public_item(c.data),
+    'likes', (select count(*) from public.item_likes l
+      where l.owner_id = c.user_id and l.item_id = c.id
+        and not public.is_blocked_between(auth.uid(), l.user_id)),
+    'liked', exists (select 1 from public.item_likes l
+      where l.user_id = auth.uid() and l.owner_id = c.user_id and l.item_id = c.id),
+    'comments', (select count(*) from public.item_comments m
+      where m.owner_id = c.user_id and m.item_id = c.id
+        and not public.is_blocked_between(auth.uid(), m.author_id)),
+    'copies', (select count(*) from public.item_copies k
+      where k.owner_id = c.user_id and k.item_id = c.id))
+  from public.clothing_items c
+  join public.profiles pr on pr.user_id = c.user_id
+  where c.user_id = p_owner and c.id = p_item and public.is_shared_item(c.data)
+$$;
+revoke execute on function public.item_card(uuid, text) from public, anon, authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.follows enable row level security;
 alter table public.blocks enable row level security;
@@ -317,6 +384,9 @@ alter table public.reports enable row level security;
 alter table public.post_likes enable row level security;
 alter table public.post_comments enable row level security;
 alter table public.activity_reads enable row level security;
+alter table public.item_likes enable row level security;
+alter table public.item_comments enable row level security;
+alter table public.item_copies enable row level security;
 
 -- Username, name, photo and bio are public (as in Fits), except across a block.
 drop policy if exists "read unblocked" on public.profiles;
@@ -395,6 +465,31 @@ drop policy if exists "read own" on public.activity_reads;
 create policy "read own" on public.activity_reads for select to authenticated
   using ((select auth.uid()) = user_id);
 
+-- A like or "added to my wardrobe" may only go on a piece the caller may see, and a piece
+-- is never added from your own closet. Counts come from item_card().
+drop policy if exists "own rows" on public.item_likes;
+create policy "own rows" on public.item_likes for all to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id and public.can_view_closet((select auth.uid()), owner_id));
+revoke update on public.item_likes from authenticated;
+
+drop policy if exists "own rows" on public.item_copies;
+create policy "own rows" on public.item_copies for all to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id and owner_id <> (select auth.uid())
+    and public.can_view_closet((select auth.uid()), owner_id));
+revoke update on public.item_copies from authenticated;
+
+-- Written by add_item_comment() and read through item_comments_list(); the author and
+-- the piece's owner may delete one.
+drop policy if exists "read own" on public.item_comments;
+create policy "read own" on public.item_comments for select to authenticated
+  using ((select auth.uid()) in (author_id, owner_id));
+drop policy if exists "delete own" on public.item_comments;
+create policy "delete own" on public.item_comments for delete to authenticated
+  using ((select auth.uid()) in (author_id, owner_id));
+revoke insert, update on public.item_comments from authenticated;
+
 -- A profile with follower counts and what the caller may do with it; null when the
 -- profile doesn't exist or its owner blocked the caller.
 create or replace function public.profile_summary(p_user uuid) returns jsonb
@@ -435,30 +530,110 @@ begin
       from public.outfits o where o.user_id = p_user), '[]'));
 end $$;
 
--- Public outfits, newest first. 'latest': public accounts; 'following': people the
--- caller follows (private ones too, once accepted); 'saved': the caller's saved ideas.
-create or replace function public.discover_feed(
-  p_filter text default 'latest', p_before timestamptz default null, p_limit integer default 30)
+-- Replaced by community_outfits().
+drop function if exists public.discover_feed(text, timestamptz, integer);
+
+-- Community > Outfits, one page. 'following': people the caller follows (private ones
+-- too, once accepted), newest first. 'week', 'month', 'quarter': public accounts' posts
+-- from the last 7, 30 or 90 days, most liked first.
+create or replace function public.community_outfits(
+  p_filter text default 'week', p_offset integer default 0, p_limit integer default 30)
 returns jsonb
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce(jsonb_agg(public.post_card(owner_id, outfit_id) order by posted_at desc), '[]') from (
-    select p.user_id as owner_id, p.outfit_id, p.created_at as posted_at
+  select coalesce(jsonb_agg(public.post_card(owner_id, outfit_id) order by n), '[]') from (
+    select p.user_id as owner_id, p.outfit_id,
+      row_number() over (order by
+        case when p_filter = 'following' then 0 else (select count(*) from public.post_likes l
+          where l.owner_id = p.user_id and l.outfit_id = p.outfit_id) end desc,
+        p.created_at desc, p.outfit_id) as n
     from public.outfit_posts p
     join public.profiles pr on pr.user_id = p.user_id
     join public.outfits o on o.user_id = p.user_id and o.id = p.outfit_id
     where public.can_view_closet(auth.uid(), p.user_id)
-      and (p_before is null or p.created_at < p_before)
       and case p_filter
         when 'following' then exists (select 1 from public.follows f
           where f.follower_id = auth.uid() and f.followee_id = p.user_id and f.status = 'accepted')
-        when 'saved' then exists (select 1 from public.saved_posts s
-          where s.user_id = auth.uid() and s.owner_id = p.user_id and s.outfit_id = p.outfit_id)
-        else not pr.is_private or p.user_id = auth.uid()
+        else (not pr.is_private or p.user_id = auth.uid())
+          and p.created_at >= now() - case p_filter
+            when 'month' then interval '30 days'
+            when 'quarter' then interval '90 days'
+            else interval '7 days' end
       end
-    order by p.created_at desc
-    limit least(greatest(p_limit, 1), 60)
+    order by n
+    offset greatest(coalesce(p_offset, 0), 0)
+    limit least(greatest(coalesce(p_limit, 30), 1), 60)
   ) page
+$$;
+
+-- Community > Clothes and the Clothes results of Community search, one page: other
+-- public accounts' pieces, newest first. p_category is a ClothingCategory name or null;
+-- p_query matches the name or brand.
+create or replace function public.community_items(
+  p_category text default null, p_query text default null,
+  p_offset integer default 0, p_limit integer default 30)
+returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(public.item_card(owner_id, item_id) order by n), '[]') from (
+    select c.user_id as owner_id, c.id as item_id,
+      row_number() over (order by c.data->>'createdAt' desc, c.id) as n
+    from public.clothing_items c
+    join public.profiles pr on pr.user_id = c.user_id
+    where c.user_id <> auth.uid()
+      and not pr.is_private
+      and not public.is_blocked_between(auth.uid(), c.user_id)
+      and public.is_shared_item(c.data)
+      and (p_category is null or c.data->>'category' = p_category)
+      and (coalesce(trim(p_query), '') = ''
+        or strpos(lower(coalesce(c.data->>'name', '')), lower(trim(p_query))) > 0
+        or strpos(lower(coalesce(c.data->>'brand', '')), lower(trim(p_query))) > 0)
+    order by n
+    offset greatest(coalesce(p_offset, 0), 0)
+    limit least(greatest(coalesce(p_limit, 30), 1), 60)
+  ) page
+$$;
+
+-- One piece with its counts, or null when the caller may not see it.
+create or replace function public.community_item(p_owner uuid, p_item text) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select case when public.can_view_closet(auth.uid(), p_owner)
+    then public.item_card(p_owner, p_item) end
+$$;
+
+-- Community > Users, one page: people the caller doesn't follow or ask to follow yet, most
+-- followed first, each with their 5 newest pieces (none for a private account).
+create or replace function public.suggested_people(p_offset integer default 0, p_limit integer default 20)
+returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'profile', public.profile_card(pr),
+    'items', case when pr.is_private then '[]'::jsonb else coalesce((
+      select jsonb_agg(public.public_item(recent.data) order by recent.created desc)
+      from (
+        select c.data, c.data->>'createdAt' as created from public.clothing_items c
+        where c.user_id = pr.user_id and public.is_shared_item(c.data)
+        order by c.data->>'createdAt' desc limit 5
+      ) recent), '[]') end)
+    order by page.n), '[]')
+  from (
+    select p.user_id, row_number() over (order by
+      (select count(*) from public.follows f where f.followee_id = p.user_id and f.status = 'accepted') desc,
+      (select count(*) from public.clothing_items c
+        where c.user_id = p.user_id and public.is_shared_item(c.data)) desc,
+      p.username) as n
+    from public.profiles p
+    where p.user_id <> auth.uid()
+      and not public.is_blocked_between(auth.uid(), p.user_id)
+      and not exists (select 1 from public.follows f
+        where f.follower_id = auth.uid() and f.followee_id = p.user_id)
+    order by n
+    offset greatest(coalesce(p_offset, 0), 0)
+    limit least(greatest(coalesce(p_limit, 20), 1), 60)
+  ) page
+  join public.profiles pr on pr.user_id = page.user_id
 $$;
 
 -- Follows a public account straight away, or asks a private one. Returns the status.
@@ -622,6 +797,48 @@ begin
     'author', (select public.profile_card(pr) from public.profiles pr where pr.user_id = auth.uid()));
 end $$;
 
+-- Comments on a piece, oldest first; empty when the caller may not see it.
+create or replace function public.item_comments_list(p_owner uuid, p_item text) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', m.id, 'body', m.body, 'created_at', m.created_at, 'author', public.profile_card(pr))
+    order by m.created_at), '[]')
+  from public.item_comments m
+  join public.profiles pr on pr.user_id = m.author_id
+  where m.owner_id = p_owner and m.item_id = p_item
+    and public.can_view_closet(auth.uid(), p_owner)
+    and not public.is_blocked_between(auth.uid(), m.author_id)
+$$;
+
+-- ponytail: no rate limit on commenting; add one if people get spammed.
+create or replace function public.add_item_comment(p_owner uuid, p_item text, p_body text)
+returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_body text := trim(coalesce(p_body, ''));
+  v_comment public.item_comments;
+begin
+  if not exists (select 1 from public.profiles where user_id = auth.uid()) then
+    raise exception 'Create your profile first.';
+  end if;
+  if not public.can_view_closet(auth.uid(), p_owner) or not exists (
+    select 1 from public.clothing_items c
+    where c.user_id = p_owner and c.id = p_item and public.is_shared_item(c.data)) then
+    raise exception 'This piece is no longer shared.';
+  end if;
+  if char_length(v_body) not between 1 and 300 then
+    raise exception 'A comment has 1 to 300 characters.';
+  end if;
+  insert into public.item_comments (author_id, owner_id, item_id, body)
+  values (auth.uid(), p_owner, p_item, v_body)
+  returning * into v_comment;
+  return jsonb_build_object(
+    'id', v_comment.id, 'body', v_comment.body, 'created_at', v_comment.created_at,
+    'author', (select public.profile_card(pr) from public.profiles pr where pr.user_id = auth.uid()));
+end $$;
+
 -- Likes and comments others left on the caller's posts, newest first, and when the
 -- caller last opened Notifications. People across a block are left out.
 create or replace function public.post_activity() returns jsonb
@@ -664,11 +881,14 @@ declare f text;
 begin
   foreach f in array array[
     'is_blocked_between(uuid, uuid)', 'can_view_closet(uuid, uuid)', 'can_style(uuid, uuid)',
-    'public_item(jsonb)', 'public_outfit(jsonb)', 'profile_card(public.profiles)',
-    'profile_summary(uuid)', 'profile_closet(uuid)', 'discover_feed(text, timestamptz, integer)',
+    'public_item(jsonb)', 'is_shared_item(jsonb)', 'public_outfit(jsonb)',
+    'profile_card(public.profiles)', 'profile_summary(uuid)', 'profile_closet(uuid)',
+    'community_outfits(text, integer, integer)', 'community_items(text, text, integer, integer)',
+    'community_item(uuid, text)', 'suggested_people(integer, integer)',
     'follow_user(uuid)', 'block_user(uuid)', 'send_styled_outfit(uuid, text, text, text[], jsonb)',
     'styled_outfits_list()', 'my_connections()', 'blocked_profiles()',
     'post_comments_list(uuid, text)', 'add_post_comment(uuid, text, text)',
+    'item_comments_list(uuid, text)', 'add_item_comment(uuid, text, text)',
     'post_activity()', 'mark_activity_seen()'] loop
     execute format('revoke execute on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);

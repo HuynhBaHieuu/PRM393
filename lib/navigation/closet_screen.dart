@@ -195,7 +195,7 @@ class _CommunityHeader extends StatelessWidget {
               Expanded(
                 child: FilledButton(
                   onPressed: me == null
-                      ? () => AppNavigator.userSearch(context)
+                      ? () => AppNavigator.communitySearch(context)
                       : () => SocialFlows.shareProfile(context, me.username),
                   style: style,
                   child: Text(

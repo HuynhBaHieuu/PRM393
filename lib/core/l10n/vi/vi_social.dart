@@ -175,4 +175,35 @@ const Map<String, String> viSocial = {
   'Styled by {0}': 'Phối bởi {0}',
   'Comment options': 'Tùy chọn bình luận',
   'Notifications, {0} new': 'Thông báo, {0} mới',
+
+  // Community
+  'This Week': 'Tuần này',
+  'This Month': 'Tháng này',
+  'Last 3 Months': '3 tháng qua',
+  'Users': 'Người dùng',
+  'Search': 'Tìm kiếm',
+  'Search for clothes and users': 'Tìm quần áo và người dùng',
+  'People suggested for you': 'Gợi ý cho bạn',
+  'Your following feed is empty, either you don’t follow anyone or they haven’t created any outfits yet.': 'Bảng tin đang theo dõi còn trống: bạn chưa theo dõi ai, hoặc họ chưa tạo outfit nào.',
+  'No outfits were shared in this time. Check back later!':
+      'Chưa có outfit nào được chia sẻ trong khoảng này. Quay lại sau nhé!',
+  'Pieces from public wardrobes show up here.':
+      'Đồ từ các tủ đồ công khai sẽ hiện ở đây.',
+  'No suggestions right now': 'Chưa có gợi ý nào',
+  'Search for people by their username to follow them.':
+      'Tìm theo tên người dùng để theo dõi họ.',
+  'No clothes found': 'Không tìm thấy quần áo',
+  'Try another name or brand.': 'Thử tên hoặc thương hiệu khác.',
+  'Find friends to see their outfits in Community.':
+      'Tìm bạn bè để xem outfit của họ trong Cộng đồng.',
+  'Main wardrobe': 'Tủ đồ chính',
+  'Create new collection': 'Tạo bộ sưu tập mới',
+  'Added to “{0}”': 'Đã thêm vào “{0}”',
+  'Add to your wardrobe': 'Thêm vào tủ đồ',
+  'Add to a collection': 'Thêm vào bộ sưu tập',
+  'Adding to your wardrobe…': 'Đang thêm vào tủ đồ…',
+  'Added to your wardrobe': 'Đã thêm vào tủ đồ',
+  'Added to {0} wardrobes': 'Đã được thêm vào {0} tủ đồ',
+  'This piece has no photo to copy.': 'Món này không có ảnh để sao chép.',
+  'The photo could not be downloaded.': 'Không tải được ảnh.',
 };

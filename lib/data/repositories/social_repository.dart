@@ -4,10 +4,11 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
+import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/social.dart';
 
-/// Profiles, follows, Discover and outfits made for others. Only exists with
+/// Profiles, follows, Community and outfits made for others. Only exists with
 /// a Supabase account; who may see what is enforced by supabase/schema.sql.
 abstract class SocialRepository {
   /// The signed-in user's profile, or null before they create one.
@@ -57,11 +58,37 @@ abstract class SocialRepository {
 
   Future<void> setPosted(String outfitId, {required bool posted});
 
-  Future<List<FeedPost>> feed(FeedFilter filter, {DateTime? before});
-
-  Future<void> setSaved(FeedPost post, {required bool saved});
+  /// One page of Community > Outfits, starting after the first [offset].
+  Future<List<FeedPost>> feed(FeedFilter filter, {int offset = 0});
 
   Future<void> setLiked(FeedPost post, {required bool liked});
+
+  /// One page of other people's public pieces, newest first, narrowed to
+  /// [category] and to names or brands containing [query].
+  Future<List<CommunityItem>> communityItems({
+    ClothingCategory? category,
+    String query = '',
+    int offset = 0,
+  });
+
+  /// One piece with its counts; null when the caller may not see it.
+  Future<CommunityItem?> communityItem(String ownerId, String itemId);
+
+  Future<void> setItemLiked(CommunityItem item, {required bool liked});
+
+  /// Counts [item] as added to the signed-in user's wardrobe.
+  Future<void> recordItemCopy(CommunityItem item);
+
+  /// Comments under [item], oldest first.
+  Future<List<PostComment>> itemComments(CommunityItem item);
+
+  Future<PostComment> addItemComment(CommunityItem item, String body);
+
+  /// Deletes a comment the signed-in user wrote, or one on their own piece.
+  Future<void> deleteItemComment(String commentId);
+
+  /// One page of people the signed-in user doesn't follow yet.
+  Future<List<SuggestedPerson>> suggestedPeople({int offset = 0});
 
   /// Comments under [post], oldest first.
   Future<List<PostComment>> comments(FeedPost post);
@@ -266,29 +293,96 @@ class SupabaseSocialRepository implements SocialRepository {
       });
 
   @override
-  Future<List<FeedPost>> feed(FeedFilter filter, {DateTime? before}) =>
+  Future<List<FeedPost>> feed(FeedFilter filter, {int offset = 0}) =>
       _guard(() async {
-        final json = await _rpc('discover_feed', {
+        final json = await _rpc('community_outfits', {
           'p_filter': filter.name,
-          'p_before': before?.toUtc().toIso8601String(),
+          'p_offset': offset,
         });
         return parseRecords(json, FeedPost.fromJson);
       });
 
   @override
-  Future<void> setSaved(FeedPost post, {required bool saved}) =>
+  Future<List<CommunityItem>> communityItems({
+    ClothingCategory? category,
+    String query = '',
+    int offset = 0,
+  }) => _guard(() async {
+    final json = await _rpc('community_items', {
+      'p_category': category?.name,
+      'p_query': query.trim(),
+      'p_offset': offset,
+    });
+    return parseRecords(json, CommunityItem.fromJson);
+  });
+
+  @override
+  Future<CommunityItem?> communityItem(String ownerId, String itemId) =>
       _guard(() async {
-        final row = {
-          'user_id': _userId,
-          'owner_id': post.owner.userId,
-          'outfit_id': post.outfit.id,
-        };
-        if (saved) {
-          await _client.from('saved_posts').upsert(row, ignoreDuplicates: true);
+        final json = await _rpc('community_item', {
+          'p_owner': ownerId,
+          'p_item': itemId,
+        });
+        return json is Map ? CommunityItem.fromJson(JsonMap.from(json)) : null;
+      });
+
+  @override
+  Future<void> setItemLiked(CommunityItem item, {required bool liked}) =>
+      _guard(() async {
+        final row = _itemRow(item);
+        if (liked) {
+          await _client.from('item_likes').upsert(row, ignoreDuplicates: true);
         } else {
-          await _client.from('saved_posts').delete().match(row);
+          await _client.from('item_likes').delete().match(row);
         }
       });
+
+  @override
+  Future<void> recordItemCopy(CommunityItem item) => _guard(
+    () => _client
+        .from('item_copies')
+        .upsert(_itemRow(item), ignoreDuplicates: true),
+  );
+
+  @override
+  Future<List<PostComment>> itemComments(CommunityItem item) => _guard(
+    () async => parseRecords(
+      await _rpc('item_comments_list', {
+        'p_owner': item.owner.userId,
+        'p_item': item.item.id,
+      }),
+      PostComment.fromJson,
+    ),
+  );
+
+  @override
+  Future<PostComment> addItemComment(CommunityItem item, String body) =>
+      _guard(() async {
+        final json = await _rpc('add_item_comment', {
+          'p_owner': item.owner.userId,
+          'p_item': item.item.id,
+          'p_body': body,
+        });
+        return PostComment.fromJson(JsonMap.from(json as Map));
+      });
+
+  @override
+  Future<void> deleteItemComment(String commentId) =>
+      _guard(() => _client.from('item_comments').delete().eq('id', commentId));
+
+  @override
+  Future<List<SuggestedPerson>> suggestedPeople({int offset = 0}) => _guard(
+    () async => parseRecords(
+      await _rpc('suggested_people', {'p_offset': offset}),
+      SuggestedPerson.fromJson,
+    ),
+  );
+
+  Map<String, String> _itemRow(CommunityItem item) => {
+    'user_id': _userId,
+    'owner_id': item.owner.userId,
+    'item_id': item.item.id,
+  };
 
   @override
   Future<void> setLiked(FeedPost post, {required bool liked}) =>

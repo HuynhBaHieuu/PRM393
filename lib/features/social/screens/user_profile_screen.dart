@@ -258,7 +258,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
                 sliver: ClothingSliverGrid(
                   items: shownItems,
-                  onTap: (item) => SocialFlows.showPiece(context, item),
+                  onTap: (item) =>
+                      SocialFlows.openPiece(context, profile, item),
                 ),
               ),
           ] else if (outfits.isEmpty)

@@ -9,7 +9,7 @@ import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/data/repositories/social_repository.dart';
 import 'package:all_fits/features/social/screens/edit_profile_screen.dart';
-import 'package:all_fits/features/social/screens/people_screens.dart';
+import 'package:all_fits/features/social/screens/community_search_screen.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 
 import '../helpers/test_harness.dart';
@@ -154,7 +154,6 @@ void main() {
       final post = FeedPost.fromJson({
         'owner': _card('u2', 'zanzi'),
         'posted_at': '2026-10-01T09:00:00Z',
-        'saved': true,
         'outfit': {
           'id': 'o1',
           'name': 'Brown layers',
@@ -166,7 +165,6 @@ void main() {
           {'name': 'No id'},
         ],
       });
-      expect(post.saved, isTrue);
       expect(post.orderedItems.map((i) => i.id), ['b', 'a']);
       // The server never sends these; the model must not invent them.
       expect(
@@ -379,49 +377,51 @@ void main() {
       expect('hieu_dev.05'.folded, 'hieu_dev.05');
     });
 
-    testWidgets('lists everyone, then narrows by username or name', (
-      tester,
-    ) async {
-      final repository = _FakeSocialRepository()
-        ..peopleList = const [
-          SocialProfile(
-            userId: 'u1',
-            username: 'huynhbahieu',
-            displayName: 'Huỳnh Bá Hiếu',
+    testWidgets(
+      'search starts empty, then suggests people by username or name',
+      (tester) async {
+        final repository = _FakeSocialRepository()
+          ..peopleList = const [
+            SocialProfile(
+              userId: 'u1',
+              username: 'huynhbahieu',
+              displayName: 'Huỳnh Bá Hiếu',
+            ),
+            SocialProfile(userId: 'u2', username: 'hieu_dev'),
+            SocialProfile(userId: 'u3', username: 'mia'),
+          ];
+        final social = SocialController(
+          repository: repository,
+          imageStorage: FakeImageStorageService(),
+        );
+        await tester.pumpWidget(
+          ChangeNotifierProvider.value(
+            value: social,
+            child: const MaterialApp(home: CommunitySearchScreen()),
           ),
-          SocialProfile(userId: 'u2', username: 'hieu_dev'),
-          SocialProfile(userId: 'u3', username: 'mia'),
-        ];
-      final social = SocialController(
-        repository: repository,
-        imageStorage: FakeImageStorageService(),
-      );
-      await tester.pumpWidget(
-        ChangeNotifierProvider.value(
-          value: social,
-          child: const MaterialApp(home: UserSearchScreen()),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('huynhbahieu'), findsOneWidget);
-      expect(find.text('hieu_dev'), findsOneWidget);
-      expect(find.text('mia'), findsOneWidget);
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Search for clothes and users'), findsOneWidget);
+        expect(find.text('mia'), findsNothing);
 
-      await tester.enterText(find.byType(TextField), 'Hiếu');
-      await tester.pump();
-      expect(find.text('huynhbahieu'), findsOneWidget); // by name, no accents
-      expect(find.text('hieu_dev'), findsOneWidget); // middle of a username
-      expect(find.text('mia'), findsNothing);
+        await tester.enterText(find.byType(TextField), 'Hiếu');
+        await tester.pump();
+        expect(find.text('huynhbahieu'), findsOneWidget); // by name, no accents
+        expect(find.text('hieu_dev'), findsOneWidget); // middle of a username
+        expect(find.text('mia'), findsNothing);
 
-      await tester.enterText(find.byType(TextField), '@hieu_d');
-      await tester.pump();
-      expect(find.text('hieu_dev'), findsOneWidget);
-      expect(find.text('huynhbahieu'), findsNothing);
+        await tester.enterText(find.byType(TextField), '@hieu_d');
+        await tester.pump();
+        expect(find.text('hieu_dev'), findsOneWidget);
+        expect(find.text('huynhbahieu'), findsNothing);
 
-      await tester.enterText(find.byType(TextField), 'zzz');
-      await tester.pump();
-      expect(find.text('No users found'), findsOneWidget);
-    });
+        await tester.enterText(find.byType(TextField), 'zzz');
+        await tester.pump();
+        // Only the row that searches clothes and users for it.
+        expect(find.text('zzz'), findsNWidgets(2));
+        expect(find.byType(ListTile), findsOneWidget);
+      },
+    );
   });
 }
 

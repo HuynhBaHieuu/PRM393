@@ -6,6 +6,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/adaptive_grid.dart';
 import 'package:all_fits/core/utils/formatters.dart';
+import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
@@ -22,11 +23,15 @@ class UserAvatar extends StatelessWidget {
     this.url,
     this.size = 40,
     this.photoPath,
+    this.color,
   });
 
   final String name;
   final String? url;
   final double size;
+
+  /// Fill behind the initials; a soft grey by default.
+  final Color? color;
 
   /// A just-picked photo on the device, shown before it is uploaded.
   final String? photoPath;
@@ -53,7 +58,7 @@ class UserAvatar extends StatelessWidget {
       alignment: Alignment.center,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: palette.surfaceMuted,
+        color: color ?? palette.surfaceMuted,
         shape: BoxShape.circle,
         image: image == null
             ? null
@@ -256,8 +261,9 @@ ButtonStyle profileButtonStyle(BuildContext context, {bool primary = false}) {
   );
 }
 
-/// An outfit flat-lay with its owner pinned to the top-left corner, as on
-/// Fits' Community grid.
+/// An outfit flat-lay in a card, as on Fits' Community grid: its owner in a
+/// band above the pieces and its likes and comments in a band below, so
+/// neither covers the clothes.
 class SocialOutfitCard extends StatelessWidget {
   const SocialOutfitCard({
     super.key,
@@ -266,7 +272,7 @@ class SocialOutfitCard extends StatelessWidget {
     required this.onTap,
     this.owner,
     this.caption,
-    this.footer,
+    this.stats,
   });
 
   final List<ClothingItem> items;
@@ -277,21 +283,29 @@ class SocialOutfitCard extends StatelessWidget {
   /// Small line under the card, e.g. "For you · 2 days ago".
   final String? caption;
 
-  /// Shown under the card instead of [caption], e.g. [PostStats].
-  final Widget? footer;
+  /// The band under the flat-lay, e.g. [PostStats].
+  final Widget? stats;
+
+  static const double _avatarSize = 32;
+
+  /// Height of the owner band; give it to [OutfitCardSliverGrid].
+  static const double ownerBandHeight =
+      _avatarSize + AppSpacing.sm + AppSpacing.xxs;
+
+  /// Height of the stats band; give it to [OutfitCardSliverGrid].
+  static const double statsBandHeight = 24 + AppSpacing.xxs + AppSpacing.sm;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final radius = BorderRadius.circular(AppRadius.lg);
+    final radius = BorderRadius.circular(AppRadius.md);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AspectRatio(
-            aspectRatio: AppSizes.outfitImageAspect,
+          Expanded(
             child: DecoratedBox(
               position: DecorationPosition.foreground,
               decoration: BoxDecoration(
@@ -300,43 +314,67 @@ class SocialOutfitCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: radius,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    OutfitCanvas(items: items, layout: layout),
-                    if (owner != null)
-                      Positioned(
-                        top: AppSpacing.xs,
-                        left: AppSpacing.xs,
-                        right: AppSpacing.xs,
-                        child: Row(
-                          children: [
-                            UserAvatar(
-                              name: owner!.name,
-                              url: owner!.avatarUrl,
-                              size: 24,
+                child: ColoredBox(
+                  color: palette.surface,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (owner != null)
+                        SizedBox(
+                          height: ownerBandHeight,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.sm,
+                              AppSpacing.sm,
+                              AppSpacing.sm,
+                              AppSpacing.xxs,
                             ),
-                            const SizedBox(width: AppSpacing.xs),
-                            Flexible(
-                              child: Text(
-                                owner!.username,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.textTheme.labelLarge,
-                              ),
+                            child: Row(
+                              children: [
+                                UserAvatar(
+                                  name: owner!.name,
+                                  url: owner!.avatarUrl,
+                                  size: _avatarSize,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Expanded(
+                                  child: Text(
+                                    owner!.username,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: context.textTheme.titleSmall,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
+                      Expanded(
+                        child: OutfitCanvas(items: items, layout: layout),
                       ),
-                  ],
+                      if (stats != null)
+                        SizedBox(
+                          height: statsBandHeight,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.sm,
+                              AppSpacing.xxs,
+                              AppSpacing.sm,
+                              AppSpacing.sm,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: stats,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          if (footer != null) ...[
-            const SizedBox(height: AppSpacing.xs),
-            footer!,
-          ] else if (caption != null) ...[
+          if (caption != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
               caption!,
@@ -351,41 +389,49 @@ class SocialOutfitCard extends StatelessWidget {
   }
 }
 
-/// A Discover post's likes and comments, e.g. "♥ 12  💬 3".
+/// A Community post's likes and comments, e.g. "♥ 12  💬 3".
 class PostStats extends StatelessWidget {
   const PostStats({super.key, required this.post});
 
   final FeedPost post;
 
-  static const double _iconSize = 16;
+  static const double _iconSize = 22;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final style = context.textTheme.bodySmall;
-    return Row(
-      children: [
-        Icon(
-          post.liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          size: _iconSize,
-          color: post.liked ? palette.danger : palette.textSecondary,
-        ),
-        const SizedBox(width: AppSpacing.xxs),
-        Text('${post.likes}', style: style),
-        const SizedBox(width: AppSpacing.sm),
-        Icon(
-          Icons.chat_bubble_outline_rounded,
-          size: _iconSize,
-          color: palette.textSecondary,
-        ),
-        const SizedBox(width: AppSpacing.xxs),
-        Text('${post.comments}', style: style),
-      ],
+    final style = context.textTheme.titleSmall;
+    return Semantics(
+      label: tr('{0}, {1}', [
+        AppFormatters.count(post.likes, 'like'),
+        AppFormatters.count(post.comments, 'comment'),
+      ]),
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          Icon(
+            post.liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            size: _iconSize,
+            color: post.liked ? palette.danger : palette.ink,
+          ),
+          const SizedBox(width: AppSpacing.xxs),
+          Text('${post.likes}', style: style),
+          const SizedBox(width: AppSpacing.sm),
+          Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: _iconSize,
+            color: palette.ink,
+          ),
+          const SizedBox(width: AppSpacing.xxs),
+          Text('${post.comments}', style: style),
+        ],
+      ),
     );
   }
 }
 
-/// One comment under a post: who wrote it, when, and what.
+/// One comment: who wrote it, when, and what. Long press opens Delete or
+/// Report, as in Fits.
 class CommentTile extends StatelessWidget {
   const CommentTile({
     super.key,
@@ -397,7 +443,7 @@ class CommentTile extends StatelessWidget {
   final PostComment comment;
   final VoidCallback? onAuthorTap;
 
-  /// Opens Delete / Report; also on long press.
+  /// Opens Delete / Report on long press.
   final VoidCallback? onMore;
 
   @override
@@ -408,7 +454,10 @@ class CommentTile extends StatelessWidget {
     return InkWell(
       onLongPress: onMore,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.page,
+          vertical: AppSpacing.sm,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -417,7 +466,7 @@ class CommentTile extends StatelessWidget {
               child: UserAvatar(
                 name: author.name,
                 url: author.avatarUrl,
-                size: 32,
+                size: AppSizes.thumbSm,
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -428,9 +477,9 @@ class CommentTile extends StatelessWidget {
                   Text.rich(
                     TextSpan(
                       children: [
-                        TextSpan(text: author.username, style: text.labelLarge),
+                        TextSpan(text: author.username, style: text.titleSmall),
                         TextSpan(
-                          text: '  ${AppFormatters.timeAgo(comment.createdAt)}',
+                          text: ' ${AppFormatters.timeAgo(comment.createdAt)}',
                           style: text.bodySmall?.copyWith(
                             color: palette.textSecondary,
                           ),
@@ -439,17 +488,306 @@ class CommentTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
-                  Text(comment.body, style: text.bodyMedium),
+                  Text(comment.body, style: text.bodyLarge),
                 ],
               ),
             ),
-            if (onMore != null)
-              IconButton(
-                tooltip: tr('Comment options'),
-                visualDensity: VisualDensity.compact,
-                onPressed: onMore,
-                icon: const Icon(Icons.more_horiz_rounded, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A piece in Community > Clothes: a soft grey card with its owner on top,
+/// the cut-out photo, and its name.
+class CommunityItemCard extends StatelessWidget {
+  const CommunityItemCard({
+    super.key,
+    required this.entry,
+    required this.onTap,
+  });
+
+  final CommunityItem entry;
+  final VoidCallback onTap;
+
+  /// Leaves room for the owner row and the name under the photo.
+  static const double footerHeight = 84;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final text = context.textTheme;
+    final owner = entry.owner;
+    return Material(
+      color: palette.surfaceMuted,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  UserAvatar(
+                    name: owner.name,
+                    url: owner.avatarUrl,
+                    size: 28,
+                    // Stands out from the card's own grey.
+                    color: palette.surface,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      owner.username,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: text.titleSmall,
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: AppSpacing.xs),
+              Expanded(
+                child: ClothingImage(
+                  item: entry.item,
+                  cutout: true,
+                  fit: BoxFit.contain,
+                  decodeWidth: 220,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                entry.item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// [CommunityItemCard]s, two across on a phone.
+class CommunityItemSliverGrid extends StatelessWidget {
+  const CommunityItemSliverGrid({
+    super.key,
+    required this.entries,
+    required this.onTap,
+  });
+
+  final List<CommunityItem> entries;
+  final ValueChanged<CommunityItem> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final footer = MediaQuery.textScalerOf(context)
+        .scale(CommunityItemCard.footerHeight);
+    return SliverLayoutBuilder(
+      builder: (context, constraints) => SliverGrid.builder(
+        gridDelegate: AdaptiveGrid.imageTiles(
+          width: constraints.crossAxisExtent,
+          imageAspect: 1,
+          footerHeight: footer,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+        ),
+        itemCount: entries.length,
+        itemBuilder: (context, index) => CommunityItemCard(
+          entry: entries[index],
+          onTap: () => onTap(entries[index]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Grey rounded boxes shown while a Community grid loads, as in Fits.
+class LoadingTilesSliverGrid extends StatelessWidget {
+  const LoadingTilesSliverGrid({
+    super.key,
+    required this.aspectRatio,
+    this.spacing = AppSpacing.sm,
+  });
+
+  final double aspectRatio;
+  final double spacing;
+
+  static const int _count = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return SliverLayoutBuilder(
+      builder: (context, constraints) => SliverGrid.builder(
+        gridDelegate: AdaptiveGrid.imageTiles(
+          width: constraints.crossAxisExtent,
+          imageAspect: aspectRatio,
+          footerHeight: 0,
+          spacing: spacing,
+          runSpacing: spacing,
+        ),
+        itemCount: _count,
+        itemBuilder: (_, _) => DecoratedBox(
+          decoration: BoxDecoration(
+            color: palette.surfaceMuted,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Follow, Requested or Following, as on Fits' people lists.
+class FollowButton extends StatelessWidget {
+  const FollowButton({
+    super.key,
+    required this.status,
+    required this.onPressed,
+  });
+
+  /// Null when the user doesn't follow them yet.
+  final FollowStatus? status;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final following = status != null;
+    return FilledButton(
+      onPressed: onPressed,
+      style: profileButtonStyle(context, primary: !following).copyWith(
+        shape: const WidgetStatePropertyAll(StadiumBorder()),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        ),
+      ),
+      child: Text(switch (status) {
+        null => tr('Follow'),
+        FollowStatus.pending => tr('Requested'),
+        FollowStatus.accepted => tr('Following'),
+      }),
+    );
+  }
+}
+
+/// Someone in Community > Users: avatar, username and name, Follow, then a
+/// row of their newest pieces.
+class SuggestedPersonTile extends StatelessWidget {
+  const SuggestedPersonTile({
+    super.key,
+    required this.person,
+    required this.status,
+    required this.onTap,
+    required this.onFollow,
+  });
+
+  final SuggestedPerson person;
+  final FollowStatus? status;
+  final VoidCallback onTap;
+  final VoidCallback? onFollow;
+
+  static const double _avatarSize = 56;
+  static const double _pieceHeight = 96;
+  static const int _pieces = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = context.textTheme;
+    final palette = context.palette;
+    final profile = person.profile;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.page,
+          AppSpacing.md,
+          AppSpacing.page,
+          AppSpacing.md,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                UserAvatar(
+                  name: profile.name,
+                  url: profile.avatarUrl,
+                  size: _avatarSize,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              profile.username,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: text.titleMedium,
+                            ),
+                          ),
+                          if (profile.isPrivate) ...[
+                            const SizedBox(width: AppSpacing.xxs),
+                            Icon(
+                              Icons.lock_outline_rounded,
+                              size: 14,
+                              color: palette.textSecondary,
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (profile.displayName.isNotEmpty)
+                        Text(
+                          profile.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.bodyMedium?.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                FollowButton(status: status, onPressed: onFollow),
+              ],
+            ),
+            if (person.items.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                height: _pieceHeight,
+                child: Row(
+                  children: [
+                    for (final item in person.items.take(_pieces))
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xxs,
+                          ),
+                          child: ClothingImage(
+                            item: item,
+                            cutout: true,
+                            fit: BoxFit.contain,
+                            decodeWidth: _pieceHeight,
+                          ),
+                        ),
+                      ),
+                    for (var i = person.items.length; i < _pieces; i++)
+                      const Spacer(),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -464,6 +802,9 @@ class OutfitCardSliverGrid extends StatelessWidget {
     required this.itemCount,
     required this.itemBuilder,
     this.withCaption = false,
+    this.bandHeight = 0,
+    this.spacing = AppSpacing.sm,
+    this.runSpacing = AppSpacing.lg,
   });
 
   final int itemCount;
@@ -472,20 +813,29 @@ class OutfitCardSliverGrid extends StatelessWidget {
   /// Leaves room for each card's caption line.
   final bool withCaption;
 
+  /// Height of the cards' owner and stats bands, e.g.
+  /// [SocialOutfitCard.ownerBandHeight].
+  final double bandHeight;
+  final double spacing;
+  final double runSpacing;
+
   static const double _captionHeight = 28;
 
   @override
   Widget build(BuildContext context) {
-    final footer = withCaption
-        ? MediaQuery.textScalerOf(context).scale(_captionHeight)
-        : 0.0;
+    final footer =
+        bandHeight +
+        (withCaption
+            ? MediaQuery.textScalerOf(context).scale(_captionHeight)
+            : 0.0);
     return SliverLayoutBuilder(
       builder: (context, constraints) => SliverGrid.builder(
         gridDelegate: AdaptiveGrid.imageTiles(
           width: constraints.crossAxisExtent,
           imageAspect: AppSizes.outfitImageAspect,
           footerHeight: footer,
-          spacing: AppSpacing.sm,
+          spacing: spacing,
+          runSpacing: runSpacing,
         ),
         itemCount: itemCount,
         itemBuilder: itemBuilder,
@@ -552,6 +902,52 @@ class NotificationBell extends StatelessWidget {
         backgroundColor: context.palette.danger,
         label: Text(count > 9 ? '9+' : '$count'),
         child: const Icon(Icons.notifications_none_rounded),
+      ),
+    );
+  }
+}
+
+/// An icon with its count, e.g. ♡ 118, as under a Fits outfit or piece.
+/// The count is left out at zero.
+class CountButton extends StatelessWidget {
+  const CountButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.count,
+    required this.onPressed,
+    this.color,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final int count;
+  final VoidCallback? onPressed;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xs,
+            vertical: AppSpacing.xs,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: AppSizes.iconLg, color: color),
+              if (count > 0) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Text('$count', style: context.textTheme.titleMedium),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

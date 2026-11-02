@@ -18,7 +18,10 @@ import 'package:all_fits/features/profile/screens/favorites_screen.dart';
 import 'package:all_fits/data/models/outfit_create_mode.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/settings/screens/settings_screen.dart';
-import 'package:all_fits/features/social/screens/discover_screen.dart';
+import 'package:all_fits/features/social/screens/community_screen.dart';
+import 'package:all_fits/features/social/screens/community_search_screen.dart';
+import 'package:all_fits/features/social/screens/public_outfit_screen.dart';
+import 'package:all_fits/features/social/screens/public_piece_screen.dart';
 import 'package:all_fits/features/social/screens/edit_profile_screen.dart';
 import 'package:all_fits/features/social/screens/people_screens.dart';
 import 'package:all_fits/features/social/screens/style_outfit_screen.dart';
@@ -69,13 +72,14 @@ abstract final class AppRoutes {
   static const String connections = '/profile/connections';
   static const String blockedUsers = '/profile/blocked';
   static const String notifications = '/notifications';
-  static const String userSearch = '/users/search';
+  static const String communitySearch = '/community/search';
   static const String userProfile = '/users/profile';
   static const String styleFor = '/users/style';
   static const String styledTogether = '/styled';
   static const String styledOutfit = '/styled/detail';
-  static const String discover = '/discover';
-  static const String publicOutfit = '/discover/outfit';
+  static const String community = '/community';
+  static const String publicOutfit = '/community/outfit';
+  static const String publicPiece = '/community/piece';
   static const String tryOn = '/try-on';
   static const String tryOnProfile = '/try-on/profile';
   static const String tryOnClothes = '/try-on/clothes';
@@ -145,7 +149,7 @@ abstract final class AppRoutes {
       ),
       AppRoutes.blockedUsers => const BlockedUsersScreen(),
       AppRoutes.notifications => const NotificationsScreen(),
-      AppRoutes.userSearch => const UserSearchScreen(),
+      AppRoutes.communitySearch => const CommunitySearchScreen(),
       AppRoutes.userProfile when args is String => UserProfileScreen(
         userId: args,
       ),
@@ -156,7 +160,10 @@ abstract final class AppRoutes {
       AppRoutes.styledOutfit when args is String => StyledOutfitScreen(
         styledId: args,
       ),
-      AppRoutes.discover => const DiscoverScreen(),
+      AppRoutes.community => const CommunityScreen(),
+      AppRoutes.publicPiece when args is CommunityItem => PublicPieceScreen(
+        entry: args,
+      ),
       AppRoutes.publicOutfit when args is (FeedPost, bool) =>
         PublicOutfitScreen(post: args.$1, fromFeed: args.$2),
       AppRoutes.tryOn when args is TryOnArgs => TryOnScreen(args: args),
@@ -400,8 +407,8 @@ abstract final class AppNavigator {
   static Future<void> notifications(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.notifications);
 
-  static Future<void> userSearch(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.userSearch);
+  static Future<void> communitySearch(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.communitySearch);
 
   static Future<void> userProfile(BuildContext context, String userId) =>
       Navigator.of(context).pushNamed(AppRoutes.userProfile, arguments: userId);
@@ -419,8 +426,8 @@ abstract final class AppNavigator {
   static Future<void> styledOutfit(BuildContext context, String id) =>
       Navigator.of(context).pushNamed(AppRoutes.styledOutfit, arguments: id);
 
-  static Future<void> discover(BuildContext context) =>
-      Navigator.of(context).pushNamed(AppRoutes.discover);
+  static Future<void> community(BuildContext context) =>
+      Navigator.of(context).pushNamed(AppRoutes.community);
 
   /// Prefer [TryOnFlows.start], which asks for consent first.
   static Future<void> tryOn(BuildContext context, TryOnArgs args) =>
@@ -442,8 +449,8 @@ abstract final class AppNavigator {
   }
 
   /// Resolves to the post as it was left, with its latest likes and
-  /// comments, or null when the list showing it must reload: it was saved,
-  /// unsaved or its owner blocked.
+  /// comments, or null when the list showing it must reload because its
+  /// owner was blocked.
   static Future<FeedPost?> publicOutfit(
     BuildContext context,
     FeedPost post, {
@@ -453,5 +460,15 @@ abstract final class AppNavigator {
       context,
     ).pushNamed<Object?>(AppRoutes.publicOutfit, arguments: (post, fromFeed));
     return result is FeedPost ? result : null;
+  }
+
+  /// Resolves to the piece as it was left, with its latest counts.
+  static Future<CommunityItem?> publicPiece(
+    BuildContext context,
+    CommunityItem entry,
+  ) async {
+    final result = await Navigator.of(context)
+        .pushNamed<Object?>(AppRoutes.publicPiece, arguments: entry);
+    return result is CommunityItem ? result : null;
   }
 }

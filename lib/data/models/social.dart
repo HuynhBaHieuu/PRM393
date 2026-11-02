@@ -135,10 +135,13 @@ class PublicCloset {
   }
 }
 
+/// Fits' Community > Outfits chips. The time ranges show the most liked
+/// first; Following shows the newest first.
 enum FeedFilter {
-  latest('Latest'),
   following('Following'),
-  saved('Saved');
+  week('This Week'),
+  month('This Month'),
+  quarter('Last 3 Months');
 
   const FeedFilter(this._label);
 
@@ -147,14 +150,13 @@ enum FeedFilter {
   String get label => tr(_label);
 }
 
-/// An outfit someone shared on Discover, with its pieces.
+/// An outfit someone shared in Community, with its pieces.
 class FeedPost {
   const FeedPost({
     required this.owner,
     required this.outfit,
     required this.items,
     required this.postedAt,
-    this.saved = false,
     this.likes = 0,
     this.liked = false,
     this.comments = 0,
@@ -168,7 +170,6 @@ class FeedPost {
       outfit: Outfit.fromJson(_map(json['outfit'])),
       items: parseRecords(json['items'], ClothingItem.fromJson),
       postedAt: postedAt,
-      saved: JsonReader.boolean(json, 'saved'),
       likes: math.max(0, JsonReader.integer(json, 'likes')),
       liked: JsonReader.boolean(json, 'liked'),
       comments: math.max(0, JsonReader.integer(json, 'comments')),
@@ -179,7 +180,6 @@ class FeedPost {
   final Outfit outfit;
   final List<ClothingItem> items;
   final DateTime postedAt;
-  final bool saved;
 
   /// How many people liked it, and whether the signed-in user is one.
   final int likes;
@@ -196,20 +196,80 @@ class FeedPost {
   bool isSamePost(FeedPost other) =>
       owner.userId == other.owner.userId && outfit.id == other.outfit.id;
 
-  FeedPost copyWith({bool? saved, int? likes, bool? liked, int? comments}) =>
-      FeedPost(
-        owner: owner,
-        outfit: outfit,
-        items: items,
-        postedAt: postedAt,
-        saved: saved ?? this.saved,
-        likes: likes ?? this.likes,
-        liked: liked ?? this.liked,
-        comments: comments ?? this.comments,
-      );
+  FeedPost copyWith({int? likes, bool? liked, int? comments}) => FeedPost(
+    owner: owner,
+    outfit: outfit,
+    items: items,
+    postedAt: postedAt,
+    likes: likes ?? this.likes,
+    liked: liked ?? this.liked,
+    comments: comments ?? this.comments,
+  );
 }
 
-/// A comment under a Discover post.
+/// A piece in Community > Clothes: whose it is, its likes and comments, and
+/// how many people added it to their own wardrobe.
+class CommunityItem {
+  const CommunityItem({
+    required this.owner,
+    required this.item,
+    this.likes = 0,
+    this.liked = false,
+    this.comments = 0,
+    this.copies = 0,
+  });
+
+  factory CommunityItem.fromJson(JsonMap json) => CommunityItem(
+    owner: SocialProfile.fromJson(_map(json['owner'])),
+    item: ClothingItem.fromJson(_map(json['item'])),
+    likes: math.max(0, JsonReader.integer(json, 'likes')),
+    liked: JsonReader.boolean(json, 'liked'),
+    comments: math.max(0, JsonReader.integer(json, 'comments')),
+    copies: math.max(0, JsonReader.integer(json, 'copies')),
+  );
+
+  final SocialProfile owner;
+  final ClothingItem item;
+  final int likes;
+  final bool liked;
+  final int comments;
+
+  /// How many people added it to their wardrobe.
+  final int copies;
+
+  /// Whether [other] is the same piece, whatever its counts.
+  bool isSameItem(CommunityItem other) =>
+      owner.userId == other.owner.userId && item.id == other.item.id;
+
+  CommunityItem copyWith({
+    int? likes,
+    bool? liked,
+    int? comments,
+    int? copies,
+  }) => CommunityItem(
+    owner: owner,
+    item: item,
+    likes: likes ?? this.likes,
+    liked: liked ?? this.liked,
+    comments: comments ?? this.comments,
+    copies: copies ?? this.copies,
+  );
+}
+
+/// Someone in Community > Users, with their newest pieces.
+class SuggestedPerson {
+  const SuggestedPerson({required this.profile, this.items = const []});
+
+  factory SuggestedPerson.fromJson(JsonMap json) => SuggestedPerson(
+    profile: SocialProfile.fromJson(_map(json['profile'])),
+    items: parseRecords(json['items'], ClothingItem.fromJson),
+  );
+
+  final SocialProfile profile;
+  final List<ClothingItem> items;
+}
+
+/// A comment under a Community outfit or piece.
 class PostComment {
   const PostComment({
     required this.id,

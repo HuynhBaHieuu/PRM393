@@ -12,6 +12,7 @@ class SelectablePill extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.leading,
+    this.quiet = false,
   });
 
   final String label;
@@ -19,12 +20,19 @@ class SelectablePill extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? leading;
 
+  /// Fits' Community chips: when not selected, grey text with no fill.
+  final bool quiet;
+
   static const double _height = 36;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final foreground = selected ? palette.onInk : palette.ink;
+    final foreground = selected
+        ? palette.onInk
+        : quiet
+        ? palette.textSecondary
+        : palette.ink;
     return Semantics(
       button: true,
       selected: selected,
@@ -38,7 +46,11 @@ class SelectablePill extends StatelessWidget {
             height: _height,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             decoration: BoxDecoration(
-              color: selected ? palette.ink : palette.surfaceMuted,
+              color: selected
+                  ? palette.ink
+                  : quiet
+                  ? Colors.transparent
+                  : palette.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(

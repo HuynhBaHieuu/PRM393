@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -8,16 +11,20 @@ import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_dialogs.dart';
-import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/social.dart';
+import 'package:all_fits/features/collections/collection_flows.dart';
+import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
+import 'package:all_fits/features/premium/premium_flows.dart';
+import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/social/social_controller.dart';
+import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
-import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
 import 'package:all_fits/core/l10n/l10n.dart';
 
@@ -125,7 +132,7 @@ abstract final class SocialFlows {
     );
   }
 
-  /// Report and Block for a Discover outfit.
+  /// Report and Block for a Community outfit.
   static Future<void> showPostMenu(
     BuildContext context,
     FeedPost post, {
@@ -344,43 +351,217 @@ abstract final class SocialFlows {
     }
   }
 
-  /// A piece from someone else's closet: photo, name and brand only.
-  static Future<void> showPiece(BuildContext context, ClothingItem item) =>
-      showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        builder: (sheetContext) => SafeArea(
+  /// Opens a piece from [owner]'s closet, as Fits' "Your piece" page.
+  static Future<CommunityItem?> openPiece(
+    BuildContext context,
+    SocialProfile owner,
+    ClothingItem item,
+  ) => AppNavigator.publicPiece(
+    context,
+    CommunityItem(owner: owner, item: item),
+  );
+
+  /// Fits' ⌄ next to "Add to your wardrobe": the main wardrobe, or the
+  /// wardrobe plus a collection. Resolves to true once the piece is added.
+  static Future<bool> chooseWardrobeTarget(
+    BuildContext context,
+    CommunityItem entry,
+  ) async {
+    final collections = context.read<CollectionController>().collections;
+    const main = '';
+    const create = '+';
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final text = sheetContext.textTheme;
+        final palette = sheetContext.palette;
+        Widget box(Widget child) => Container(
+          width: AppSizes.thumbLg,
+          height: AppSizes.thumbLg,
+          decoration: BoxDecoration(
+            color: palette.surfaceMuted,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: child,
+        );
+        return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.page,
-              0,
-              AppSpacing.page,
-              AppSpacing.lg,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  height: 280,
-                  child: ClothingImage(
-                    item: item,
-                    cutout: true,
-                    fit: BoxFit.contain,
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                  vertical: AppSpacing.xxs,
+                ),
+                leading: box(
+                  Icon(Icons.checkroom_outlined, color: palette.ink),
+                ),
+                title: Text(tr('Main wardrobe'), style: text.titleMedium),
+                onTap: () => Navigator.of(sheetContext).pop(main),
+              ),
+              const Divider(
+                indent: AppSpacing.page,
+                endIndent: AppSpacing.page,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.xs,
+                  AppSpacing.page,
+                  AppSpacing.xs,
+                ),
+                child: Text(
+                  tr('Collections'),
+                  style: text.titleMedium?.copyWith(
+                    color: palette.textSecondary,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Text(item.name, style: sheetContext.textTheme.titleLarge),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  ClothingTile.metaLine(item),
-                  style: sheetContext.textTheme.bodyMedium,
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                  vertical: AppSpacing.xxs,
                 ),
-              ],
-            ),
+                leading: box(Icon(Icons.add_rounded, color: palette.ink)),
+                title: Text(
+                  tr('Create new collection'),
+                  style: text.titleMedium,
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(sheetContext).pop(create),
+              ),
+              for (final collection in collections)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                    vertical: AppSpacing.xxs,
+                  ),
+                  leading: box(
+                    Icon(Icons.bookmark_border_rounded, color: palette.ink),
+                  ),
+                  title: Text(collection.name, style: text.titleMedium),
+                  subtitle: Text(
+                    AppFormatters.count(collection.itemIds.length, 'piece'),
+                  ),
+                  trailing: const Icon(Icons.add_circle_outline_rounded),
+                  onTap: () => Navigator.of(sheetContext).pop(collection.id),
+                ),
+            ],
           ),
+        );
+      },
+    );
+    if (chosen == null || !context.mounted) return false;
+    final item = await addToWardrobe(context, entry);
+    if (item == null || chosen == main || !context.mounted) return item != null;
+    if (chosen == create) {
+      await CollectionFlows.create(context, itemIds: [item.id]);
+    } else {
+      final collection = context.read<CollectionController>().collectionById(
+        chosen,
+      );
+      if (collection != null) {
+        await ClosetFlows.guard(
+          context,
+          () => context.read<CollectionController>().setItemMembership(
+            item.id,
+            {chosen},
+          ),
+          successMessage: tr('Added to “{0}”', [collection.name]),
+        );
+      }
+    }
+    return true;
+  }
+
+  /// Copies someone's piece into the user's wardrobe: its photo (uploaded
+  /// again, so it stays if they delete theirs), name, category, color,
+  /// seasons and brand. Resolves to the new piece, or null.
+  static Future<ClothingItem?> addToWardrobe(
+    BuildContext context,
+    CommunityItem entry,
+  ) async {
+    if (!PremiumFlows.canAddClothing(context)) {
+      await PremiumFlows.showWardrobeLimit(context);
+      return null;
+    }
+    final wardrobe = context.read<WardrobeController>();
+    final social = context.read<SocialController>();
+    final piece = entry.item;
+    final photo = [
+      piece.imagePath,
+      piece.cutoutPath,
+    ].firstWhere((p) => p?.startsWith('https://') ?? false, orElse: () => null);
+    context.showSnack(tr('Adding to your wardrobe…'));
+    File? download;
+    try {
+      if (photo == null) {
+        throw StorageException(tr('This piece has no photo to copy.'));
+      }
+      download = await _download(photo);
+      final added = await wardrobe.addItem(
+        ClothingDraft(
+          name: piece.name,
+          category: piece.category,
+          subcategory: piece.subcategory,
+          color: piece.color,
+          seasons: piece.seasons,
+          brand: piece.brand,
+          newImagePath: download.path,
         ),
       );
+      try {
+        await social.repository.recordItemCopy(entry);
+      } catch (_) {
+        // Only the counter misses it; the piece is in the wardrobe.
+      }
+      if (context.mounted) {
+        context.showSnack(
+          tr('Added to your wardrobe'),
+          actionLabel: tr('View'),
+          onAction: () => AppNavigator.clothingDetail(context, added.id),
+        );
+      }
+      return added;
+    } catch (error) {
+      if (context.mounted) context.showErrorSnack(error);
+      return null;
+    } finally {
+      try {
+        await download?.delete();
+      } on FileSystemException {
+        // A leftover temp file is harmless.
+      }
+    }
+  }
+
+  static Future<File> _download(String url) async {
+    final client = HttpClient();
+    try {
+      final response = await (await client.getUrl(Uri.parse(url))).close();
+      if (response.statusCode != HttpStatus.ok) {
+        await response.drain<void>();
+        throw StorageException(tr('The photo could not be downloaded.'));
+      }
+      final extension = url.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/community_${DateTime.now().microsecondsSinceEpoch}'
+        '.$extension',
+      );
+      await response.pipe(file.openWrite());
+      return file;
+    } on SocketException {
+      throw StorageException(tr('The photo could not be downloaded.'));
+    } finally {
+      client.close();
+    }
+  }
 }
 
 /// Icon in a grey circle and a label, as in Fits' bottom sheets.

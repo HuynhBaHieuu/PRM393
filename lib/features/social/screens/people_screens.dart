@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
-import 'package:all_fits/core/extensions/string_extensions.dart';
 import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
@@ -16,109 +15,6 @@ import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/core/l10n/l10n.dart';
-
-/// Everyone with a profile; typing narrows it by username or name.
-class UserSearchScreen extends StatefulWidget {
-  const UserSearchScreen({super.key});
-
-  @override
-  State<UserSearchScreen> createState() => _UserSearchScreenState();
-}
-
-class _UserSearchScreenState extends State<UserSearchScreen> {
-  final TextEditingController _query = TextEditingController();
-  List<SocialProfile>? _people;
-  Object? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _query.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    try {
-      final people = await context.read<SocialController>().repository.people();
-      if (mounted) {
-        setState(() {
-          _people = people;
-          _error = null;
-        });
-      }
-    } catch (error) {
-      if (mounted) setState(() => _error = error);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final people = _people;
-    final term = _query.text.replaceAll('@', '').trim().folded;
-    final results = people == null || term.isEmpty
-        ? people
-        : [
-            for (final p in people)
-              if (p.username.contains(term) ||
-                  p.displayName.folded.contains(term))
-                p,
-          ];
-    final Widget body;
-    if (_error != null && people == null) {
-      body = AppErrorView(error: _error!, onRetry: _load);
-    } else if (results == null) {
-      body = const AppLoadingView();
-    } else if (people!.isEmpty) {
-      body = AppEmptyState(
-        icon: Icons.person_search_outlined,
-        title: tr('No one here yet'),
-        message: tr('People appear here once they set up their profile.'),
-      );
-    } else if (results.isEmpty) {
-      body = AppEmptyState(
-        icon: Icons.search_off_rounded,
-        title: tr('No users found'),
-        message: tr('Check the spelling, or ask them for their username.'),
-      );
-    } else {
-      body = RefreshIndicator(
-        onRefresh: _load,
-        child: ListView.builder(
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: results.length,
-          itemBuilder: (context, index) => ProfileRow(
-            profile: results[index],
-            onTap: () =>
-                SocialFlows.openProfile(context, results[index].userId),
-          ),
-        ),
-      );
-    }
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: TextField(
-          controller: _query,
-          autofocus: true,
-          autocorrect: false,
-          textInputAction: TextInputAction.search,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: tr('Search people'),
-            prefixIcon: Icon(Icons.search_rounded),
-          ),
-        ),
-        actions: const [SizedBox(width: AppSpacing.md)],
-      ),
-      body: body,
-    );
-  }
-}
 
 enum ConnectionsTab { followers, following, requests }
 
@@ -168,7 +64,7 @@ class ConnectionsScreen extends StatelessWidget {
               connections: social.following,
               emptyTitle: tr('Not following anyone yet'),
               emptyMessage: tr(
-                'Find friends to see their outfits on Discover.',
+                'Find friends to see their outfits in Community.',
               ),
               trailing: (c) => FilledButton(
                 onPressed: () => SocialFlows.unfollow(context, c.profile),
@@ -210,7 +106,7 @@ class _ConnectionList extends StatelessWidget {
                   title: emptyTitle,
                   message: emptyMessage,
                   actionLabel: tr('Find friends'),
-                  onAction: () => AppNavigator.userSearch(context),
+                  onAction: () => AppNavigator.communitySearch(context),
                 ),
               ],
             )
@@ -383,7 +279,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
 }
 
 /// Fits' bell: follow requests, outfits made for the user, and likes and
-/// comments on their Discover posts. Opening it clears the likes and
+/// comments on their Community posts. Opening it clears the likes and
 /// comments from the bell; the ones that were new keep a dot until it closes.
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});

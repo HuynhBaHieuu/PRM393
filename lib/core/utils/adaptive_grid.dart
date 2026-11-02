@@ -25,6 +25,7 @@ abstract final class AdaptiveGrid {
     required double footerHeight,
     double minTileWidth = AppSizes.gridMinTileWidth,
     double spacing = AppSpacing.md,
+    double runSpacing = AppSpacing.lg,
   }) {
     final columns = columnsFor(
       width,
@@ -35,7 +36,7 @@ abstract final class AdaptiveGrid {
     return SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: columns,
       crossAxisSpacing: spacing,
-      mainAxisSpacing: AppSpacing.lg,
+      mainAxisSpacing: runSpacing,
       mainAxisExtent: tileWidth / imageAspect + footerHeight,
     );
   }

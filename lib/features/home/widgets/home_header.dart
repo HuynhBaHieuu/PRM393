@@ -63,8 +63,8 @@ class HomeTopBar extends StatelessWidget {
               onPressed: () => AppNavigator.notifications(context),
             ),
             IconButton(
-              tooltip: tr('Search people'),
-              onPressed: () => AppNavigator.userSearch(context),
+              tooltip: tr('Search for clothes and users'),
+              onPressed: () => AppNavigator.communitySearch(context),
               icon: const Icon(Icons.search_rounded),
             ),
           ],
@@ -98,7 +98,7 @@ class StoryRow extends StatelessWidget {
           if (social != null)
             _Story(
               label: tr('Community'),
-              onTap: () => AppNavigator.discover(context),
+              onTap: () => AppNavigator.community(context),
               child: CircleAvatar(
                 radius: _size / 2,
                 backgroundColor: palette.surfaceMuted,
