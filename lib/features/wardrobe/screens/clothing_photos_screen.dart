@@ -9,6 +9,7 @@ import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/extra_photos.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What the photo viewer opens with: a piece, and which of its photos to
 /// show first (0 is the main photo, then its extra photos in order).
@@ -55,7 +56,7 @@ class _ClothingPhotosScreenState extends State<ClothingPhotosScreen> {
   ];
 
   static String _labelOf(ClothingItem item, int index) =>
-      index == 0 ? 'Main photo' : item.extraPhotos[index - 1].kind.label;
+      index == 0 ? tr('Main photo') : item.extraPhotos[index - 1].kind.label;
 
   void _jumpTo(int index) => _pages.animateToPage(
     index,
@@ -67,9 +68,9 @@ class _ClothingPhotosScreenState extends State<ClothingPhotosScreen> {
   Widget build(BuildContext context) {
     final item = context.watch<WardrobeController>().itemById(widget.itemId);
     if (item == null) {
-      return const NotFoundView(
-        title: 'Item not found',
-        message: 'This item is no longer in your wardrobe.',
+      return NotFoundView(
+        title: tr('Item not found'),
+        message: tr('This item is no longer in your wardrobe.'),
       );
     }
     final photos = _photosOf(item);
@@ -130,7 +131,7 @@ class _ClothingPhotosScreenState extends State<ClothingPhotosScreen> {
                             photo: photos[i],
                             decodeWidth: PhotoThumb.width,
                           ),
-                          label: i == 0 ? 'Main' : _labelOf(item, i),
+                          label: i == 0 ? tr('Main') : _labelOf(item, i),
                           icon: i == 0
                               ? Icons.star_outline_rounded
                               : item.extraPhotos[i - 1].kind.icon,

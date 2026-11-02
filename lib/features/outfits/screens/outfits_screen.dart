@@ -15,6 +15,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_query.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_filter_sheet.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum _MoreAction { select, reorder }
 
@@ -47,12 +48,12 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             children: [
               SheetActionTile(
                 icon: Icons.check_circle_outline_rounded,
-                label: 'Select multiple',
+                label: tr('Select multiple'),
                 onTap: () => Navigator.of(sheetContext).pop(_MoreAction.select),
               ),
               SheetActionTile(
                 icon: Icons.swap_vert_rounded,
-                label: 'Reorder',
+                label: tr('Reorder'),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_MoreAction.reorder),
               ),
@@ -100,11 +101,12 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.style_outlined,
-                title: 'No outfits yet',
-                message:
-                    'Your outfits will appear here. Create collages '
-                    'or add outfit selfies.',
-                actionLabel: 'Create Outfit',
+                title: tr('No outfits yet'),
+                message: tr(
+                  'Your outfits will appear here. Create collages '
+                  'or add outfit selfies.',
+                ),
+                actionLabel: tr('Create Outfit'),
                 onAction: () => AppNavigator.createOutfit(context),
               ),
             )
@@ -113,9 +115,9 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.search_off_rounded,
-                title: 'No outfits match your filters',
-                message: 'Change your filters and try again',
-                actionLabel: 'Clear filters',
+                title: tr('No outfits match your filters'),
+                message: tr('Change your filters and try again'),
+                actionLabel: tr('Clear filters'),
                 onAction: () => setState(() => _query = const OutfitQuery()),
               ),
             )
@@ -180,7 +182,7 @@ class OccasionToolbar extends StatelessWidget {
               padding: const EdgeInsets.only(left: AppSpacing.page),
               children: [
                 CategoryChip(
-                  label: 'All',
+                  label: tr('All'),
                   selected: occasion == null,
                   onTap: () => onOccasion(null),
                 ),
@@ -195,7 +197,7 @@ class OccasionToolbar extends StatelessWidget {
           ),
           RoundToolButton(
             icon: Icons.filter_list_rounded,
-            tooltip: 'Filter',
+            tooltip: tr('Filter'),
             badgeCount: filterCount,
             onPressed: onFilter,
           ),
@@ -203,7 +205,7 @@ class OccasionToolbar extends StatelessWidget {
             const SizedBox(width: AppSpacing.xs),
             RoundToolButton(
               icon: Icons.more_horiz_rounded,
-              tooltip: 'More',
+              tooltip: tr('More'),
               onPressed: onMore!,
             ),
           ],
@@ -285,8 +287,8 @@ class _OutfitFilterSheetState extends State<_OutfitFilterSheet> {
       borderSide: BorderSide(color: palette.border, width: 1.5),
     );
     return OptionSheetFrame(
-      title: 'Filters',
-      secondaryLabel: 'Clear filters',
+      title: tr('Filters'),
+      secondaryLabel: tr('Clear filters'),
       onSecondary: () {
         _name.clear();
         setState(() => _query = _query.clearedSheetFilters());
@@ -295,15 +297,15 @@ class _OutfitFilterSheetState extends State<_OutfitFilterSheet> {
           Navigator.of(context)
               .pop(_query.copyWith(searchText: _name.text.trim())),
       children: [
-        const OptionSheetLabel('Categories'),
+        OptionSheetLabel(tr('Categories')),
         SelectFieldButton(
-          placeholder: 'Select categories',
+          placeholder: tr('Select categories'),
           value: _query.occasions.isEmpty
               ? null
               : _query.occasions.map((o) => o.label).join(', '),
           onTap: _pickOccasions,
         ),
-        const OptionSheetLabel('Season'),
+        OptionSheetLabel(tr('Season')),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
@@ -320,32 +322,32 @@ class _OutfitFilterSheetState extends State<_OutfitFilterSheet> {
               ),
           ],
         ),
-        const OptionSheetLabel('Name'),
+        OptionSheetLabel(tr('Name')),
         TextField(
           controller: _name,
           textAlign: TextAlign.center,
           decoration: InputDecoration(
-            hintText: 'Search for name',
+            hintText: tr('Search for name'),
             filled: false,
             border: border,
             enabledBorder: border,
           ),
         ),
-        const OptionSheetLabel('Image type'),
+        OptionSheetLabel(tr('Image type')),
         _choices<OutfitImageType>(
           OutfitImageType.values,
           _query.imageType,
           (t) => t.label,
           (t) => setState(() => _query = _query.copyWith(imageType: t)),
         ),
-        const OptionSheetLabel('Sort items by'),
+        OptionSheetLabel(tr('Sort items by')),
         _choices<OutfitSort>(
           OutfitSort.values,
           _query.sort,
           (s) => s.label,
           (s) => setState(() => _query = _query.copyWith(sort: s)),
         ),
-        const OptionSheetLabel('Group items by'),
+        OptionSheetLabel(tr('Group items by')),
         _choices<OutfitGroup>(
           OutfitGroup.values,
           _query.groupBy,
@@ -354,7 +356,7 @@ class _OutfitFilterSheetState extends State<_OutfitFilterSheet> {
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Favorites only'),
+          title: Text(tr('Favorites only')),
           value: _query.favoritesOnly,
           onChanged: (on) =>
               setState(() => _query = _query.copyWith(favoritesOnly: on)),

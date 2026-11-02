@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Shows a confirmation dialog. Resolves to true only when confirmed.
 Future<bool> showConfirmDialog(
@@ -8,7 +9,7 @@ Future<bool> showConfirmDialog(
   required String title,
   required String message,
   required String confirmLabel,
-  String cancelLabel = 'Cancel',
+  String? cancelLabel,
   bool destructive = false,
 }) async {
   final palette = context.palette;
@@ -20,7 +21,7 @@ Future<bool> showConfirmDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelLabel),
+          child: Text(cancelLabel ?? tr('Cancel')),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
@@ -43,7 +44,7 @@ Future<String?> showTextInputDialog(
   String? hint,
   String? prefixText,
   int? maxLength,
-  String confirmLabel = 'Save',
+  String? confirmLabel,
   TextInputType? keyboardType,
   bool multiline = false,
 }) {
@@ -55,7 +56,7 @@ Future<String?> showTextInputDialog(
       hint: hint,
       prefixText: prefixText,
       maxLength: maxLength,
-      confirmLabel: confirmLabel,
+      confirmLabel: confirmLabel ?? tr('Save'),
       keyboardType: keyboardType,
       multiline: multiline,
     ),
@@ -128,7 +129,7 @@ class _TextInputDialogState extends State<_TextInputDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(tr('Cancel')),
         ),
         TextButton(onPressed: _submit, child: Text(widget.confirmLabel)),
       ],

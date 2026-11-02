@@ -8,6 +8,7 @@ import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/trip.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/trip_repository.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Owns the user's trips. Trips only point at outfits; putting those
 /// outfits on the planner is done by `TripFlows` through `ClosetActions`.
@@ -119,7 +120,7 @@ class TripController extends ChangeNotifier {
   Future<void> setDayOutfit(String id, DateTime day, String? outfitId) async {
     final trip = _require(id);
     if (!trip.contains(day)) {
-      throw const ValidationException('That day is not part of this trip.');
+      throw ValidationException(tr('That day is not part of this trip.'));
     }
     final key = DateHelpers.toKey(day);
     final days = Map.of(trip.outfitByDay);
@@ -144,7 +145,7 @@ class TripController extends ChangeNotifier {
   Future<void> addExtra(String id, String label) async {
     final trip = _require(id);
     final text = label.trim();
-    final error = Validators.requiredName(text, subject: 'what to pack');
+    final error = Validators.requiredName(text, subject: tr('what to pack'));
     if (error != null) throw ValidationException(error);
     await _commit(
       trip.copyWith(
@@ -219,18 +220,18 @@ class TripController extends ChangeNotifier {
 
   String _validName(String name) {
     final trimmed = name.trim();
-    final error = Validators.requiredName(trimmed, subject: 'a trip name');
+    final error = Validators.requiredName(trimmed, subject: tr('a trip name'));
     if (error != null) throw ValidationException(error);
     return trimmed;
   }
 
   static void _checkDates(DateTime start, DateTime end) {
     if (end.isBefore(start)) {
-      throw const ValidationException('The trip can’t end before it starts.');
+      throw ValidationException(tr('The trip can’t end before it starts.'));
     }
     if (DateHelpers.daysBetween(start, end) + 1 > Trip.maxDays) {
-      throw const ValidationException(
-        'A trip can be at most ${Trip.maxDays} days long.',
+      throw ValidationException(
+        tr('A trip can be at most {0} days long.', [Trip.maxDays]),
       );
     }
   }
@@ -248,7 +249,7 @@ class TripController extends ChangeNotifier {
   Trip _require(String id) {
     final trip = _byId[id];
     if (trip == null) {
-      throw const NotFoundException('This trip no longer exists.');
+      throw NotFoundException(tr('This trip no longer exists.'));
     }
     return trip;
   }

@@ -8,6 +8,7 @@ import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/try_on/widgets/try_on_clothes_picker.dart';
 import 'package:all_fits/features/try_on/widgets/try_on_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// First step of a try-on started without an outfit: pick the pieces, then
 /// "Next" opens the try-on screen. The avatar opens the try-on profile.
@@ -24,10 +25,10 @@ class TryOnClothesScreen extends StatelessWidget {
     final palette = context.palette;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select clothes to try on'),
+        title: Text(tr('Select clothes to try on')),
         actions: [
           IconButton(
-            tooltip: 'Try on profile',
+            tooltip: tr('Try on profile'),
             onPressed: () => AppNavigator.tryOnProfile(context),
             icon: ClipOval(
               child: SizedBox.square(

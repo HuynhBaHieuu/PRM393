@@ -19,9 +19,11 @@ import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Community actions shared by several screens. Copy follows Fits.
 abstract final class SocialFlows {
+  // Sent to the server in English; shown translated.
   static const List<String> reportReasons = [
     'Spam',
     'Nudity or sexual content',
@@ -46,11 +48,12 @@ abstract final class SocialFlows {
     if (context.read<SocialController>().hasProfile) return true;
     final create = await showConfirmDialog(
       context,
-      title: 'Create your profile',
-      message:
-          'Pick a username first. It’s how people find you, follow you '
-          'and see what you share.',
-      confirmLabel: 'Create profile',
+      title: tr('Create your profile'),
+      message: tr(
+        'Pick a username first. It’s how people find you, follow you '
+        'and see what you share.',
+      ),
+      confirmLabel: tr('Create profile'),
     );
     if (create && context.mounted) await AppNavigator.editProfile(context);
     return context.mounted && context.read<SocialController>().hasProfile;
@@ -59,9 +62,10 @@ abstract final class SocialFlows {
   static Future<void> shareProfile(BuildContext context, String username) =>
       SharePlus.instance.share(
         ShareParams(
-          text:
-              'My username is @$username on ${AppConfig.appName}. '
-              'Search for it to see my closet.',
+          text: tr(
+            'My username is @{0} on {1}. Search for it to see my closet.',
+            [username, AppConfig.appName],
+          ),
         ),
       );
 
@@ -88,24 +92,24 @@ abstract final class SocialFlows {
             children: [
               _SheetAction(
                 icon: Icons.link_rounded,
-                label: 'Copy username',
+                label: tr('Copy username'),
                 onTap: () => run(() async {
                   await Clipboard.setData(
                     ClipboardData(text: '@${profile.username}'),
                   );
                   if (context.mounted) {
-                    context.showSnack('Username copied to clipboard');
+                    context.showSnack(tr('Username copied to clipboard'));
                   }
                 }),
               ),
               _SheetAction(
                 icon: Icons.error_outline_rounded,
-                label: 'Report',
+                label: tr('Report'),
                 onTap: () => run(() => report(context, profile)),
               ),
               _SheetAction(
                 icon: Icons.block_rounded,
-                label: summary.blockedByMe ? 'Unblock' : 'Block',
+                label: summary.blockedByMe ? tr('Unblock') : tr('Block'),
                 onTap: () => run(() async {
                   final changed = summary.blockedByMe
                       ? await unblock(context, profile)
@@ -142,14 +146,14 @@ abstract final class SocialFlows {
           children: [
             _SheetAction(
               icon: Icons.error_outline_rounded,
-              label: 'Report',
+              label: tr('Report'),
               onTap: () => run(
                 () => report(context, post.owner, outfitId: post.outfit.id),
               ),
             ),
             _SheetAction(
               icon: Icons.block_rounded,
-              label: 'Block ${post.owner.username}',
+              label: tr('Block {0}', [post.owner.username]),
               onTap: () => run(() async {
                 if (await block(context, post.owner)) onBlocked?.call();
               }),
@@ -174,10 +178,10 @@ abstract final class SocialFlows {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SheetHeader(title: 'Why are you reporting this?'),
+            SheetHeader(title: tr('Why are you reporting this?')),
             for (final reason in reportReasons)
               ListTile(
-                title: Text(reason),
+                title: Text(tr(reason)),
                 onTap: () => Navigator.of(sheetContext).pop(reason),
               ),
             const SizedBox(height: AppSpacing.sm),
@@ -196,14 +200,14 @@ abstract final class SocialFlows {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Thank you for your report!'),
-          content: const Text(
-            'We will look into your report and take appropriate action.',
+          title: Text(tr('Thank you for your report!')),
+          content: Text(
+            tr('We will look into your report and take appropriate action.'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
+              child: Text(tr('OK')),
             ),
           ],
         ),
@@ -216,18 +220,19 @@ abstract final class SocialFlows {
   static Future<bool> block(BuildContext context, SocialProfile profile) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Block ${profile.username}?',
-      message:
-          'They will not get notified that you blocked them. They won’t be '
-          'able to follow you or make outfits for you, and you won’t see '
-          'their outfits on Discover. You can unblock users in your account.',
-      confirmLabel: 'Block',
+      title: tr('Block {0}?', [profile.username]),
+      message: tr(
+        'They will not get notified that you blocked them. They won’t be '
+        'able to follow you or make outfits for you, and you won’t see '
+        'their outfits on Discover. You can unblock users in your account.',
+      ),
+      confirmLabel: tr('Block'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
     try {
       await context.read<SocialController>().block(profile.userId);
-      if (context.mounted) context.showSnack('User blocked');
+      if (context.mounted) context.showSnack(tr('User blocked'));
       return true;
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);
@@ -241,7 +246,9 @@ abstract final class SocialFlows {
   ) async {
     try {
       await context.read<SocialController>().unblock(profile.userId);
-      if (context.mounted) context.showSnack('${profile.username} unblocked');
+      if (context.mounted) {
+        context.showSnack(tr('{0} unblocked', [profile.username]));
+      }
       return true;
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);
@@ -255,12 +262,14 @@ abstract final class SocialFlows {
   ) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Unfollow ${profile.username}?',
+      title: tr('Unfollow {0}?', [profile.username]),
       message: profile.isPrivate
-          ? 'Their account is private. You’ll need to ask again to see '
-                'their closet.'
-          : 'Their outfits won’t show under Following anymore.',
-      confirmLabel: 'Unfollow',
+          ? tr(
+              'Their account is private. You’ll need to ask again to see '
+              'their closet.',
+            )
+          : tr('Their outfits won’t show under Following anymore.'),
+      confirmLabel: tr('Unfollow'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
@@ -279,9 +288,9 @@ abstract final class SocialFlows {
   ) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Remove follower?',
-      message: 'Are you sure you want to remove this follower?',
-      confirmLabel: 'Remove',
+      title: tr('Remove follower?'),
+      message: tr('Are you sure you want to remove this follower?'),
+      confirmLabel: tr('Remove'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
@@ -308,13 +317,13 @@ abstract final class SocialFlows {
         .toList();
     try {
       if (itemIds.isEmpty) {
-        throw const NotFoundException(
-          'These pieces are no longer in your wardrobe.',
+        throw NotFoundException(
+          tr('These pieces are no longer in your wardrobe.'),
         );
       }
       final outfit = await outfits.createOutfit(
         OutfitDraft(
-          name: styled.name ?? 'Styled by ${styled.other.username}',
+          name: styled.name ?? tr('Styled by {0}', [styled.other.username]),
           itemIds: itemIds,
           notes: styled.message,
           layout: styled.layout
@@ -325,8 +334,8 @@ abstract final class SocialFlows {
       await social.answerStyledOutfit(styled.id, StyledStatus.saved);
       if (context.mounted) {
         context.showSnack(
-          'Saved to your outfits',
-          actionLabel: 'View',
+          tr('Saved to your outfits'),
+          actionLabel: tr('View'),
           onAction: () => AppNavigator.outfitDetail(context, outfit.id),
         );
       }

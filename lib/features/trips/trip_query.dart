@@ -1,5 +1,6 @@
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/data/models/trip.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum TripStatus { upcoming, ongoing, past }
 
@@ -13,14 +14,14 @@ extension TripTiming on Trip {
 
   /// "Ongoing", "Tomorrow", "In 5 days" or "Past".
   String statusLabel(DateTime today) => switch (statusOn(today)) {
-    TripStatus.ongoing => 'Ongoing',
-    TripStatus.past => 'Past',
+    TripStatus.ongoing => tr('Ongoing'),
+    TripStatus.past => tr('Past'),
     TripStatus.upcoming => switch (DateHelpers.daysBetween(
       DateHelpers.dateOnly(today),
       startDate,
     )) {
-      1 => 'Tomorrow',
-      final days => 'In $days days',
+      1 => tr('Tomorrow'),
+      final days => tr('In {0} days', [days]),
     },
   };
 }
@@ -31,9 +32,11 @@ enum TripFilter {
   ongoing('Ongoing'),
   past('Past');
 
-  const TripFilter(this.label);
+  const TripFilter(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   bool matches(Trip trip, DateTime today) => switch (this) {
     TripFilter.all => true,
@@ -48,9 +51,11 @@ enum TripSort {
   newest('Recently created'),
   name('Name A–Z');
 
-  const TripSort(this.label);
+  const TripSort(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// What the Trips screen shows: a search over names, a status filter and

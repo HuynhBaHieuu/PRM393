@@ -10,6 +10,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/color_swatch.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Where AI detection of the form's photo stands.
 enum DetectPhase { idle, running, done, failed, noCredits }
@@ -46,28 +47,30 @@ class DetectStatus extends StatelessWidget {
           icon: Icons.auto_awesome_rounded,
           text: filledAny
               ? [
-                  'Filled in by AI. Check the details',
+                  tr('Filled in by AI. Check the details'),
                   if (creditsLeft case final left?)
-                    '$left free ${left == 1 ? 'detection' : 'detections'} '
-                        'left this month',
+                    tr('{0} free {1} left this month', [
+                      left,
+                      tr(left == 1 ? 'detection' : 'detections'),
+                    ]),
                 ].join(' · ')
-              : 'AI found nothing new to fill in',
+              : tr('AI found nothing new to fill in'),
           action: filledAny
-              ? TextButton(onPressed: onUndo, child: const Text('Undo'))
+              ? TextButton(onPressed: onUndo, child: Text(tr('Undo')))
               : null,
         ),
-        DetectPhase.failed => const _Row(
+        DetectPhase.failed => _Row(
           icon: Icons.info_outline_rounded,
-          text: 'Couldn’t detect this piece. Fill it in yourself.',
+          text: tr('Couldn’t detect this piece. Fill it in yourself.'),
         ),
         DetectPhase.noCredits => _Row(
           icon: Icons.auto_awesome_outlined,
-          text:
-              'You’ve used your ${AppConfig.freeDetectionsPerMonth} free AI '
-              'detections this month.',
+          text: tr('You’ve used your {0} free AI detections this month.', [
+            AppConfig.freeDetectionsPerMonth,
+          ]),
           action: TextButton(
             onPressed: () => AppNavigator.premium(context),
-            child: const Text('Go Premium'),
+            child: Text(tr('Go Premium')),
           ),
         ),
       },
@@ -121,12 +124,12 @@ class _Detecting extends StatefulWidget {
 }
 
 class _DetectingState extends State<_Detecting> {
-  static const List<String> _steps = [
-    'AI detecting category…',
-    'AI detecting color…',
-    'AI detecting season…',
-    'AI detecting brand…',
-    'Still detecting…',
+  static List<String> get _steps => [
+    tr('AI detecting category…'),
+    tr('AI detecting color…'),
+    tr('AI detecting season…'),
+    tr('AI detecting brand…'),
+    tr('Still detecting…'),
   ];
   static const Duration _stepTime = Duration(milliseconds: 1600);
 
@@ -192,7 +195,7 @@ class AiOtherColors extends StatelessWidget {
     return Row(
       children: [
         Text(
-          'Also in this piece',
+          tr('Also in this piece'),
           style: context.textTheme.bodySmall?.copyWith(
             color: context.palette.textSecondary,
           ),
@@ -225,7 +228,7 @@ class AiMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Filled in by AI',
+      message: tr('Filled in by AI'),
       child: Icon(
         Icons.auto_awesome_rounded,
         size: 14,

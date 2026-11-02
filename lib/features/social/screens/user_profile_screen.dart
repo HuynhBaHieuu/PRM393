@@ -12,6 +12,7 @@ import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Someone else's profile, as in Fits: who they are, Follow and Style
 /// buttons, then their clothes and outfits when the caller may see them.
@@ -90,10 +91,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         } else if (data == null) {
           body = const AppLoadingView();
         } else if (summary == null) {
-          body = const AppEmptyState(
+          body = AppEmptyState(
             icon: Icons.person_off_outlined,
-            title: 'Profile not available',
-            message: 'This account doesn’t exist or can’t be shown.',
+            title: tr('Profile not available'),
+            message: tr('This account doesn’t exist or can’t be shown.'),
           );
         } else {
           body = RefreshIndicator(
@@ -113,7 +114,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             actions: [
               if (summary != null)
                 IconButton(
-                  tooltip: 'More',
+                  tooltip: tr('More'),
                   onPressed: () => SocialFlows.showProfileMenu(
                     context,
                     summary,
@@ -133,11 +134,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final profile = summary.profile;
     final text = context.textTheme;
     final followLabel = summary.blockedByMe
-        ? 'Unblock'
+        ? tr('Unblock')
         : switch (summary.myFollow) {
-            FollowStatus.accepted => 'Following',
-            FollowStatus.pending => 'Requested',
-            null => summary.followsMe ? 'Follow back' : 'Follow',
+            FollowStatus.accepted => tr('Following'),
+            FollowStatus.pending => tr('Requested'),
+            null => summary.followsMe ? tr('Follow back') : tr('Follow'),
           };
     final followPrimary = !summary.blockedByMe && summary.myFollow == null;
     final items = closet?.items ?? const [];
@@ -187,7 +188,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         onPressed: () => _onStyle(summary),
                         style: profileButtonStyle(context),
                         child: Text(
-                          'Style ${profile.username}',
+                          tr('Style {0}', [profile.username]),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -207,14 +208,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               compact: true,
               icon: Icons.lock_outline_rounded,
               title: summary.blockedByMe
-                  ? 'You blocked this account'
-                  : 'This account is private',
+                  ? tr('You blocked this account')
+                  : tr('This account is private'),
               message: summary.blockedByMe
-                  ? 'Unblock them to see their closet again.'
+                  ? tr('Unblock them to see their closet again.')
                   : summary.myFollow == FollowStatus.pending
-                  ? 'You’ll see their clothes and outfits once they accept '
-                        'your request.'
-                  : 'Follow this account to see their clothes and outfits.',
+                  ? tr(
+                      'You’ll see their clothes and outfits once they accept '
+                      'your request.',
+                    )
+                  : tr('Follow this account to see their clothes and outfits.'),
             ),
           )
         else ...[
@@ -236,13 +239,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             if (shownItems.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: AppEmptyState(
                   compact: true,
                   icon: Icons.checkroom_outlined,
-                  title: 'No clothes yet',
-                  message: 'Pieces they add will show up here.',
+                  title: tr('No clothes yet'),
+                  message: tr('Pieces they add will show up here.'),
                 ),
               )
             else
@@ -264,10 +267,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: AppEmptyState(
                 compact: true,
                 icon: Icons.style_outlined,
-                title: 'No outfits yet',
-                message: 'Outfits they create will show up here.',
+                title: tr('No outfits yet'),
+                message: tr('Outfits they create will show up here.'),
                 actionLabel: summary.canStyle
-                    ? 'Style ${profile.username}'
+                    ? tr('Style {0}', [profile.username])
                     : null,
                 onAction: () => _onStyle(summary),
               ),
@@ -326,9 +329,9 @@ class _TabSwitch extends StatelessWidget {
       initialIndex: showOutfits ? 1 : 0,
       child: TabBar(
         onTap: (index) => onChanged(index == 1),
-        tabs: const [
-          Tab(text: 'Clothes'),
-          Tab(text: 'Outfits'),
+        tabs: [
+          Tab(text: tr('Clothes')),
+          Tab(text: tr('Outfits')),
         ],
       ),
     );

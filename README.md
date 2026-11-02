@@ -221,6 +221,23 @@ lib/
   cloud sync, Firebase/Supabase or remote image storage. Wrap
   `ImagePickerService` to add AI clothing detection.
 
+## Languages
+
+The app is in English and Vietnamese (Settings → Language). Without a saved
+choice it follows the phone's language.
+
+- Write UI text in English and wrap it in `tr()` from
+  `lib/core/l10n/l10n.dart`: `Text(tr('Save outfit'))`. Put changing values
+  in `{0}`, `{1}`…: `tr('Added {0} to “{1}”', [count, name])`.
+- Add the Vietnamese to a map in `lib/core/l10n/vi/`, keyed by the exact
+  English text. Text without an entry shows in English.
+- The same English word with two meanings gets a `|` suffix:
+  `tr('Back|photo')` still shows "Back" in English.
+- `tr()` can't be used in `const` widgets, and a `static final` field is
+  read once, so use a getter for translated text kept in a field.
+- `test/core/l10n_test.dart` checks every translation keeps its `{0}`
+  placeholders.
+
 ## Android build note
 
 `android/gradle.properties` sets `kotlin.incremental=false`. On Windows, the

@@ -26,6 +26,7 @@ import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 const EdgeInsets _pagePadding = EdgeInsets.symmetric(
   horizontal: AppSpacing.page,
@@ -114,7 +115,7 @@ class QuickTiles extends StatelessWidget {
     final tiles = [
       _Tile(
         icon: Icons.calendar_today_outlined,
-        label: 'Planner',
+        label: tr('Planner'),
         onTap: () => AppNavigator.planner(context),
       ),
       _Tile(
@@ -130,7 +131,7 @@ class QuickTiles extends StatelessWidget {
         ),
       _Tile(
         icon: Icons.accessibility_new_rounded,
-        label: 'Selfie',
+        label: tr('Selfie'),
         onTap: () => OutfitFlows.selfie(context),
       ),
     ];
@@ -201,18 +202,20 @@ Future<void> chooseWeatherCity(BuildContext context) async {
   final weather = context.read<WeatherController>();
   final name = await showTextInputDialog(
     context,
-    title: 'Your city',
+    title: tr('Your city'),
     initialValue: settings.weatherLocation?.name ?? '',
-    hint: 'e.g. Ho Chi Minh City',
+    hint: tr('e.g. Ho Chi Minh City'),
     maxLength: 60,
-    confirmLabel: 'Find',
+    confirmLabel: tr('Find'),
   );
   if (name == null || name.isEmpty || !context.mounted) return;
   try {
     final location = await weather.findCity(name);
     if (!context.mounted) return;
     if (location == null) {
-      context.showSnack('We couldn’t find “$name”. Try another spelling.');
+      context.showSnack(
+        tr('We couldn’t find “{0}”. Try another spelling.', [name]),
+      );
       return;
     }
     await settings.setWeatherLocation(location);
@@ -276,7 +279,7 @@ class _ForTodaySectionState extends State<ForTodaySection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'For today',
+          title: tr('For today'),
           onTap: ideas.isEmpty ? null : () => _openSuggestions(context),
           trailing: _WeatherChip(
             report: ready ? report : null,
@@ -286,8 +289,10 @@ class _ForTodaySectionState extends State<ForTodaySection> {
         ),
         if (ideas.isEmpty)
           _InlineEmpty(
-            message: 'Add tops, bottoms and shoes to get new ideas every day.',
-            actionLabel: 'Add clothes',
+            message: tr(
+              'Add tops, bottoms and shoes to get new ideas every day.',
+            ),
+            actionLabel: tr('Add clothes'),
             onAction: () => AppNavigator.addClothing(context),
           )
         else
@@ -317,7 +322,9 @@ class _WeatherChip extends StatelessWidget {
     final report = this.report;
     return Semantics(
       button: true,
-      label: label == null ? 'Set your city' : 'Weather in $label',
+      label: label == null
+          ? tr('Set your city')
+          : tr('Weather in {0}', [label]),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -325,7 +332,7 @@ class _WeatherChip extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.xxs),
           child: report == null
               ? Text(
-                  label == null ? 'Set city' : '…',
+                  label == null ? tr('Set city') : '…',
                   style: context.textTheme.titleMedium?.copyWith(
                     color: palette.textSecondary,
                   ),
@@ -393,7 +400,7 @@ class AiStylistSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'AI Stylist',
+          title: tr('AI Stylist'),
           onTap: () => AppNavigator.stylist(context),
         ),
         Padding(
@@ -403,10 +410,10 @@ class AiStylistSection extends StatelessWidget {
               Expanded(
                 child: _StylistCard(
                   icon: Icons.thumbs_up_down_outlined,
-                  label: 'Rate my outfit',
+                  label: tr('Rate my outfit'),
                   onTap: () => AppNavigator.stylist(
                     context,
-                    launch: const StylistLaunch(
+                    launch: StylistLaunch(
                       prompt: StylistScreen.ratePrompt,
                       withPhoto: true,
                     ),
@@ -417,10 +424,10 @@ class AiStylistSection extends StatelessWidget {
               Expanded(
                 child: _StylistCard(
                   icon: Icons.palette_outlined,
-                  label: 'Find my colors',
+                  label: tr('Find my colors'),
                   onTap: () => AppNavigator.stylist(
                     context,
-                    launch: const StylistLaunch(
+                    launch: StylistLaunch(
                       prompt: StylistScreen.colorsPrompt,
                       withPhoto: true,
                     ),
@@ -489,7 +496,7 @@ class RecentOutfitsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'Recent outfits',
+          title: tr('Recent outfits'),
           onTap: () => shell.openCloset(ClosetTab.outfits),
         ),
         if (outfits.isEmpty)
@@ -510,13 +517,13 @@ class RecentOutfitsSection extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Your outfits will appear here.',
+                    tr('Your outfits will appear here.'),
                     style: context.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton(
                     onPressed: () => AppNavigator.createOutfit(context),
-                    child: const Text('Create outfit'),
+                    child: Text(tr('Create outfit')),
                   ),
                 ],
               ),
@@ -624,13 +631,13 @@ class RecentlyAddedSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'Recently added items',
+          title: tr('Recently added items'),
           onTap: () => shell.openCloset(ClosetTab.clothes),
         ),
         if (items.isEmpty)
           _InlineEmpty(
-            message: 'Your wardrobe is empty. Add your first piece.',
-            actionLabel: 'Add clothes',
+            message: tr('Your wardrobe is empty. Add your first piece.'),
+            actionLabel: tr('Add clothes'),
             onAction: () => AppNavigator.addClothing(context),
           )
         else
@@ -661,7 +668,7 @@ class NotYetWornSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'Not yet worn',
+          title: tr('Not yet worn'),
           onTap: () => AppNavigator.createOutfit(
             context,
             initialItemIds: [items.first.id],
@@ -701,7 +708,7 @@ class NewestIdeasSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'Ideas for your newest pieces',
+          title: tr('Ideas for your newest pieces'),
           onTap: () => AppNavigator.createOutfit(
             context,
             initialItemIds: [wardrobe.activeItems.first.id],
@@ -735,8 +742,8 @@ class TryOnBackgroundsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'AI Try On backgrounds',
-          subtitle: 'Create outfit photos at various locations',
+          title: tr('AI Try On backgrounds'),
+          subtitle: tr('Create outfit photos at various locations'),
           onTap: () => TryOnFlows.start(context),
         ),
         SizedBox(

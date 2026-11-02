@@ -8,6 +8,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/features/auth/controllers/auth_controller.dart';
 import 'package:all_fits/features/auth/widgets/auth_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Resets a forgotten password in two steps: the email, then (with the
 /// emailed code on Supabase) a new password. Pops with the email so the
@@ -73,7 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (!mounted) return;
     setState(() => _emailConfirmed = true);
     if (auth.passwordResetNeedsCode) {
-      context.showSnack('Code sent. Check your inbox.');
+      context.showSnack(tr('Code sent. Check your inbox.'));
     }
   });
 
@@ -82,7 +83,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _error = null);
     try {
       await context.read<AuthController>().requestPasswordReset(_email.text);
-      if (mounted) context.showSnack('New code sent.');
+      if (mounted) context.showSnack(tr('New code sent.'));
     } catch (error) {
       if (mounted) setState(() => _error = describeError(error));
     }
@@ -112,13 +113,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final error = _error;
     return AuthScaffold(
       showBack: true,
-      eyebrow: 'Forgot password',
-      title: _emailConfirmed ? 'New password' : 'Reset password',
+      eyebrow: tr('Forgot password'),
+      title: _emailConfirmed ? tr('New password') : tr('Reset password'),
       subtitle: switch ((_emailConfirmed, needsCode)) {
-        (false, true) => 'Enter your email and we’ll send you a code.',
-        (false, false) => 'Enter the email you signed up with.',
-        (true, true) => 'Enter the code sent to $email and a new password.',
-        (true, false) => 'Choose a new password for $email.',
+        (false, true) => tr('Enter your email and we’ll send you a code.'),
+        (false, false) => tr('Enter the email you signed up with.'),
+        (true, true) => tr('Enter the code sent to {0} and a new password.', [
+          email,
+        ]),
+        (true, false) => tr('Choose a new password for {0}.', [email]),
       },
       children: [
         if (!_emailConfirmed)
@@ -130,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               autocorrect: false,
               autofillHints: const [AutofillHints.email],
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(labelText: 'Email'),
+              decoration: InputDecoration(labelText: tr('Email')),
               validator: Validators.email,
               onFieldSubmitted: (_) => _sendEmail(),
             ),
@@ -151,30 +154,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       FilteringTextInputFormatter.digitsOnly,
                       LengthLimitingTextInputFormatter(10),
                     ],
-                    decoration: const InputDecoration(labelText: 'Code'),
+                    decoration: InputDecoration(labelText: tr('Code')),
                     validator: (v) => (v ?? '').trim().length < 6
-                        ? 'Enter the code we emailed you'
+                        ? tr('Enter the code we emailed you')
                         : null,
                   ),
                   const SizedBox(height: AppSpacing.md),
                 ],
                 PasswordField(
                   controller: _password,
-                  label: 'New password',
+                  label: tr('New password'),
                   autofillHints: const [AutofillHints.newPassword],
                   textInputAction: TextInputAction.next,
                   validator: Validators.newPassword,
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'At least ${Validators.minPasswordLength} characters, '
-                  'with a letter and a number.',
+                  tr('At least {0} characters, with a letter and a number.', [
+                    Validators.minPasswordLength,
+                  ]),
                   style: context.textTheme.bodySmall,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 PasswordField(
                   controller: _confirm,
-                  label: 'Confirm new password',
+                  label: tr('Confirm new password'),
                   autofillHints: const [AutofillHints.newPassword],
                   validator: (v) =>
                       Validators.confirmPassword(v, _password.text),
@@ -190,13 +194,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ],
         if (!_emailConfirmed)
           AuthSubmitButton(
-            label: needsCode ? 'Send code' : 'Continue',
+            label: needsCode ? tr('Send code') : tr('Continue'),
             busy: _busy,
             onPressed: _sendEmail,
           )
         else ...[
           AuthSubmitButton(
-            label: 'Save new password',
+            label: tr('Save new password'),
             busy: _busy,
             onPressed: _reset,
           ),
@@ -206,12 +210,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             children: [
               TextButton(
                 onPressed: _busy ? null : _changeEmail,
-                child: const Text('Use another email'),
+                child: Text(tr('Use another email')),
               ),
               if (needsCode)
                 TextButton(
                   onPressed: _busy ? null : _resendCode,
-                  child: const Text('Resend code'),
+                  child: Text(tr('Resend code')),
                 ),
             ],
           ),

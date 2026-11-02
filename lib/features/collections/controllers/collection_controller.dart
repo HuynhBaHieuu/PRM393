@@ -9,6 +9,7 @@ import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/collection.dart';
 import 'package:all_fits/data/repositories/collection_repository.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Owns the user's collections and every mutation of them. Collections only
 /// point at items and outfits: deleting one never deletes what is inside.
@@ -229,7 +230,9 @@ class CollectionController extends ChangeNotifier {
       (c) => c.id != except && c.name.toLowerCase() == key,
     );
     if (taken) {
-      throw ValidationException('You already have a collection “$trimmed”.');
+      throw ValidationException(
+        tr('You already have a collection “{0}”.', [trimmed]),
+      );
     }
     return trimmed;
   }
@@ -287,7 +290,7 @@ class CollectionController extends ChangeNotifier {
   Collection _require(String id) {
     final collection = _byId[id];
     if (collection == null) {
-      throw const NotFoundException('This collection no longer exists.');
+      throw NotFoundException(tr('This collection no longer exists.'));
     }
     return collection;
   }

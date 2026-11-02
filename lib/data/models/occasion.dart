@@ -1,3 +1,5 @@
+import 'package:all_fits/core/l10n/l10n.dart';
+
 enum Occasion {
   casual('Casual'),
   work('Work'),
@@ -8,7 +10,9 @@ enum Occasion {
   travel('Travel'),
   lounge('Lounge');
 
-  const Occasion(this.label);
+  const Occasion(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }

@@ -3,6 +3,7 @@ import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/outfit_create_mode.dart';
 import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/weather.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 const Object _unset = Object();
 
@@ -11,9 +12,11 @@ enum ThemePreference {
   light('Light'),
   dark('Dark');
 
-  const ThemePreference(this.label);
+  const ThemePreference(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 class AppSettings {

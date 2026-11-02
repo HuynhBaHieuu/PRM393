@@ -15,6 +15,7 @@ import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' "Select multiple" for outfits.
 class OutfitsSelectScreen extends StatefulWidget {
@@ -55,21 +56,26 @@ class _OutfitsSelectScreenState extends State<OutfitsSelectScreen> {
     final count = _selected.length;
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete ${AppFormatters.count(count, 'outfit')}?',
-      message:
-          'They will be removed along with their plans. Your clothes stay '
-          'in your wardrobe.',
-      confirmLabel: 'Delete',
+      title: tr('Delete {0}?', [AppFormatters.count(count, 'outfit')]),
+      message: tr(
+        'They will be removed along with their plans. Your clothes stay '
+        'in your wardrobe.',
+      ),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !mounted) return;
     final closet = context.read<ClosetActions>();
     final ids = _selected.toList();
-    final done = await ClosetFlows.guard(context, () async {
-      for (final id in ids) {
-        await closet.deleteOutfit(id);
-      }
-    }, successMessage: '${AppFormatters.count(count, 'outfit')} deleted');
+    final done = await ClosetFlows.guard(
+      context,
+      () async {
+        for (final id in ids) {
+          await closet.deleteOutfit(id);
+        }
+      },
+      successMessage: tr('{0} deleted', [AppFormatters.count(count, 'outfit')]),
+    );
     if (done && mounted) setState(_selected.clear);
   }
 
@@ -91,12 +97,12 @@ class _OutfitsSelectScreenState extends State<OutfitsSelectScreen> {
                 ? _selected.clear()
                 : _selected.addAll(results.map((o) => o.id)),
           ),
-          child: Text(allSelected ? 'Deselect all' : 'Select all'),
+          child: Text(allSelected ? tr('Deselect all') : tr('Select all')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Done'),
+            child: Text(tr('Done')),
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
@@ -131,12 +137,12 @@ class _OutfitsSelectScreenState extends State<OutfitsSelectScreen> {
               actions: [
                 TrayAction(
                   icon: Icons.bookmark_border_rounded,
-                  label: 'Add to collection',
+                  label: tr('Add to collection'),
                   onTap: _addToCollection,
                 ),
                 TrayAction(
                   icon: Icons.delete_outline_rounded,
-                  label: 'Delete',
+                  label: tr('Delete'),
                   onTap: _delete,
                 ),
               ],
@@ -182,11 +188,11 @@ class _ReorderOutfitsScreenState extends State<ReorderOutfitsScreen> {
     final outfits = [for (final id in _ids) ?controller.outfitById(id)];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reorder'),
+        title: Text(tr('Reorder')),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
-            child: const Text('Save'),
+            child: Text(tr('Save')),
           ),
           const SizedBox(width: AppSpacing.xs),
         ],

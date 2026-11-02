@@ -14,6 +14,7 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_filter_sheet.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The Clothes tab: Fits' chip toolbar over a grid of cut-outs.
 class WardrobeScreen extends StatefulWidget {
@@ -54,12 +55,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             children: [
               SheetActionTile(
                 icon: Icons.check_circle_outline_rounded,
-                label: 'Select multiple',
+                label: tr('Select multiple'),
                 onTap: () => Navigator.of(sheetContext).pop(_MoreAction.select),
               ),
               SheetActionTile(
                 icon: Icons.swap_vert_rounded,
-                label: 'Reorder',
+                label: tr('Reorder'),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_MoreAction.reorder),
               ),
@@ -110,9 +111,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.checkroom_outlined,
-                title: 'Your wardrobe is empty',
-                message: 'Add your first clothing item to get started.',
-                actionLabel: 'Add Clothing',
+                title: tr('Your wardrobe is empty'),
+                message: tr('Add your first clothing item to get started.'),
+                actionLabel: tr('Add Clothing'),
                 onAction: () => AppNavigator.addClothing(context),
               ),
             )
@@ -121,9 +122,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.search_off_rounded,
-                title: 'No clothes match your filters',
-                message: 'Change your filters and try again',
-                actionLabel: 'Clear filters',
+                title: tr('No clothes match your filters'),
+                message: tr('Change your filters and try again'),
+                actionLabel: tr('Clear filters'),
                 onAction: () => _setQuery(_query.cleared()),
               ),
             )

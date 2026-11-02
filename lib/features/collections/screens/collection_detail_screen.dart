@@ -17,6 +17,7 @@ import 'package:all_fits/features/collections/widgets/collection_entry_picker.da
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum _CollectionMenuAction { rename, cover, delete }
 
@@ -77,7 +78,7 @@ class CollectionDetailScreen extends StatelessWidget {
             SheetHeader(title: title),
             ListTile(
               leading: const Icon(Icons.open_in_new_rounded),
-              title: const Text('Open'),
+              title: Text(tr('Open')),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 onOpen();
@@ -85,13 +86,13 @@ class CollectionDetailScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.remove_circle_outline_rounded),
-              title: const Text('Remove from collection'),
+              title: Text(tr('Remove from collection')),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 ClosetFlows.guard(
                   context,
                   onRemove,
-                  successMessage: 'Removed from collection',
+                  successMessage: tr('Removed from collection'),
                 );
               },
             ),
@@ -107,9 +108,9 @@ class CollectionDetailScreen extends StatelessWidget {
     final controller = context.watch<CollectionController>();
     final collection = controller.collectionById(collectionId);
     if (collection == null) {
-      return const NotFoundView(
-        title: 'Collection not found',
-        message: 'This collection no longer exists.',
+      return NotFoundView(
+        title: tr('Collection not found'),
+        message: tr('This collection no longer exists.'),
       );
     }
     final contents = watchCollectionContents(context, collection);
@@ -122,26 +123,29 @@ class CollectionDetailScreen extends StatelessWidget {
         title: Text(collection.name),
         actions: [
           IconButton(
-            tooltip: 'Add',
+            tooltip: tr('Add'),
             onPressed: () => _add(context, collection),
             icon: const Icon(Icons.add_rounded),
           ),
           PopupMenuButton<_CollectionMenuAction>(
-            tooltip: 'More',
+            tooltip: tr('More'),
             icon: const Icon(Icons.more_horiz_rounded),
             onSelected: (action) => _onMenu(context, collection, action),
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _CollectionMenuAction.rename,
-                child: Text('Rename'),
+                child: Text(tr('Rename')),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _CollectionMenuAction.cover,
-                child: Text('Change cover'),
+                child: Text(tr('Change cover')),
               ),
               PopupMenuItem(
                 value: _CollectionMenuAction.delete,
-                child: Text('Delete', style: TextStyle(color: palette.danger)),
+                child: Text(
+                  tr('Delete'),
+                  style: TextStyle(color: palette.danger),
+                ),
               ),
             ],
           ),
@@ -151,9 +155,9 @@ class CollectionDetailScreen extends StatelessWidget {
       body: contents.items.isEmpty && contents.outfits.isEmpty
           ? AppEmptyState(
               icon: Icons.collections_bookmark_outlined,
-              title: 'Nothing here yet',
-              message: 'Add pieces and outfits to keep them together.',
-              actionLabel: 'Add',
+              title: tr('Nothing here yet'),
+              message: tr('Add pieces and outfits to keep them together.'),
+              actionLabel: tr('Add'),
               onAction: () => _add(context, collection),
             )
           : CustomScrollView(
@@ -173,10 +177,10 @@ class CollectionDetailScreen extends StatelessWidget {
                   ),
                   SliverToBoxAdapter(
                     child: SectionHeader(
-                      title: 'Clothes',
+                      title: tr('Clothes'),
                       subtitle: archivedCount == 0
                           ? null
-                          : 'Archived pieces are faded',
+                          : tr('Archived pieces are faded'),
                     ),
                   ),
                   const SliverToBoxAdapter(
@@ -206,8 +210,8 @@ class CollectionDetailScreen extends StatelessWidget {
                   const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.xl),
                   ),
-                  const SliverToBoxAdapter(
-                    child: SectionHeader(title: 'Outfits'),
+                  SliverToBoxAdapter(
+                    child: SectionHeader(title: tr('Outfits')),
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.md),

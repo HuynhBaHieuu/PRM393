@@ -11,6 +11,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class ArchivedItemsScreen extends StatelessWidget {
   const ArchivedItemsScreen({super.key});
@@ -19,14 +20,15 @@ class ArchivedItemsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = context.watch<WardrobeController>().archivedItems;
     return Scaffold(
-      appBar: AppBar(title: const Text('Archived Items')),
+      appBar: AppBar(title: Text(tr('Archived Items'))),
       body: items.isEmpty
-          ? const AppEmptyState(
+          ? AppEmptyState(
               icon: Icons.inventory_2_outlined,
-              title: 'No archived items',
-              message:
-                  'Archive pieces you rarely wear to keep your wardrobe '
-                  'focused. They’ll be kept safe here.',
+              title: tr('No archived items'),
+              message: tr(
+                'Archive pieces you rarely wear to keep your wardrobe '
+                'focused. They’ll be kept safe here.',
+              ),
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(
@@ -43,8 +45,10 @@ class ArchivedItemsScreen extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.md),
                     child: Text(
-                      'Archived items are hidden from your wardrobe and '
-                      'outfit builder. Restore them any time.',
+                      tr(
+                        'Archived items are hidden from your wardrobe and '
+                        'outfit builder. Restore them any time.',
+                      ),
                       style: context.textTheme.bodySmall,
                     ),
                   );
@@ -101,7 +105,7 @@ class _ArchivedRow extends StatelessWidget {
                       onPressed: () => ClosetFlows.guard(
                         context,
                         () => wardrobe.setArchived(item.id, archived: false),
-                        successMessage: '${item.name} restored',
+                        successMessage: tr('{0} restored', [item.name]),
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(
@@ -116,11 +120,11 @@ class _ArchivedRow extends StatelessWidget {
                         Icons.unarchive_outlined,
                         size: AppSizes.iconSm,
                       ),
-                      label: const Text('Restore'),
+                      label: Text(tr('Restore')),
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     IconButton(
-                      tooltip: 'Delete permanently',
+                      tooltip: tr('Delete permanently'),
                       onPressed: () => ClosetFlows.deleteItem(context, item),
                       icon: Icon(
                         Icons.delete_outline_rounded,

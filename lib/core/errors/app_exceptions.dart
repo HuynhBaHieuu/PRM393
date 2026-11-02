@@ -1,3 +1,5 @@
+import 'package:all_fits/core/l10n/l10n.dart';
+
 /// Base class for errors whose [message] is safe to show to the user.
 abstract class AppException implements Exception {
   const AppException(this.message);
@@ -71,6 +73,6 @@ class NotFoundException extends AppException {
 
 const String genericErrorMessage = 'Something went wrong. Please try again.';
 
-/// Converts any error into a user-facing message.
+/// Converts any error into a user-facing message, in the app's language.
 String describeError(Object error) =>
-    error is AppException ? error.message : genericErrorMessage;
+    tr(error is AppException ? error.message : genericErrorMessage);

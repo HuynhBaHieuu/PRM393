@@ -10,6 +10,7 @@ import 'package:all_fits/features/auth/controllers/auth_controller.dart';
 import 'package:all_fits/features/auth/screens/forgot_password_screen.dart';
 import 'package:all_fits/features/auth/screens/register_screen.dart';
 import 'package:all_fits/features/auth/widgets/auth_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -92,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _error = null);
     _email.text = email;
     _password.clear();
-    context.showSnack('Account created. Log in to continue.');
+    context.showSnack(tr('Account created. Log in to continue.'));
   }
 
   Future<void> _openForgotPassword() async {
@@ -105,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _error = null);
     _email.text = email;
     _password.clear();
-    context.showSnack('Password changed. Log in with your new password.');
+    context.showSnack(tr('Password changed. Log in with your new password.'));
   }
 
   @override
@@ -113,9 +114,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = context.watch<AuthController>();
     final error = _error ?? auth.externalError;
     return AuthScaffold(
-      eyebrow: 'Welcome back',
-      title: 'Log in',
-      subtitle: 'Your wardrobe is waiting.',
+      eyebrow: tr('Welcome back'),
+      title: tr('Log in'),
+      subtitle: tr('Your wardrobe is waiting.'),
       children: [
         Form(
           key: _formKey,
@@ -128,13 +129,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 autocorrect: false,
                 autofillHints: const [AutofillHints.email],
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: tr('Email')),
                 validator: Validators.email,
               ),
               const SizedBox(height: AppSpacing.md),
               PasswordField(
                 controller: _password,
-                label: 'Password',
+                label: tr('Password'),
                 validator: Validators.requiredPassword,
                 onSubmitted: (_) => _submit(),
               ),
@@ -142,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: _busy ? null : _openForgotPassword,
-                  child: const Text('Forgot password?'),
+                  child: Text(tr('Forgot password?')),
                 ),
               ),
             ],
@@ -153,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
           AuthErrorBanner(message: error),
           const SizedBox(height: AppSpacing.md),
         ],
-        AuthSubmitButton(label: 'Log in', busy: _busy, onPressed: _submit),
+        AuthSubmitButton(label: tr('Log in'), busy: _busy, onPressed: _submit),
         if (auth.supportsSocialLogin) ...[
           const SizedBox(height: AppSpacing.md),
           const AuthOrDivider(),
@@ -170,8 +171,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         const SizedBox(height: AppSpacing.md),
         AuthSwitchPrompt(
-          question: 'New to All Fits?',
-          action: 'Create an account',
+          question: tr('New to All Fits?'),
+          action: tr('Create an account'),
           onPressed: _busy ? null : _openRegister,
         ),
         const SizedBox(height: AppSpacing.xl),

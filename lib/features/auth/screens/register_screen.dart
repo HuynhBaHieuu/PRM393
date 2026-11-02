@@ -6,6 +6,7 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/features/auth/controllers/auth_controller.dart';
 import 'package:all_fits/features/auth/widgets/auth_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -63,9 +64,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final error = _error;
     return AuthScaffold(
       showBack: true,
-      eyebrow: 'Get started',
-      title: 'Create account',
-      subtitle: 'Build your digital closet and plan every look.',
+      eyebrow: tr('Get started'),
+      title: tr('Create account'),
+      subtitle: tr('Build your digital closet and plan every look.'),
       children: [
         Form(
           key: _formKey,
@@ -78,12 +79,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 autofillHints: const [AutofillHints.name],
                 textInputAction: TextInputAction.next,
                 maxLength: Validators.maxNameLength,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
+                decoration: InputDecoration(
+                  labelText: tr('Name'),
                   counterText: '',
                 ),
                 validator: (v) =>
-                    Validators.requiredName(v, subject: 'your name'),
+                    Validators.requiredName(v, subject: tr('your name')),
               ),
               const SizedBox(height: AppSpacing.md),
               TextFormField(
@@ -92,27 +93,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 autocorrect: false,
                 autofillHints: const [AutofillHints.email],
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: tr('Email')),
                 validator: Validators.email,
               ),
               const SizedBox(height: AppSpacing.md),
               PasswordField(
                 controller: _password,
-                label: 'Password',
+                label: tr('Password'),
                 autofillHints: const [AutofillHints.newPassword],
                 textInputAction: TextInputAction.next,
                 validator: Validators.newPassword,
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'At least ${Validators.minPasswordLength} characters, '
-                'with a letter and a number.',
+                tr('At least {0} characters, with a letter and a number.', [
+                  Validators.minPasswordLength,
+                ]),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: AppSpacing.md),
               PasswordField(
                 controller: _confirm,
-                label: 'Confirm password',
+                label: tr('Confirm password'),
                 autofillHints: const [AutofillHints.newPassword],
                 validator: (v) => Validators.confirmPassword(v, _password.text),
                 onSubmitted: (_) => _submit(),
@@ -126,14 +128,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: AppSpacing.md),
         ],
         AuthSubmitButton(
-          label: 'Create account',
+          label: tr('Create account'),
           busy: _busy,
           onPressed: _submit,
         ),
         const SizedBox(height: AppSpacing.md),
         AuthSwitchPrompt(
-          question: 'Already have an account?',
-          action: 'Log in',
+          question: tr('Already have an account?'),
+          action: tr('Log in'),
           onPressed: _busy ? null : () => Navigator.of(context).maybePop(),
         ),
         const SizedBox(height: AppSpacing.xl),

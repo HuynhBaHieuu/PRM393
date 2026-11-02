@@ -33,6 +33,7 @@ import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/try_on/widgets/try_on_widgets.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' outfit page: the picture on a large card, then the pieces and
 /// every detail editable in place, and Duplicate / Add to collection /
@@ -55,7 +56,7 @@ class OutfitDetailScreen extends StatelessWidget {
   Future<void> _rename(BuildContext context, Outfit outfit) async {
     final name = await showTextInputDialog(
       context,
-      title: 'Caption',
+      title: tr('Caption'),
       initialValue: outfit.name,
       maxLength: Validators.maxNameLength,
     );
@@ -94,9 +95,9 @@ class OutfitDetailScreen extends StatelessWidget {
   Future<void> _editNote(BuildContext context, Outfit outfit) async {
     final note = await showTextInputDialog(
       context,
-      title: 'Note',
+      title: tr('Note'),
       initialValue: outfit.notes ?? '',
-      hint: 'Add a note...',
+      hint: tr('Add a note...'),
       maxLength: Validators.maxNotesLength,
       multiline: true,
     );
@@ -118,13 +119,13 @@ class OutfitDetailScreen extends StatelessWidget {
             children: [
               SheetActionTile(
                 icon: Icons.photo_camera_outlined,
-                label: 'Take a selfie',
+                label: tr('Take a selfie'),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.camera),
               ),
               SheetActionTile(
                 icon: Icons.photo_library_outlined,
-                label: 'Choose from library',
+                label: tr('Choose from library'),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.gallery),
               ),
@@ -150,7 +151,7 @@ class OutfitDetailScreen extends StatelessWidget {
     try {
       final copy = await outfits.duplicateOutfit(outfitId);
       if (!context.mounted) return;
-      context.showSnack('Outfit duplicated');
+      context.showSnack(tr('Outfit duplicated'));
       await AppNavigator.outfitDetail(context, copy.id);
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);
@@ -186,7 +187,7 @@ class OutfitDetailScreen extends StatelessWidget {
             children: [
               SheetActionTile(
                 icon: Icons.check_rounded,
-                label: 'Mark as worn today',
+                label: tr('Mark as worn today'),
                 onTap: () => go(
                   () => ClosetFlows.markWorn(context, outfitId, date: today),
                 ),
@@ -194,7 +195,7 @@ class OutfitDetailScreen extends StatelessWidget {
               if (tryOn && items.isNotEmpty)
                 SheetActionTile(
                   icon: Icons.auto_awesome_outlined,
-                  label: 'Try on with AI',
+                  label: tr('Try on with AI'),
                   onTap: () => go(
                     () => TryOnFlows.start(
                       context,
@@ -206,7 +207,7 @@ class OutfitDetailScreen extends StatelessWidget {
               if (outfit.photoPath != null)
                 SheetActionTile(
                   icon: Icons.hide_image_outlined,
-                  label: 'Remove outfit photo',
+                  label: tr('Remove outfit photo'),
                   onTap: () => go(
                     () => ClosetFlows.guard(
                       context,
@@ -227,9 +228,9 @@ class OutfitDetailScreen extends StatelessWidget {
     final outfits = context.watch<OutfitController>();
     final outfit = outfits.outfitById(outfitId);
     if (outfit == null) {
-      return const NotFoundView(
-        title: 'Outfit not found',
-        message: 'This outfit no longer exists.',
+      return NotFoundView(
+        title: tr('Outfit not found'),
+        message: tr('This outfit no longer exists.'),
       );
     }
     final items = context.watch<WardrobeController>().itemsByIds(
@@ -293,7 +294,7 @@ class OutfitDetailScreen extends StatelessWidget {
                                 left: AppSpacing.sm,
                                 top: AppSpacing.sm,
                                 child: IconButton(
-                                  tooltip: 'Back',
+                                  tooltip: tr('Back'),
                                   onPressed: () =>
                                       Navigator.of(context).maybePop(),
                                   icon: const Icon(Icons.chevron_left_rounded),
@@ -322,8 +323,8 @@ class OutfitDetailScreen extends StatelessWidget {
                       children: [
                         IconButton(
                           tooltip: outfit.isFavorite
-                              ? 'Unfavorite'
-                              : 'Favorite',
+                              ? tr('Unfavorite')
+                              : tr('Favorite'),
                           onPressed: () => ClosetFlows.guard(
                             context,
                             () => outfits.toggleFavorite(outfit.id),
@@ -336,11 +337,11 @@ class OutfitDetailScreen extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Ask the AI stylist',
+                          tooltip: tr('Ask the AI stylist'),
                           onPressed: () => AppNavigator.stylist(
                             context,
                             launch: StylistLaunch(
-                              prompt: 'What do you think of this outfit?',
+                              prompt: tr('What do you think of this outfit?'),
                               itemIds: [for (final item in items) item.id],
                             ),
                           ),
@@ -354,7 +355,7 @@ class OutfitDetailScreen extends StatelessWidget {
                           onPressed: () =>
                               AppNavigator.editOutfit(context, outfit.id),
                           icon: const Icon(Icons.image_outlined),
-                          label: const Text('Edit'),
+                          label: Text(tr('Edit')),
                           style: FilledButton.styleFrom(
                             backgroundColor: palette.surfaceMuted,
                             foregroundColor: palette.ink,
@@ -385,7 +386,7 @@ class OutfitDetailScreen extends StatelessWidget {
                     ),
                     Divider(height: AppSpacing.xl, color: palette.border),
                     Text(
-                      'Clothes in outfit',
+                      tr('Clothes in outfit'),
                       style: text.bodyMedium?.copyWith(
                         color: palette.textSecondary,
                       ),
@@ -418,7 +419,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         DetailRow(
                           icon: Icons.format_list_bulleted_rounded,
                           label: types.isEmpty ? null : types.join(' · '),
-                          placeholder: 'Add clothes',
+                          placeholder: tr('Add clothes'),
                           onTap: () =>
                               AppNavigator.editOutfit(context, outfit.id),
                         ),
@@ -431,7 +432,7 @@ class OutfitDetailScreen extends StatelessWidget {
                                   color: palette.textSecondary,
                                 ),
                           label: outfit.occasion?.label,
-                          placeholder: 'Add occasion',
+                          placeholder: tr('Add occasion'),
                           onTap: () => _pickOccasion(context, outfit),
                         ),
                         DetailRow(
@@ -441,7 +442,7 @@ class OutfitDetailScreen extends StatelessWidget {
                               : outfit.seasons
                                     .map((s) => '${s.emoji} ${s.label}')
                                     .join('  '),
-                          placeholder: 'Add season',
+                          placeholder: tr('Add season'),
                           onTap: () => _pickSeasons(context, outfit),
                         ),
                       ],
@@ -451,7 +452,7 @@ class OutfitDetailScreen extends StatelessWidget {
                       children: [
                         DetailRow(
                           icon: Icons.calendar_today_outlined,
-                          label: 'Schedule outfit',
+                          label: tr('Schedule outfit'),
                           onTap: () =>
                               ClosetFlows.planOutfit(context, outfit.id),
                         ),
@@ -478,9 +479,13 @@ class OutfitDetailScreen extends StatelessWidget {
                                       ? AppFormatters.wearCount(
                                           outfit.wearCount,
                                         )
-                                      : '${AppFormatters.wearCount(outfit.wearCount)}'
-                                            ' · last worn '
-                                            '${AppFormatters.relativeDay(lastWorn).toLowerCase()}',
+                                      : tr('{0} · last worn {1}', [
+                                          AppFormatters.wearCount(
+                                            outfit.wearCount,
+                                          ),
+                                          AppFormatters.relativeDay(lastWorn)
+                                              .toLowerCase(),
+                                        ]),
                                   style: text.bodyMedium?.copyWith(
                                     color: palette.textSecondary,
                                   ),
@@ -496,7 +501,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         DetailRow(
                           icon: Icons.edit_note_rounded,
                           label: outfit.notes,
-                          placeholder: 'Add a note...',
+                          placeholder: tr('Add a note...'),
                           chevron: false,
                           multiline: true,
                           onTap: () => _editNote(context, outfit),
@@ -519,7 +524,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         Expanded(
                           child: TrayAction(
                             icon: Icons.copy_rounded,
-                            label: 'Duplicate',
+                            label: tr('Duplicate'),
                             onTap: () => _duplicate(context),
                           ),
                         ),
@@ -527,7 +532,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         Expanded(
                           child: TrayAction(
                             icon: Icons.bookmark_border_rounded,
-                            label: 'Add to collection',
+                            label: tr('Add to collection'),
                             onTap: () =>
                                 CollectionFlows.addOutfit(context, outfit.id),
                           ),
@@ -536,7 +541,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         Expanded(
                           child: TrayAction(
                             icon: Icons.delete_outline_rounded,
-                            label: 'Delete',
+                            label: tr('Delete'),
                             onTap: () => _delete(context, outfit),
                           ),
                         ),
@@ -544,7 +549,7 @@ class OutfitDetailScreen extends StatelessWidget {
                         Expanded(
                           child: TrayAction(
                             icon: Icons.more_horiz_rounded,
-                            label: 'More',
+                            label: tr('More'),
                             onTap: () => _more(context, outfit, items),
                           ),
                         ),
@@ -552,9 +557,9 @@ class OutfitDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Added on ${AppFormatters.weekdayName(outfit.createdAt).substring(0, 3)}, '
-                      '${AppFormatters.monthName(outfit.createdAt)} '
-                      '${outfit.createdAt.day}, ${outfit.createdAt.year}',
+                      tr('Added on {0}', [
+                        AppFormatters.fullDate(outfit.createdAt),
+                      ]),
                       textAlign: TextAlign.center,
                       style: text.bodyMedium?.copyWith(
                         color: palette.textSecondary,
@@ -582,7 +587,7 @@ class _AddPhotoTile extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: 'Add outfit photo',
+      label: tr('Add outfit photo'),
       child: Material(
         color: palette.surface.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -606,7 +611,7 @@ class _AddPhotoTile extends StatelessWidget {
                 const SizedBox(width: AppSpacing.xs),
                 ExcludeSemantics(
                   child: Text(
-                    'Add photo',
+                    tr('Add photo'),
                     style: context.textTheme.labelMedium,
                   ),
                 ),
@@ -634,7 +639,7 @@ class _PieceThumb extends StatelessWidget {
       padding: const EdgeInsets.only(right: AppSpacing.sm),
       child: Semantics(
         button: true,
-        label: item?.name ?? 'Add clothes',
+        label: item?.name ?? tr('Add clothes'),
         child: GestureDetector(
           onTap: onTap,
           child: Container(
@@ -682,12 +687,12 @@ class _DateChip extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            AppFormatters.weekdayName(date).substring(0, 3),
+            AppFormatters.weekdayShort(date),
             style: text.bodySmall?.copyWith(color: palette.textSecondary),
           ),
           Text('${date.day}', style: text.titleLarge),
           Text(
-            entry.isWorn ? AppFormatters.monthShort(date) : 'Planned',
+            entry.isWorn ? AppFormatters.monthShort(date) : tr('Planned'),
             style: text.bodySmall,
           ),
         ],
@@ -712,7 +717,7 @@ class _TryOnStrip extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: AppSpacing.lg),
-        Text('AI try-on', style: context.textTheme.titleMedium),
+        Text(tr('AI try-on'), style: context.textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
           height: _width * 4 / 3,
@@ -722,7 +727,7 @@ class _TryOnStrip extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
             itemBuilder: (context, index) => Semantics(
               button: true,
-              label: 'Try-on picture ${index + 1}',
+              label: tr('Try-on picture {0}', [index + 1]),
               excludeSemantics: true,
               child: GestureDetector(
                 onTap: () => TryOnFlows.open(context, results[index]),
@@ -758,7 +763,9 @@ class _PublicSwitch extends StatelessWidget {
     await ClosetFlows.guard(
       context,
       () => social.setPosted(outfitId, posted: posted),
-      successMessage: posted ? 'Shared on Discover' : 'Removed from Discover',
+      successMessage: posted
+          ? tr('Shared on Discover')
+          : tr('Removed from Discover'),
     );
   }
 
@@ -766,7 +773,7 @@ class _PublicSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     return DetailSwitchRow(
       icon: Icons.public_rounded,
-      label: 'Show on Discover',
+      label: tr('Show on Discover'),
       value: social.isPosted(outfitId),
       onChanged: (value) => _set(context, value),
     );

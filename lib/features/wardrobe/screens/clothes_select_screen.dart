@@ -16,6 +16,7 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_filter_sheet.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' "Select multiple": tick pieces, then act on all of them at once.
 class ClothesSelectScreen extends StatefulWidget {
@@ -53,7 +54,9 @@ class _ClothesSelectScreenState extends State<ClothesSelectScreen> {
     await ClosetFlows.guard(
       context,
       () => wardrobe.setArchivedMany(ids, archived: true),
-      successMessage: '${AppFormatters.count(ids.length, 'item')} archived',
+      successMessage: tr('{0} archived', [
+        AppFormatters.count(ids.length, 'item'),
+      ]),
     );
     if (mounted) setState(_selected.clear);
   }
@@ -84,12 +87,12 @@ class _ClothesSelectScreenState extends State<ClothesSelectScreen> {
                 ? _selected.clear()
                 : _selected.addAll(results.map((i) => i.id)),
           ),
-          child: Text(allSelected ? 'Deselect all' : 'Select all'),
+          child: Text(allSelected ? tr('Deselect all') : tr('Select all')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Done'),
+            child: Text(tr('Done')),
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
@@ -124,30 +127,30 @@ class _ClothesSelectScreenState extends State<ClothesSelectScreen> {
               actions: [
                 TrayAction(
                   icon: Icons.checkroom_outlined,
-                  label: 'Create outfit',
+                  label: tr('Create outfit'),
                   onTap: () =>
                       AppNavigator.createOutfit(context, initialItemIds: ids),
                 ),
                 TrayAction(
                   icon: Icons.bookmark_border_rounded,
-                  label: 'Add to collection',
+                  label: tr('Add to collection'),
                   onTap: () => CollectionFlows.addItems(context, ids),
                 ),
                 TrayAction(
                   icon: Icons.edit_outlined,
-                  label: 'Edit',
+                  label: tr('Edit'),
                   onTap: ids.length == 1
                       ? () => AppNavigator.editClothing(context, ids.single)
                       : null,
                 ),
                 TrayAction(
                   icon: Icons.inventory_2_outlined,
-                  label: 'Archive',
+                  label: tr('Archive'),
                   onTap: _archive,
                 ),
                 TrayAction(
                   icon: Icons.delete_outline_rounded,
-                  label: 'Delete',
+                  label: tr('Delete'),
                   onTap: _delete,
                 ),
               ],
@@ -194,11 +197,11 @@ class _ReorderClothesScreenState extends State<ReorderClothesScreen> {
     final items = wardrobe.itemsByIds(_ids);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reorder'),
+        title: Text(tr('Reorder')),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
-            child: const Text('Save'),
+            child: Text(tr('Save')),
           ),
           const SizedBox(width: AppSpacing.xs),
         ],

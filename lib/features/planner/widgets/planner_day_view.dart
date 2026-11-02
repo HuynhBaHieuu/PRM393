@@ -12,6 +12,8 @@ import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/planner/widgets/planner_actions.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
+import 'package:all_fits/core/utils/formatters.dart';
 
 /// Fits' Day tab: the week's days over one large card per day, swiped
 /// sideways.
@@ -161,10 +163,6 @@ class _WeekDay extends StatelessWidget {
   final bool hasOutfit;
   final VoidCallback onTap;
 
-  static const List<String> _names = [
-    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', //
-  ];
-
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -178,7 +176,7 @@ class _WeekDay extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              _names[day.weekday - 1],
+              AppFormatters.weekdayShort(day),
               style: text.bodySmall?.copyWith(color: palette.textTertiary),
             ),
             const SizedBox(height: AppSpacing.xxs),
@@ -258,7 +256,7 @@ class _DayCard extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () => PlannerActions.addOutfit(context, day),
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('Add outfit'),
+                      label: Text(tr('Add outfit')),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, AppSizes.buttonHeight),
                         padding: const EdgeInsets.symmetric(
@@ -274,7 +272,7 @@ class _DayCard extends StatelessWidget {
                           Icons.auto_awesome_outlined,
                           size: AppSizes.iconSm,
                         ),
-                        label: const Text('Plan my week'),
+                        label: Text(tr('Plan my week')),
                       ),
                     ],
                   ],
@@ -296,7 +294,7 @@ class _DayCard extends StatelessWidget {
                     left: AppSpacing.sm,
                     top: AppSpacing.sm,
                     child: TagLabel(
-                      plan.worn != null ? 'Worn' : 'Planned',
+                      plan.worn != null ? tr('Worn') : tr('Planned'),
                       inverted: plan.worn != null,
                     ),
                   ),
@@ -304,7 +302,7 @@ class _DayCard extends StatelessWidget {
                     right: AppSpacing.sm,
                     top: AppSpacing.sm,
                     child: IconButton(
-                      tooltip: 'More',
+                      tooltip: tr('More'),
                       onPressed: () =>
                           PlannerActions.showDayMenu(context, day, plan),
                       icon: const Icon(Icons.more_horiz_rounded),
@@ -325,7 +323,7 @@ class _DayCard extends StatelessWidget {
                         // A flat band rather than Fits' fade: no gradients.
                         color: Colors.black.withValues(alpha: 0.3),
                         child: Text(
-                          entry.note ?? 'Add a note...',
+                          entry.note ?? tr('Add a note...'),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: context.textTheme.titleMedium?.copyWith(

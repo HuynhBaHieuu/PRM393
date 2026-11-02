@@ -15,6 +15,7 @@ import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' "Styled together": outfits others made for you, and by you.
 class StyledTogetherScreen extends StatelessWidget {
@@ -30,11 +31,11 @@ class StyledTogetherScreen extends StatelessWidget {
       initialIndex: showByYou ? 1 : 0,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Styled together'),
-          bottom: const TabBar(
+          title: Text(tr('Styled together')),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'For you'),
-              Tab(text: 'By you'),
+              Tab(text: tr('For you')),
+              Tab(text: tr('By you')),
             ],
           ),
         ),
@@ -42,11 +43,13 @@ class StyledTogetherScreen extends StatelessWidget {
           children: [
             _StyledGrid(
               outfits: social.styledForMe,
-              emptyMessage: 'Ask friends to create outfits for you',
+              emptyMessage: tr('Ask friends to create outfits for you'),
             ),
             _StyledGrid(
               outfits: social.styledByMe,
-              emptyMessage: 'You haven’t created any outfits for friends yet',
+              emptyMessage: tr(
+                'You haven’t created any outfits for friends yet',
+              ),
             ),
           ],
         ),
@@ -71,9 +74,9 @@ class _StyledGrid extends StatelessWidget {
               children: [
                 AppEmptyState(
                   icon: Icons.style_outlined,
-                  title: 'No outfits',
+                  title: tr('No outfits'),
                   message: emptyMessage,
-                  actionLabel: 'Find friends',
+                  actionLabel: tr('Find friends'),
                   onAction: () => AppNavigator.userSearch(context),
                 ),
               ],
@@ -88,13 +91,13 @@ class _StyledGrid extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final styled = outfits[index];
                       final who = styled.incoming
-                          ? 'From ${styled.other.username}'
-                          : 'For ${styled.other.username}';
+                          ? tr('From {0}', [styled.other.username])
+                          : tr('For {0}', [styled.other.username]);
                       final state = switch (styled.status) {
                         StyledStatus.pending =>
-                          styled.incoming ? 'New' : 'Sent',
-                        StyledStatus.saved => 'Saved',
-                        StyledStatus.dismissed => 'Sent',
+                          styled.incoming ? tr('New') : tr('Sent'),
+                        StyledStatus.saved => tr('Saved'),
+                        StyledStatus.dismissed => tr('Sent'),
                       };
                       return SocialOutfitCard(
                         items: styled.orderedItems,
@@ -142,9 +145,9 @@ class _StyledOutfitScreenState extends State<StyledOutfitScreen> {
     final navigator = Navigator.of(context);
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Are you sure?',
-      message: 'Deleting this outfit cannot be undone.',
-      confirmLabel: 'Delete',
+      title: tr('Are you sure?'),
+      message: tr('Deleting this outfit cannot be undone.'),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -160,9 +163,9 @@ class _StyledOutfitScreenState extends State<StyledOutfitScreen> {
       widget.styledId,
     );
     if (styled == null) {
-      return const NotFoundView(
-        title: 'Outfit not found',
-        message: 'This outfit was deleted.',
+      return NotFoundView(
+        title: tr('Outfit not found'),
+        message: tr('This outfit was deleted.'),
       );
     }
     final palette = context.palette;
@@ -217,8 +220,8 @@ class _StyledOutfitScreenState extends State<StyledOutfitScreen> {
                   Expanded(
                     child: Text(
                       styled.incoming
-                          ? 'Created by ${styled.other.username}'
-                          : 'Created for ${styled.other.username}',
+                          ? tr('Created by {0}', [styled.other.username])
+                          : tr('Created for {0}', [styled.other.username]),
                       style: text.titleMedium,
                     ),
                   ),
@@ -257,7 +260,7 @@ class _StyledOutfitScreenState extends State<StyledOutfitScreen> {
                             );
                             navigator.pop();
                           }),
-                    child: const Text('Dismiss'),
+                    child: Text(tr('Dismiss')),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -268,25 +271,25 @@ class _StyledOutfitScreenState extends State<StyledOutfitScreen> {
                         : () => _run(
                             () => SocialFlows.saveStyledOutfit(context, styled),
                           ),
-                    child: const Text('Save to my outfits'),
+                    child: Text(tr('Save to my outfits')),
                   ),
                 ),
               ],
             )
           else if (styled.incoming && styled.status == StyledStatus.saved)
-            const Center(
+            Center(
               child: TagLabel(
-                'Saved to your outfits',
+                tr('Saved to your outfits'),
                 icon: Icons.check_rounded,
               ),
             )
           else if (!styled.incoming)
             OutlinedButton(
               onPressed: _busy ? null : () => _delete(styled),
-              child: const Text('Delete'),
+              child: Text(tr('Delete')),
             ),
           const SizedBox(height: AppSpacing.xl),
-          Text('Clothes in outfit', style: text.titleMedium),
+          Text(tr('Clothes in outfit'), style: text.titleMedium),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
             height: AppSizes.recentItemWidth / AppSizes.clothingImageAspect,

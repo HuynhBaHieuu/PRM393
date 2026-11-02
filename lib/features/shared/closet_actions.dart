@@ -8,6 +8,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum WearResult { marked, alreadyWorn }
 
@@ -40,11 +41,11 @@ class ClosetActions {
     final day = DateHelpers.dateOnly(date ?? _clock());
     final outfit = outfits.outfitById(outfitId);
     if (outfit == null) {
-      throw const NotFoundException('This outfit no longer exists.');
+      throw NotFoundException(tr('This outfit no longer exists.'));
     }
     if (day.isAfter(today)) {
-      throw const ValidationException(
-        'Outfits can only be marked as worn for today or earlier.',
+      throw ValidationException(
+        tr('Outfits can only be marked as worn for today or earlier.'),
       );
     }
 
@@ -102,7 +103,7 @@ class ClosetActions {
 
   Future<OutfitCalendarEntry> planOutfit(String outfitId, DateTime date) {
     if (outfits.outfitById(outfitId) == null) {
-      throw const NotFoundException('This outfit no longer exists.');
+      throw NotFoundException(tr('This outfit no longer exists.'));
     }
     return planner.planOutfit(date, outfitId);
   }

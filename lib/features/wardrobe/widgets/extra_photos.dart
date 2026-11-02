@@ -15,6 +15,7 @@ import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What to add as an extra photo: what it shows and where it comes from.
 typedef ExtraPhotoRequest = ({PhotoKind kind, ImagePickSource source});
@@ -38,7 +39,7 @@ Future<PhotoKind?> showPhotoKindSheet(
 ) async {
   final picked = await showMultiSelectSheet<PhotoKind>(
     context,
-    title: 'This photo shows',
+    title: tr('This photo shows'),
     single: true,
     options: PhotoKind.values,
     selected: {current},
@@ -91,20 +92,22 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetHeader(title: 'Add a photo'),
+            SheetHeader(title: tr('Add a photo')),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Show the back, the stitching or the care label so you '
-                    'remember every detail of this piece.',
+                    tr(
+                      'Show the back, the stitching or the care label so you '
+                      'remember every detail of this piece.',
+                    ),
                     style: context.textTheme.bodySmall,
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   LabeledSection(
-                    label: 'This photo shows',
+                    label: tr('This photo shows'),
                     child: PillGroup<PhotoKind>(
                       options: PhotoKind.values,
                       selected: {_kind},
@@ -128,7 +131,7 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
                                   Icons.photo_library_outlined,
                                   size: AppSizes.iconSm,
                                 ),
-                                label: const Text('Gallery'),
+                                label: Text(tr('Gallery')),
                               )
                             : FilledButton.icon(
                                 onPressed: () => _pick(ImagePickSource.gallery),
@@ -136,7 +139,7 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
                                   Icons.photo_library_outlined,
                                   size: AppSizes.iconSm,
                                 ),
-                                label: const Text('Choose from gallery'),
+                                label: Text(tr('Choose from gallery')),
                               ),
                       ),
                       if (widget.supportsCamera) ...[
@@ -148,7 +151,7 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
                               Icons.photo_camera_outlined,
                               size: AppSizes.iconSm,
                             ),
-                            label: const Text('Camera'),
+                            label: Text(tr('Camera')),
                           ),
                         ),
                       ],
@@ -275,7 +278,7 @@ class _RemoveButton extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: 'Remove $label photo',
+      label: tr('Remove {0} photo', [label]),
       child: Material(
         color: palette.ink,
         shape: const CircleBorder(),
@@ -328,7 +331,7 @@ class AddPhotoThumb extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Add',
+            tr('Add'),
             style: context.textTheme.labelSmall?.copyWith(
               color: palette.textSecondary,
             ),
@@ -418,7 +421,7 @@ class ExtraPhotosField extends StatelessWidget {
   Widget build(BuildContext context) {
     final full = photos.length >= AppConfig.maxExtraPhotos;
     return LabeledSection(
-      label: 'More photos',
+      label: tr('More photos'),
       trailing: Text(
         '${photos.length}/${AppConfig.maxExtraPhotos}',
         style: context.textTheme.bodySmall,
@@ -428,7 +431,7 @@ class ExtraPhotosField extends StatelessWidget {
         children: [
           if (photos.isEmpty) ...[
             Text(
-              'Optional: the back, stitching details, the care label…',
+              tr('Optional: the back, stitching details, the care label…'),
               style: context.textTheme.bodySmall,
             ),
             const SizedBox(height: AppSpacing.xs),

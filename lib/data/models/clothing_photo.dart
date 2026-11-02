@@ -1,16 +1,19 @@
 import 'package:all_fits/core/utils/json_reader.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What an extra photo of a piece shows.
 enum PhotoKind {
   front('Front'),
-  back('Back'),
+  back('Back|photo'),
   detail('Detail'),
   tag('Label'),
   other('Other');
 
-  const PhotoKind(this.label);
+  const PhotoKind(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// A photo of a piece besides its main one, e.g. the back, the stitching or

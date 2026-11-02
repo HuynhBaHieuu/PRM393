@@ -13,6 +13,7 @@ import 'package:all_fits/features/collections/controllers/collection_controller.
 import 'package:all_fits/features/collections/widgets/collection_cards.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Dialogs and sheets for collections. Each reports its own errors.
 abstract final class CollectionFlows {
@@ -30,10 +31,10 @@ abstract final class CollectionFlows {
     }
     final name = await showTextInputDialog(
       context,
-      title: 'New collection',
-      hint: 'e.g. Beach trip, Work, Wishlist',
+      title: tr('New collection'),
+      hint: tr('e.g. Beach trip, Work, Wishlist'),
       maxLength: Validators.maxNameLength,
-      confirmLabel: 'Create',
+      confirmLabel: tr('Create'),
     );
     if (name == null || !context.mounted) return null;
     try {
@@ -54,7 +55,7 @@ abstract final class CollectionFlows {
   ) async {
     final name = await showTextInputDialog(
       context,
-      title: 'Rename collection',
+      title: tr('Rename collection'),
       initialValue: collection.name,
       maxLength: Validators.maxNameLength,
     );
@@ -72,11 +73,12 @@ abstract final class CollectionFlows {
   ) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete collection?',
-      message:
-          '“${collection.name}” will be removed. The clothes and outfits in '
-          'it stay in your closet.',
-      confirmLabel: 'Delete',
+      title: tr('Delete collection?'),
+      message: tr(
+        '“{0}” will be removed. The clothes and outfits in it stay in your closet.',
+        [collection.name],
+      ),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
@@ -84,7 +86,7 @@ abstract final class CollectionFlows {
       await context.read<CollectionController>().deleteCollection(
         collection.id,
       );
-      if (context.mounted) context.showSnack('Collection deleted');
+      if (context.mounted) context.showSnack(tr('Collection deleted'));
       return true;
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);
@@ -105,23 +107,23 @@ abstract final class CollectionFlows {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SheetHeader(title: 'Cover'),
+            SheetHeader(title: tr('Cover')),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: Text(tr('Choose from gallery')),
               onTap: () => Navigator.of(sheetContext).pop(_CoverChoice.gallery),
             ),
             if (picker.supportsCamera)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Take a photo'),
+                title: Text(tr('Take a photo')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_CoverChoice.camera),
               ),
             if (collection.coverImagePath != null)
               ListTile(
                 leading: const Icon(Icons.grid_view_rounded),
-                title: const Text('Use collage of pieces'),
+                title: Text(tr('Use collage of pieces')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_CoverChoice.collage),
               ),
@@ -172,12 +174,12 @@ abstract final class CollectionFlows {
               SheetHeader(title: collection.name),
               ListTile(
                 leading: const Icon(Icons.edit_outlined),
-                title: const Text('Rename'),
+                title: Text(tr('Rename')),
                 onTap: () => run(() => rename(context, collection)),
               ),
               ListTile(
                 leading: const Icon(Icons.image_outlined),
-                title: const Text('Change cover'),
+                title: Text(tr('Change cover')),
                 onTap: () => run(() => changeCover(context, collection)),
               ),
               ListTile(
@@ -185,7 +187,10 @@ abstract final class CollectionFlows {
                   Icons.delete_outline_rounded,
                   color: palette.danger,
                 ),
-                title: Text('Delete', style: TextStyle(color: palette.danger)),
+                title: Text(
+                  tr('Delete'),
+                  style: TextStyle(color: palette.danger),
+                ),
                 onTap: () => run(() async {
                   if (await delete(context, collection)) onDeleted?.call();
                 }),
@@ -219,10 +224,10 @@ abstract final class CollectionFlows {
         child: ListView(
           shrinkWrap: true,
           children: [
-            const SheetHeader(title: 'Add to collection'),
+            SheetHeader(title: tr('Add to collection')),
             ListTile(
               leading: const Icon(Icons.add_rounded),
-              title: const Text('New collection'),
+              title: Text(tr('New collection')),
               onTap: () => Navigator.of(sheetContext).pop(newCollection),
             ),
             for (final collection in collections.collections)
@@ -249,9 +254,10 @@ abstract final class CollectionFlows {
         itemIds: [...itemIds, ...collection.itemIds],
         outfitIds: collection.outfitIds,
       ),
-      successMessage:
-          'Added ${AppFormatters.count(itemIds.length, 'piece')} to '
-          '“${collection.name}”',
+      successMessage: tr('Added {0} to “{1}”', [
+        AppFormatters.count(itemIds.length, 'piece'),
+        collection.name,
+      ]),
     );
   }
 
@@ -274,8 +280,8 @@ abstract final class CollectionFlows {
           ? collections.setItemMembership(entry.id, selection)
           : collections.setOutfitMembership(entry.id, selection),
       successMessage: selection.isEmpty
-          ? 'Not in any collection'
-          : 'In ${AppFormatters.count(selection.length, 'collection')}',
+          ? tr('Not in any collection')
+          : tr('In {0}', [AppFormatters.count(selection.length, 'collection')]),
     );
   }
 }
@@ -334,7 +340,7 @@ class _AddToCollectionSheetState extends State<_AddToCollectionSheet> {
       maxChildSize: 0.92,
       builder: (context, scrollController) => Column(
         children: [
-          const SheetHeader(title: 'Add to collection'),
+          SheetHeader(title: tr('Add to collection')),
           Expanded(
             child: ListView(
               controller: scrollController,
@@ -344,7 +350,7 @@ class _AddToCollectionSheetState extends State<_AddToCollectionSheet> {
                     dimension: AppSizes.thumbSm,
                     child: Icon(Icons.add_rounded),
                   ),
-                  title: const Text('New collection'),
+                  title: Text(tr('New collection')),
                   onTap: _createCollection,
                 ),
                 for (final collection in collections)
@@ -377,7 +383,7 @@ class _AddToCollectionSheetState extends State<_AddToCollectionSheet> {
                     for (final collection in collections)
                       if (_selected.contains(collection.id)) collection.id,
                   }),
-                  child: const Text('Done'),
+                  child: Text(tr('Done')),
                 ),
               ),
             ),

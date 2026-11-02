@@ -14,6 +14,7 @@ import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/try_on/widgets/try_on_widgets.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The selfie, body photo, body type and appearance notes used for
 /// try-ons. Only the user sees it. During [onboarding] it explains try-ons
@@ -89,12 +90,12 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.visibility_outlined),
-                title: const Text('View photo'),
+                title: Text(tr('View photo')),
                 onTap: () => Navigator.of(sheetContext).pop(_PhotoAction.view),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Replace photo'),
+                title: Text(tr('Replace photo')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_PhotoAction.replace),
               ),
@@ -104,7 +105,7 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                   color: context.palette.danger,
                 ),
                 title: Text(
-                  'Delete photo',
+                  tr('Delete photo'),
                   style: TextStyle(color: context.palette.danger),
                 ),
                 onTap: () =>
@@ -122,9 +123,9 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
         case _PhotoAction.delete:
           final confirmed = await showConfirmDialog(
             context,
-            title: 'Delete this photo?',
-            message: 'It’s removed from All Fits right away.',
-            confirmLabel: 'Delete',
+            title: tr('Delete this photo?'),
+            message: tr('It’s removed from All Fits right away.'),
+            confirmLabel: tr('Delete'),
             destructive: true,
           );
           if (confirmed && mounted) await _guard(() => save(null));
@@ -175,7 +176,7 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
     final bodyType = profile.bodyType;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Try on profile')),
+      appBar: AppBar(title: Text(tr('Try on profile'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.page,
@@ -195,7 +196,7 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'Set up your profile to try on clothes virtually',
+                    tr('Set up your profile to try on clothes virtually'),
                     textAlign: TextAlign.center,
                     style: text.headlineSmall,
                   ),
@@ -207,14 +208,15 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                     decodeWidth: _thumb,
                     placeholder: _Placeholder(icon: Icons.face_outlined),
                   ),
-                  title: 'Selfie photo',
-                  subtitle:
-                      'Should show your face clearly, facing the camera in '
-                      'good light.',
+                  title: tr('Selfie photo'),
+                  subtitle: tr(
+                    'Should show your face clearly, facing the camera in '
+                    'good light.',
+                  ),
                   onTap: () => _editPhoto(
                     current: profile.selfiePhoto,
-                    title: 'Add a selfie',
-                    message: 'Face the camera in good light.',
+                    title: tr('Add a selfie'),
+                    message: tr('Face the camera in good light.'),
                     save: tryOn.setSelfie,
                   ),
                 ),
@@ -224,16 +226,18 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                     decodeWidth: _thumb,
                     placeholder: _Placeholder(icon: Icons.image_outlined),
                   ),
-                  title: 'Body photo (optional)',
-                  subtitle:
-                      'A full-body photo of you standing straight (no baggy '
-                      'clothes), for more accurate results.',
+                  title: tr('Body photo (optional)'),
+                  subtitle: tr(
+                    'A full-body photo of you standing straight (no baggy '
+                    'clothes), for more accurate results.',
+                  ),
                   onTap: () => _editPhoto(
                     current: profile.bodyPhoto,
-                    title: 'Add a full-body photo',
-                    message:
-                        'Stand straight, head to feet in the frame, in good '
-                        'light.',
+                    title: tr('Add a full-body photo'),
+                    message: tr(
+                      'Stand straight, head to feet in the frame, in good '
+                      'light.',
+                    ),
                     save: tryOn.setBodyPhoto,
                   ),
                 ),
@@ -244,15 +248,15 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                       size: 52,
                     ),
                   ),
-                  title: 'Body type',
+                  title: tr('Body type'),
                   subtitle:
                       bodyType?.label ??
-                      'Helps the AI get your proportions right.',
+                      tr('Helps the AI get your proportions right.'),
                   onTap: _editBodyType,
                 ),
                 if (!widget.onboarding) ...[
                   const SizedBox(height: AppSpacing.lg),
-                  Text('Additional prompt', style: text.titleMedium),
+                  Text(tr('Additional prompt'), style: text.titleMedium),
                   const SizedBox(height: AppSpacing.xs),
                   TextField(
                     controller: _appearance,
@@ -262,9 +266,10 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
-                      hintText: 'Describe your appearance (optional)',
-                      helperText:
-                          'Max ${TryOnProfile.maxAppearanceLength} characters',
+                      hintText: tr('Describe your appearance (optional)'),
+                      helperText: tr('Max {0} characters', [
+                        TryOnProfile.maxAppearanceLength,
+                      ]),
                       counterText: '',
                     ),
                   ),
@@ -272,19 +277,21 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                 const SizedBox(height: AppSpacing.md),
                 _Note(
                   icon: Icons.lock_outline_rounded,
-                  text:
-                      'This info is only visible to you and not part of your '
-                      'public profile. Delete it here any time.',
+                  text: tr(
+                    'This info is only visible to you and not part of your '
+                    'public profile. Delete it here any time.',
+                  ),
                   style: note,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _Note(
                   icon: Icons.verified_user_outlined,
-                  text:
-                      'Your selfie and body photo are sent to our AI '
-                      'providers (Meta, or Google as a backup) only when you '
-                      'make a try-on. You agree to sharing this personal data '
-                      'only for image generation.',
+                  text: tr(
+                    'Your selfie and body photo are sent to our AI '
+                    'providers (Meta, or Google as a backup) only when you '
+                    'make a try-on. You agree to sharing this personal data '
+                    'only for image generation.',
+                  ),
                   style: note,
                 ),
               ],
@@ -312,11 +319,11 @@ class _TryOnProfileScreenState extends State<TryOnProfileScreen> {
                       onPressed: profile.hasPhoto
                           ? () => _continue(TryOnWearer.me)
                           : null,
-                      child: const Text('Continue'),
+                      child: Text(tr('Continue')),
                     ),
                     TextButton(
                       onPressed: () => _continue(TryOnWearer.model),
-                      child: const Text('Use an AI model instead'),
+                      child: Text(tr('Use an AI model instead')),
                     ),
                   ],
                 ),

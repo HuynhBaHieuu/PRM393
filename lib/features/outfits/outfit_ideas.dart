@@ -6,6 +6,7 @@ import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/features/weather/weather_advice.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// A look put together from the user's own pieces, with a short caption.
 class OutfitIdea {
@@ -151,13 +152,13 @@ abstract final class OutfitIdeas {
     };
   }
 
-  static const List<String> _moods = [
-    'Relaxed',
-    'Easy',
-    'Sharp',
-    'Clean',
-    'Laid-back',
-    'Classic',
+  static List<String> get _moods => [
+    tr('Relaxed'),
+    tr('Easy'),
+    tr('Sharp'),
+    tr('Clean'),
+    tr('Laid-back'),
+    tr('Classic'),
   ];
 
   /// e.g. "Relaxed layers in black and navy", "Sleek all-black streetwear".
@@ -173,20 +174,26 @@ abstract final class OutfitIdeas {
       if (color != null && !colors.contains(color)) colors.add(color);
     }
     final noun = layered
-        ? 'layers'
+        ? tr('layers')
         : temperature == null
-        ? 'streetwear fit'
+        ? tr('streetwear fit')
         : temperature >= _warmFrom
-        ? 'warm-weather fit'
-        : 'everyday fit';
-    String name(ClothingColor c) => c.isMulti ? 'color' : c.label.toLowerCase();
+        ? tr('warm-weather fit')
+        : tr('everyday fit');
+    String name(ClothingColor c) =>
+        c.isMulti ? tr('color') : c.label.toLowerCase();
     if (colors.length == 1) {
-      return 'Sleek all-${name(colors.first)} $noun';
+      return tr('Sleek all-{0} {1}', [name(colors.first), noun]);
     }
     final mood = _moods[random.nextInt(_moods.length)];
     if (colors.length >= 2) {
-      return '$mood $noun in ${name(colors[0])} and ${name(colors[1])}';
+      return tr('{0} {1} in {2} and {3}', [
+        mood,
+        noun,
+        name(colors[0]),
+        name(colors[1]),
+      ]);
     }
-    return '$mood $noun';
+    return tr('{0} {1}|idea', [mood, noun]);
   }
 }

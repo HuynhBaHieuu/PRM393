@@ -7,6 +7,7 @@ import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/features/outfits/widgets/sticker_art.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What a sticker shows: its drawing, emoji or hairstyle. Fills its box,
 /// kept square.
@@ -228,7 +229,7 @@ class _StickerTile extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: locked ? '$label, Premium' : label,
+      label: locked ? tr('{0}, Premium', [label]) : label,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -364,7 +365,7 @@ Future<BoardBackground?> showBackgroundSheet(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetHeader(title: 'Background'),
+            SheetHeader(title: tr('Background')),
             ColorRow<BoardBackground>(
               options: BoardBackground.values,
               selected: current,

@@ -31,6 +31,7 @@ import 'package:all_fits/features/trips/packing_list.dart';
 import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum _DayChoice { pick, create, swipe }
 
@@ -111,18 +112,18 @@ abstract final class TripFlows {
             ),
             ListTile(
               leading: const Icon(Icons.checkroom_outlined),
-              title: const Text('Choose a saved outfit'),
+              title: Text(tr('Choose a saved outfit')),
               onTap: () => Navigator.of(sheetContext).pop(_DayChoice.pick),
             ),
             ListTile(
               leading: const Icon(Icons.add_rounded),
-              title: const Text('Create a new outfit'),
+              title: Text(tr('Create a new outfit')),
               onTap: () => Navigator.of(sheetContext).pop(_DayChoice.create),
             ),
             ListTile(
               leading: const Icon(Icons.swipe_outlined),
-              title: const Text('Swipe an outfit'),
-              subtitle: const Text('Dressing Room'),
+              title: Text(tr('Swipe an outfit')),
+              subtitle: Text(tr('Dressing Room')),
               onTap: () => Navigator.of(sheetContext).pop(_DayChoice.swipe),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -162,7 +163,7 @@ abstract final class TripFlows {
   ) async {
     final outfitId = await showOutfitPickerSheet(
       context,
-      title: 'Outfit for ${AppFormatters.shortDate(day)}',
+      title: tr('Outfit for {0}', [AppFormatters.shortDate(day)]),
       outfits: context.read<OutfitController>().outfits,
     );
     if (outfitId == null || !context.mounted) return;
@@ -196,12 +197,13 @@ abstract final class TripFlows {
     if (planned == null || planned.outfitId == trip.outfitOn(day)) return true;
     return showConfirmDialog(
       context,
-      title: 'Replace the planned outfit?',
-      message:
-          '${AppFormatters.shortDate(day)} already has an outfit on your '
-          'planner. Use a new one for the trip instead?',
-      confirmLabel: 'Replace',
-      cancelLabel: 'Keep it',
+      title: tr('Replace the planned outfit?'),
+      message: tr(
+        '{0} already has an outfit on your planner. Use a new one for the trip instead?',
+        [AppFormatters.shortDate(day)],
+      ),
+      confirmLabel: tr('Replace'),
+      cancelLabel: tr('Keep it'),
     );
   }
 
@@ -237,15 +239,15 @@ abstract final class TripFlows {
         if (trip.outfitOn(day) == null && !day.isBefore(today)) day,
     ];
     if (!service.isConfigured) {
-      context.showSnack('The AI stylist is not set up.');
+      context.showSnack(tr('The AI stylist is not set up.'));
       return;
     }
     if (days.isEmpty) {
-      context.showSnack('Every day of this trip already has an outfit.');
+      context.showSnack(tr('Every day of this trip already has an outfit.'));
       return;
     }
     if (wardrobe.length < 3) {
-      context.showSnack('Add a few more clothes first, then ask again.');
+      context.showSnack(tr('Add a few more clothes first, then ask again.'));
       return;
     }
     await store.load();
@@ -254,8 +256,10 @@ abstract final class TripFlows {
     if (limit != null &&
         math.max(0, limit + store.bonusToday - store.usedToday) == 0) {
       context.showSnack(
-        'You’ve used today’s AI Stylist messages. Try again tomorrow, or go '
-        'Premium for unlimited ones.',
+        tr(
+          'You’ve used today’s AI Stylist messages. Try again tomorrow, or go '
+          'Premium for unlimited ones.',
+        ),
       );
       return;
     }
@@ -288,7 +292,7 @@ abstract final class TripFlows {
     if (suggestions.isEmpty) {
       context.showSnack(
         answer.text.isEmpty
-            ? 'The stylist didn’t suggest any outfits. Try again.'
+            ? tr('The stylist didn’t suggest any outfits. Try again.')
             : answer.text,
       );
       return;
@@ -312,24 +316,28 @@ abstract final class TripFlows {
     List<DateTime> days,
     Map<DateTime, DayForecast> forecast,
   ) {
-    final place = trip.location == null ? '' : ' to ${trip.location!.label}';
+    final place = trip.location == null
+        ? ''
+        : tr(' to {0}', [trip.location!.label]);
     final lines = [
       for (final (index, day) in days.indexed)
         '${index + 1}. ${AppFormatters.weekdayName(day)} '
             '${AppFormatters.shortDate(day)}'
             '${switch (forecast[day]) {
-              final f? => ': ${f.condition.label.toLowerCase()}, '
-                  '${f.low.round()}–${f.high.round()}°C, '
-                  '${f.rainChance}% chance of rain',
+              final f? => tr(': {0}, {1}–{2}°C, {3}% chance of rain', [f.condition.label.toLowerCase(), f.low.round(), f.high.round(), f.rainChance]),
               null => '',
             }}',
     ];
-    return 'I’m going on a ${AppFormatters.count(trip.length, 'day')} trip '
-        '“${trip.name}”$place. Make exactly '
-        '${AppFormatters.count(days.length, 'outfit')} from my wardrobe, one '
-        'for each of these days, in this order:\n${lines.join('\n')}\n'
-        'Dress for each day’s weather and re-use pieces across days so I '
-        'can pack light. Leave the packing list and shopping empty.';
+    return tr(
+      'I’m going on a {0} trip “{1}”{2}. Make exactly {3} from my wardrobe, one for each of these days, in this order:\n{4}\nDress for each day’s weather and re-use pieces across days so I can pack light. Leave the packing list and shopping empty.',
+      [
+        AppFormatters.count(trip.length, 'day'),
+        trip.name,
+        place,
+        AppFormatters.count(days.length, 'outfit'),
+        lines.join('\n'),
+      ],
+    );
   }
 
   static Future<void> _addSuggestions(
@@ -346,13 +354,16 @@ abstract final class TripFlows {
     if (busy.isNotEmpty) {
       replaceBusy = await showConfirmDialog(
         context,
-        title: 'Replace planned outfits?',
-        message:
-            '${AppFormatters.count(busy.length, 'day')} of the trip already '
-            '${busy.length == 1 ? 'has an outfit' : 'have outfits'} on your '
-            'planner. Replace them with the stylist’s, or keep them?',
-        confirmLabel: 'Replace',
-        cancelLabel: 'Keep them',
+        title: tr('Replace planned outfits?'),
+        message: tr(
+          '{0} of the trip already {1} on your planner. Replace them with the stylist’s, or keep them?',
+          [
+            AppFormatters.count(busy.length, 'day'),
+            busy.length == 1 ? tr('has an outfit') : tr('have outfits'),
+          ],
+        ),
+        confirmLabel: tr('Replace'),
+        cancelLabel: tr('Keep them'),
       );
       if (!context.mounted) return;
     }
@@ -366,7 +377,7 @@ abstract final class TripFlows {
         final saved = await outfits.createOutfit(
           OutfitDraft(
             name: outfit.name.isEmpty
-                ? '${trip.name} · Day ${trip.days.indexOf(day) + 1}'
+                ? tr('{0} · Day {1}', [trip.name, trip.days.indexOf(day) + 1])
                 : outfit.name,
             itemIds: outfit.itemIds,
             notes: outfit.reason,
@@ -383,8 +394,10 @@ abstract final class TripFlows {
     if (context.mounted) {
       context.showSnack(
         added == 0
-            ? 'Nothing was added; your planned outfits stay.'
-            : 'Added ${AppFormatters.count(added, 'outfit')} to the trip',
+            ? tr('Nothing was added; your planned outfits stay.')
+            : tr('Added {0} to the trip', [
+                AppFormatters.count(added, 'outfit'),
+              ]),
       );
     }
   }
@@ -398,9 +411,9 @@ abstract final class TripFlows {
     if (planned == 0) {
       final confirmed = await showConfirmDialog(
         context,
-        title: 'Delete “${trip.name}”?',
-        message: 'Your outfits and clothes stay.',
-        confirmLabel: 'Delete',
+        title: tr('Delete “{0}”?', [trip.name]),
+        message: tr('Your outfits and clothes stay.'),
+        confirmLabel: tr('Delete'),
         destructive: true,
       );
       choice = confirmed ? _DeleteChoice.keepPlans : null;
@@ -408,22 +421,26 @@ abstract final class TripFlows {
       choice = await showDialog<_DeleteChoice>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: Text('Delete “${trip.name}”?'),
+          title: Text(tr('Delete “{0}”?', [trip.name])),
           content: Text(
-            '${AppFormatters.count(planned, 'outfit')} of this trip '
-            '${planned == 1 ? 'is' : 'are'} on your planner. Take '
-            '${planned == 1 ? 'it' : 'them'} off the planner too? The '
-            'outfits themselves, and your clothes, stay either way.',
+            tr(
+              '{0} of this trip {1} on your planner. Take {2} off the planner too? The outfits themselves, and your clothes, stay either way.',
+              [
+                AppFormatters.count(planned, 'outfit'),
+                tr(planned == 1 ? 'is' : 'are'),
+                tr(planned == 1 ? 'it' : 'them'),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(tr('Cancel')),
             ),
             TextButton(
               onPressed: () =>
                   Navigator.of(dialogContext).pop(_DeleteChoice.keepPlans),
-              child: const Text('Keep on planner'),
+              child: Text(tr('Keep on planner')),
             ),
             TextButton(
               onPressed: () =>
@@ -431,7 +448,7 @@ abstract final class TripFlows {
               style: TextButton.styleFrom(
                 foregroundColor: context.palette.danger,
               ),
-              child: const Text('Remove'),
+              child: Text(tr('Remove')),
             ),
           ],
         ),
@@ -443,7 +460,7 @@ abstract final class TripFlows {
       if (choice == _DeleteChoice.removePlans && context.mounted) {
         await _unplan(context, plans);
       }
-      if (context.mounted) context.showSnack('Trip deleted');
+      if (context.mounted) context.showSnack(tr('Trip deleted'));
       return true;
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);
@@ -454,10 +471,10 @@ abstract final class TripFlows {
   static Future<void> addExtra(BuildContext context, Trip trip) async {
     final label = await showTextInputDialog(
       context,
-      title: 'Add something to pack',
-      hint: 'e.g. Phone charger',
+      title: tr('Add something to pack'),
+      hint: tr('e.g. Phone charger'),
       maxLength: Validators.maxNameLength,
-      confirmLabel: 'Add',
+      confirmLabel: tr('Add'),
     );
     if (label == null || label.trim().isEmpty || !context.mounted) return;
     try {
@@ -476,7 +493,7 @@ abstract final class TripFlows {
       itemById: wardrobe.itemById,
     );
     await Clipboard.setData(ClipboardData(text: list.toText()));
-    if (context.mounted) context.showSnack('Packing list copied');
+    if (context.mounted) context.showSnack(tr('Packing list copied'));
   }
 
   /// The planner entries still holding the trip's plans for [outfitByDay].
@@ -563,8 +580,8 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
       firstDate: first,
       lastDate: DateHelpers.addDays(today, 365),
       initialDateRange: _dates,
-      helpText: 'Trip dates',
-      saveText: 'Done',
+      helpText: tr('Trip dates'),
+      saveText: tr('Done'),
     );
     if (picked != null) {
       setState(() {
@@ -583,8 +600,8 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
     if (current != null && current.name == typed) return current;
     final found = await context.read<WeatherController>().findCity(typed);
     if (found == null) {
-      throw const ValidationException(
-        'We couldn’t find that city. Check the spelling.',
+      throw ValidationException(
+        tr('We couldn’t find that city. Check the spelling.'),
       );
     }
     return found;
@@ -595,13 +612,13 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
     final dates = _dates;
     final nameError = Validators.requiredName(
       _name.text,
-      subject: 'a trip name',
+      subject: tr('a trip name'),
     );
     String? error = nameError;
-    if (error == null && dates == null) error = 'Choose the trip dates';
+    if (error == null && dates == null) error = tr('Choose the trip dates');
     if (error == null &&
         DateHelpers.daysBetween(dates!.start, dates.end) + 1 > Trip.maxDays) {
-      error = 'A trip can be at most ${Trip.maxDays} days long';
+      error = tr('A trip can be at most {0} days long', [Trip.maxDays]);
     }
     if (error != null) {
       setState(() => _error = error);
@@ -646,7 +663,9 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SheetHeader(
-                title: widget.trip == null ? 'Plan a trip' : 'Edit trip',
+                title: widget.trip == null
+                    ? tr('Plan a trip')
+                    : tr('Edit trip'),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -660,9 +679,9 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
                       autofocus: widget.trip == null,
                       textCapitalization: TextCapitalization.sentences,
                       maxLength: Validators.maxNameLength,
-                      decoration: const InputDecoration(
-                        labelText: 'Trip name',
-                        hintText: 'e.g. Đà Lạt weekend',
+                      decoration: InputDecoration(
+                        labelText: tr('Trip name'),
+                        hintText: tr('e.g. Đà Lạt weekend'),
                         counterText: '',
                       ),
                     ),
@@ -678,8 +697,8 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
                         }
                       },
                       decoration: InputDecoration(
-                        labelText: 'City (optional)',
-                        hintText: 'For each day’s weather, e.g. Da Lat',
+                        labelText: tr('City (optional)'),
+                        hintText: tr('For each day’s weather, e.g. Da Lat'),
                         counterText: '',
                         errorText: _cityError,
                       ),
@@ -690,7 +709,7 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
                       icon: const Icon(Icons.date_range_rounded),
                       label: Text(
                         dates == null
-                            ? 'Choose dates'
+                            ? tr('Choose dates')
                             : '${AppFormatters.shortDate(dates.start)} – '
                                   '${AppFormatters.shortDate(dates.end)} · '
                                   '${AppFormatters.count(DateHelpers.daysBetween(dates.start, dates.end) + 1, 'day')}',
@@ -715,8 +734,8 @@ class _TripDetailsSheetState extends State<_TripDetailsSheet> {
                             )
                           : Text(
                               widget.trip == null
-                                  ? 'Create trip'
-                                  : 'Save changes',
+                                  ? tr('Create trip')
+                                  : tr('Save changes'),
                             ),
                     ),
                   ],
@@ -778,14 +797,14 @@ class _StylingDialogState extends State<_StylingDialog> {
     final error = _error;
     return AlertDialog(
       title: Text(
-        error == null ? 'Styling your trip…' : 'Something went wrong',
+        error == null ? tr('Styling your trip…') : tr('Something went wrong'),
       ),
       content: error == null
-          ? const Row(
+          ? Row(
               children: [
                 CircularProgressIndicator(),
                 SizedBox(width: AppSpacing.lg),
-                Expanded(child: Text('Picking an outfit for each day.')),
+                Expanded(child: Text(tr('Picking an outfit for each day.'))),
               ],
             )
           : Text(describeError(error)),
@@ -795,10 +814,10 @@ class _StylingDialogState extends State<_StylingDialog> {
             _stop();
             Navigator.of(context).pop();
           },
-          child: Text(error == null ? 'Cancel' : 'Close'),
+          child: Text(error == null ? tr('Cancel') : tr('Close')),
         ),
         if (error != null)
-          TextButton(onPressed: _start, child: const Text('Try again')),
+          TextButton(onPressed: _start, child: Text(tr('Try again'))),
       ],
     );
   }
@@ -821,7 +840,7 @@ class _SuggestionsSheet extends StatelessWidget {
       maxChildSize: 0.95,
       builder: (context, scrollController) => Column(
         children: [
-          const SheetHeader(title: 'Outfits for your trip'),
+          SheetHeader(title: tr('Outfits for your trip')),
           Expanded(
             child: ListView(
               controller: scrollController,
@@ -887,14 +906,14 @@ class _SuggestionsSheet extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Not now'),
+                      child: Text(tr('Not now')),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: FilledButton(
                       onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('Add to trip'),
+                      child: Text(tr('Add to trip')),
                     ),
                   ),
                 ],

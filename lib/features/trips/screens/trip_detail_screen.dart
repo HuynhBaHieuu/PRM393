@@ -20,6 +20,7 @@ import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/trips/trip_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum _TripMenu { edit, copy, untick, delete }
 
@@ -53,9 +54,9 @@ class TripDetailScreen extends StatelessWidget {
       (c) => c.tripById(tripId),
     );
     if (trip == null) {
-      return const NotFoundView(
-        title: 'Trip not found',
-        message: 'This trip has been deleted.',
+      return NotFoundView(
+        title: tr('Trip not found'),
+        message: tr('This trip has been deleted.'),
       );
     }
     return DefaultTabController(
@@ -76,29 +77,32 @@ class TripDetailScreen extends StatelessWidget {
           ),
           actions: [
             PopupMenuButton<_TripMenu>(
-              tooltip: 'More',
+              tooltip: tr('More'),
               onSelected: (choice) => _onMenu(context, trip, choice),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: _TripMenu.edit, child: Text('Edit trip')),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: _TripMenu.edit,
+                  child: Text(tr('Edit trip')),
+                ),
                 PopupMenuItem(
                   value: _TripMenu.copy,
-                  child: Text('Copy packing list'),
+                  child: Text(tr('Copy packing list')),
                 ),
                 PopupMenuItem(
                   value: _TripMenu.untick,
-                  child: Text('Untick everything'),
+                  child: Text(tr('Untick everything')),
                 ),
                 PopupMenuItem(
                   value: _TripMenu.delete,
-                  child: Text('Delete trip'),
+                  child: Text(tr('Delete trip')),
                 ),
               ],
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Days'),
-              Tab(text: 'Packing list'),
+              Tab(text: tr('Days')),
+              Tab(text: tr('Packing list')),
             ],
           ),
         ),
@@ -235,14 +239,17 @@ class _DaysTabState extends State<_DaysTab> {
                 ),
               ),
               title: Text(
-                'Day $index · ${AppFormatters.weekdayName(day)}, '
-                '${AppFormatters.shortDate(day)}',
+                tr('Day {0} · {1}, {2}', [
+                  index,
+                  AppFormatters.weekdayName(day),
+                  AppFormatters.shortDate(day),
+                ]),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    outfit?.name ?? 'Tap to choose an outfit',
+                    outfit?.name ?? tr('Tap to choose an outfit'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -252,7 +259,7 @@ class _DaysTabState extends State<_DaysTab> {
               trailing: outfit == null
                   ? null
                   : IconButton(
-                      tooltip: 'Clear this day',
+                      tooltip: tr('Clear this day'),
                       icon: const Icon(Icons.close_rounded),
                       onPressed: () => TripFlows.clearDay(context, trip, day),
                     ),
@@ -298,34 +305,35 @@ class _DaysHeader extends StatelessWidget {
               onPressed: () => TripFlows.edit(context, trip),
               style: TextButton.styleFrom(alignment: Alignment.centerLeft),
               icon: const Icon(Icons.wb_sunny_outlined),
-              label: const Text('Add a city to see each day’s weather'),
+              label: Text(tr('Add a city to see each day’s weather')),
             )
           else if (weatherFailed)
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Weather for ${location.name} is unavailable right now.',
+                    tr('Weather for {0} is unavailable right now.', [
+                      location.name,
+                    ]),
                     style: text.bodySmall,
                   ),
                 ),
-                TextButton(
-                  onPressed: onRetryWeather,
-                  child: const Text('Retry'),
-                ),
+                TextButton(onPressed: onRetryWeather, child: Text(tr('Retry'))),
               ],
             )
           else
             Text(
-              'Weather in ${location.label}. Forecasts reach '
-              '${AppConfig.forecastDays} days ahead.',
+              tr('Weather in {0}. Forecasts reach {1} days ahead.', [
+                location.label,
+                AppConfig.forecastDays,
+              ]),
               style: text.bodySmall,
             ),
           const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
             onPressed: onSuggest,
             icon: const Icon(Icons.auto_awesome_outlined),
-            label: const Text('Suggest outfits with AI Stylist'),
+            label: Text(tr('Suggest outfits with AI Stylist')),
           ),
         ],
       ),
@@ -351,7 +359,10 @@ class _DayWeather extends StatelessWidget {
     final f = forecast;
     if (f == null) {
       if (loading) return const SizedBox.shrink();
-      return Text(tooFar ? 'No forecast yet' : 'No forecast', style: style);
+      return Text(
+        tooFar ? tr('No forecast yet') : tr('No forecast'),
+        style: style,
+      );
     }
     return Row(
       children: [
@@ -360,7 +371,7 @@ class _DayWeather extends StatelessWidget {
         Flexible(
           child: Text(
             '${f.condition.label} · ${f.high.round()}° / ${f.low.round()}°'
-            '${f.rainChance >= 30 ? ' · ${f.rainChance}% rain' : ''}',
+            '${f.rainChance >= 30 ? tr(' · {0}% rain', [f.rainChance]) : ''}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: style,
@@ -389,11 +400,12 @@ class _PackingTab extends StatelessWidget {
     if (list.lines.isEmpty && list.extras.isEmpty) {
       return AppEmptyState(
         icon: Icons.checklist_rounded,
-        title: 'Nothing to pack yet',
-        message:
-            'Choose outfits on the Days tab: their pieces show up here, '
-            'each listed once.',
-        actionLabel: 'Add something else',
+        title: tr('Nothing to pack yet'),
+        message: tr(
+          'Choose outfits on the Days tab: their pieces show up here, '
+          'each listed once.',
+        ),
+        actionLabel: tr('Add something else'),
         onAction: () => TripFlows.addExtra(context, trip),
       );
     }
@@ -413,7 +425,7 @@ class _PackingTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${list.packedCount} of ${list.total} packed',
+                tr('{0} of {1} packed', [list.packedCount, list.total]),
                 style: text.titleMedium,
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -438,7 +450,9 @@ class _PackingTab extends StatelessWidget {
               ),
               title: Text(line.item.name),
               subtitle: line.days > 1
-                  ? Text('Worn ${AppFormatters.count(line.days, 'day')}')
+                  ? Text(
+                      tr('Worn {0}', [AppFormatters.count(line.days, 'day')]),
+                    )
                   : null,
               secondary: SizedBox.square(
                 dimension: 44,
@@ -454,15 +468,17 @@ class _PackingTab extends StatelessWidget {
           trailing: TextButton.icon(
             onPressed: () => TripFlows.addExtra(context, trip),
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Add'),
+            label: Text(tr('Add')),
           ),
         ),
         if (list.extras.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
             child: Text(
-              'Things that aren’t clothes, like a phone charger or '
-              'sunscreen.',
+              tr(
+                'Things that aren’t clothes, like a phone charger or '
+                'sunscreen.',
+              ),
               style: text.bodySmall,
             ),
           ),
@@ -477,7 +493,7 @@ class _PackingTab extends StatelessWidget {
             ),
             title: Text(extra.label),
             secondary: IconButton(
-              tooltip: 'Remove',
+              tooltip: tr('Remove'),
               icon: const Icon(Icons.close_rounded),
               onPressed: () => controller.removeExtra(trip.id, extra.id),
             ),

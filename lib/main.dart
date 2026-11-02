@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:all_fits/app/app.dart';
 import 'package:all_fits/app/app_dependencies.dart';
 import 'package:all_fits/data/sample/sample_data.dart';
+import 'package:all_fits/features/settings/controllers/language_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,5 +16,8 @@ Future<void> main() async {
     ], await rootBundle.loadString(SampleData.photoCreditsAsset));
   });
   final dependencies = await AppDependencies.production();
-  runApp(AllFitsApp(dependencies: dependencies));
+  // Loaded first so the first screen is already in the right language.
+  final language = LanguageController(dependencies.storage);
+  await language.load();
+  runApp(AllFitsApp(dependencies: dependencies, language: language));
 }

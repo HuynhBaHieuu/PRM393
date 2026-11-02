@@ -7,6 +7,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Shared layout for the sign-in screens: brand, title and a scrollable,
 /// keyboard-safe form column capped to form width on tablets.
@@ -128,7 +129,7 @@ class _PasswordFieldState extends State<PasswordField> {
         labelText: widget.label,
         suffixIcon: IconButton(
           focusNode: _toggleFocus,
-          tooltip: _obscured ? 'Show password' : 'Hide password',
+          tooltip: _obscured ? tr('Show password') : tr('Hide password'),
           icon: Icon(
             _obscured
                 ? Icons.visibility_outlined
@@ -224,7 +225,7 @@ class AuthOrDivider extends StatelessWidget {
         const Expanded(child: Divider()),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          child: Text('or', style: context.textTheme.bodySmall),
+          child: Text(tr('or'), style: context.textTheme.bodySmall),
         ),
         const Expanded(child: Divider()),
       ],
@@ -266,7 +267,7 @@ class SocialLoginButton extends StatelessWidget {
                 color: facebookBlue,
               ),
             },
-      label: Text('Continue with ${provider.label}'),
+      label: Text(tr('Continue with {0}', [provider.label])),
     );
   }
 }
@@ -367,7 +368,7 @@ class AuthFootnote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Your account and wardrobe are stored on this device only.',
+      tr('Your account and wardrobe are stored on this device only.'),
       textAlign: TextAlign.center,
       style: context.textTheme.bodySmall,
     );

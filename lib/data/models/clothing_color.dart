@@ -1,5 +1,7 @@
 import 'dart:ui' show Color;
 
+import 'package:all_fits/core/l10n/l10n.dart';
+
 /// A curated set of colors keeps filtering and statistics meaningful.
 enum ClothingColor {
   black('Black', Color(0xFF1E1E1E)),
@@ -17,9 +19,11 @@ enum ClothingColor {
   orange('Orange', Color(0xFFD9793A)),
   multi('Multicolor', Color(0xFFB0A090));
 
-  const ClothingColor(this.label, this.swatch);
+  const ClothingColor(this._label, this.swatch);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   /// Representative color. For [multi], widgets draw [multiBlocks] instead.
   final Color swatch;

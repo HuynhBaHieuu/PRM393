@@ -3,6 +3,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/data/models/weather.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Turns a weather report into styling advice and outfit picks.
 class WeatherAdvice {
@@ -35,12 +36,12 @@ class WeatherAdvice {
   }
 
   String get summary {
-    if (isWet && isCold) return 'Cold and wet. Layer up and grab a coat.';
-    if (isWet) return 'Rain is likely. Bring a jacket.';
-    if (isCold) return 'It’s cold today. Layer up with outerwear.';
-    if (isHot) return 'A hot one. Keep it light and breathable.';
-    if (needsOuterwear) return 'Cool today. A light layer will help.';
-    return 'Mild weather. Most of your wardrobe works today.';
+    if (isWet && isCold) return tr('Cold and wet. Layer up and grab a coat.');
+    if (isWet) return tr('Rain is likely. Bring a jacket.');
+    if (isCold) return tr('It’s cold today. Layer up with outerwear.');
+    if (isHot) return tr('A hot one. Keep it light and breathable.');
+    if (needsOuterwear) return tr('Cool today. A light layer will help.');
+    return tr('Mild weather. Most of your wardrobe works today.');
   }
 
   /// Outfits that suit today, best first. [itemsOf] resolves an outfit's

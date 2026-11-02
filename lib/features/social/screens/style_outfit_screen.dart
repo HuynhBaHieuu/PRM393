@@ -13,6 +13,7 @@ import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// "Add outfit for …": pick pieces from [recipient]'s closet, arrange them,
 /// add a note and send. The recipient finds it under Styled together.
@@ -57,7 +58,7 @@ class _StyleOutfitScreenState extends State<StyleOutfitScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Add outfit for ${widget.recipient.username}'),
+        title: Text(tr('Add outfit for {0}', [widget.recipient.username])),
       ),
       body: FutureBuilder<PublicCloset?>(
         future: _closet,
@@ -79,10 +80,12 @@ class _StyleOutfitScreenState extends State<StyleOutfitScreen> {
           if (items.isEmpty) {
             return AppEmptyState(
               icon: Icons.checkroom_outlined,
-              title: 'Nothing to style yet',
+              title: tr('Nothing to style yet'),
               message: snapshot.data == null
-                  ? 'You can’t see this closet anymore.'
-                  : '${widget.recipient.username} hasn’t added any clothes.',
+                  ? tr('You can’t see this closet anymore.')
+                  : tr('{0} hasn’t added any clothes.', [
+                      widget.recipient.username,
+                    ]),
             );
           }
           final shown = _category == null
@@ -155,7 +158,7 @@ class _SelectionBar extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  count == 0 ? 'Pick pieces' : '$count selected',
+                  count == 0 ? tr('Pick pieces') : tr('{0} selected', [count]),
                   style: context.textTheme.titleMedium,
                 ),
               ),
@@ -163,7 +166,7 @@ class _SelectionBar extends StatelessWidget {
                 onPressed: onNext,
                 iconAlignment: IconAlignment.end,
                 icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text('Next'),
+                label: Text(tr('Next')),
               ),
             ],
           ),
@@ -210,7 +213,7 @@ class _ComposeScreenState extends State<_ComposeScreen> {
       );
       if (!mounted) return;
       context.showSnack(
-        'Sent to ${widget.recipient.username}. We’ll let them know.',
+        tr('Sent to {0}. We’ll let them know.', [widget.recipient.username]),
       );
       navigator.pop(true);
     } catch (error) {
@@ -225,7 +228,7 @@ class _ComposeScreenState extends State<_ComposeScreen> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return Scaffold(
-      appBar: AppBar(title: const Text('Arrange outfit')),
+      appBar: AppBar(title: Text(tr('Arrange outfit'))),
       body: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(
@@ -262,7 +265,7 @@ class _ComposeScreenState extends State<_ComposeScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Drag to move, pinch to resize and turn.',
+            tr('Drag to move, pinch to resize and turn.'),
             style: context.textTheme.bodySmall,
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -273,8 +276,8 @@ class _ComposeScreenState extends State<_ComposeScreen> {
             maxLength: _maxMessageLength,
             textCapitalization: TextCapitalization.sentences,
             decoration: InputDecoration(
-              labelText: 'Message for ${widget.recipient.username}',
-              hintText: 'e.g. Try this for Friday dinner',
+              labelText: tr('Message for {0}', [widget.recipient.username]),
+              hintText: tr('e.g. Try this for Friday dinner'),
               alignLabelWithHint: true,
             ),
           ),
@@ -282,7 +285,7 @@ class _ComposeScreenState extends State<_ComposeScreen> {
           FilledButton.icon(
             onPressed: _sending ? null : _send,
             icon: const Icon(Icons.send_rounded),
-            label: Text('Send to ${widget.recipient.username}'),
+            label: Text(tr('Send to {0}', [widget.recipient.username])),
           ),
         ],
       ),

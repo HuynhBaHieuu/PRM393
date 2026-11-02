@@ -1,3 +1,5 @@
+import 'package:all_fits/core/l10n/l10n.dart';
+
 abstract final class Validators {
   static const int maxNameLength = 60;
 
@@ -21,9 +23,9 @@ abstract final class Validators {
 
   static String? email(String? value) {
     final text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Please enter your email';
+    if (text.isEmpty) return tr('Please enter your email');
     if (text.length > maxEmailLength || !_emailPattern.hasMatch(text)) {
-      return 'Enter a valid email address';
+      return tr('Enter a valid email address');
     }
     return null;
   }
@@ -31,35 +33,35 @@ abstract final class Validators {
   /// Rules for choosing a new password.
   static String? newPassword(String? value) {
     final text = value ?? '';
-    if (text.isEmpty) return 'Please choose a password';
+    if (text.isEmpty) return tr('Please choose a password');
     if (text.length < minPasswordLength) {
-      return 'Use at least $minPasswordLength characters';
+      return tr('Use at least {0} characters', [minPasswordLength]);
     }
     if (text.length > maxPasswordLength) {
-      return 'Keep it under $maxPasswordLength characters';
+      return tr('Keep it under {0} characters', [maxPasswordLength]);
     }
     if (!_letter.hasMatch(text) || !_digit.hasMatch(text)) {
-      return 'Include at least one letter and one number';
+      return tr('Include at least one letter and one number');
     }
     return null;
   }
 
   static String? requiredPassword(String? value) =>
-      (value ?? '').isEmpty ? 'Please enter your password' : null;
+      (value ?? '').isEmpty ? tr('Please enter your password') : null;
 
   static String? confirmPassword(String? value, String password) {
-    if ((value ?? '').isEmpty) return 'Please confirm your password';
-    return value == password ? null : 'Passwords don’t match';
+    if ((value ?? '').isEmpty) return tr('Please confirm your password');
+    return value == password ? null : tr('Passwords don’t match');
   }
 
   static String? requiredName(
     String? value, {
-    String subject = 'a name',
+    String? subject,
     int max = maxNameLength,
   }) {
     final text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Please enter $subject';
-    if (text.length > max) return 'Keep it under $max characters';
+    if (text.isEmpty) return tr('Please enter {0}', [subject ?? tr('a name')]);
+    if (text.length > max) return tr('Keep it under {0} characters', [max]);
     return null;
   }
 
@@ -72,13 +74,13 @@ abstract final class Validators {
   static String? username(String? value) {
     final text = value?.trim() ?? '';
     if (text.length < minUsernameLength) {
-      return 'Use at least $minUsernameLength characters';
+      return tr('Use at least {0} characters', [minUsernameLength]);
     }
     if (text.length > maxUsernameLength) {
-      return 'Keep it under ${maxUsernameLength + 1} characters';
+      return tr('Keep it under {0} characters', [maxUsernameLength + 1]);
     }
     if (!_usernamePattern.hasMatch(text)) {
-      return 'Use lowercase letters, numbers, _ and . only';
+      return tr('Use lowercase letters, numbers, _ and . only');
     }
     return null;
   }
@@ -86,7 +88,7 @@ abstract final class Validators {
   static String? optionalName(String? value) {
     final text = value?.trim() ?? '';
     if (text.length > maxNameLength) {
-      return 'Keep it under $maxNameLength characters';
+      return tr('Keep it under {0} characters', [maxNameLength]);
     }
     return null;
   }
@@ -95,11 +97,11 @@ abstract final class Validators {
   static String? optionalLink(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
-    if (text.length > maxLinkLength) return 'That link is too long';
+    if (text.length > maxLinkLength) return tr('That link is too long');
     final uri = Uri.tryParse(text.contains('://') ? text : 'https://$text');
     final host = uri?.host ?? '';
     if (text.contains(RegExp(r'\s')) || !host.contains('.')) {
-      return 'Enter a valid web address';
+      return tr('Enter a valid web address');
     }
     return null;
   }
@@ -108,9 +110,9 @@ abstract final class Validators {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
     final price = parsePrice(text);
-    if (price == null) return 'Enter a valid price';
-    if (price < 0) return 'Price can’t be negative';
-    if (price > maxPrice) return 'That price looks too high';
+    if (price == null) return tr('Enter a valid price');
+    if (price < 0) return tr('Price can’t be negative');
+    if (price > maxPrice) return tr('That price looks too high');
     return null;
   }
 

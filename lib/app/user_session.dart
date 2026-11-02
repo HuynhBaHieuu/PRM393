@@ -32,6 +32,7 @@ import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.da
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Everything that belongs to one signed-in user: their controllers,
 /// providers and navigation stack. Keyed by user id, so signing out or
@@ -197,9 +198,9 @@ class _UserSessionState extends State<UserSession> {
       ?..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: const Text('Your AI try-on is ready'),
+          content: Text(tr('Your AI try-on is ready')),
           action: SnackBarAction(
-            label: 'View',
+            label: tr('View'),
             onPressed: () {
               final navigator = _navigator.currentContext;
               if (navigator != null) TryOnFlows.open(navigator, result);
@@ -215,8 +216,9 @@ class _UserSessionState extends State<UserSession> {
       ..showSnackBar(
         SnackBar(
           content: Text(
-            'Your try-on didn’t work: ${describeError(error)} No credit was '
-            'used.',
+            tr('Your try-on didn’t work: {0} No credit was used.', [
+              describeError(error),
+            ]),
           ),
         ),
       );
@@ -277,7 +279,7 @@ class _UserSessionState extends State<UserSession> {
                         top: false,
                         child: TextButton(
                           onPressed: () => AuthFlows.signOut(context),
-                          child: const Text('Log out'),
+                          child: Text(tr('Log out')),
                         ),
                       ),
                     ],

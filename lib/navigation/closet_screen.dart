@@ -14,6 +14,7 @@ import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/screens/wardrobe_screen.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The Profile tab: the user's name with Planner, Insights and account
 /// buttons, their community profile when online, and the closet split into
@@ -64,7 +65,7 @@ class _ClosetScreenState extends State<ClosetScreen>
         ? settings.username
         : settings.displayName.isNotEmpty
         ? settings.displayName
-        : 'My closet';
+        : tr('My closet');
 
     return SafeArea(
       bottom: false,
@@ -88,17 +89,17 @@ class _ClosetScreenState extends State<ClosetScreen>
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Planner',
+                  tooltip: tr('Planner'),
                   onPressed: () => AppNavigator.planner(context),
                   icon: const Icon(Icons.calendar_today_outlined),
                 ),
                 IconButton(
-                  tooltip: 'Insights',
+                  tooltip: tr('Insights'),
                   onPressed: () => AppNavigator.insights(context),
                   icon: const Icon(Icons.pie_chart_outline_rounded),
                 ),
                 IconButton(
-                  tooltip: 'Settings',
+                  tooltip: tr('Settings'),
                   onPressed: () => AppNavigator.settings(context),
                   icon: const Icon(Icons.menu_rounded),
                 ),
@@ -185,7 +186,9 @@ class _CommunityHeader extends StatelessWidget {
                 child: FilledButton(
                   onPressed: () => AppNavigator.editProfile(context),
                   style: style,
-                  child: Text(me == null ? 'Create profile' : 'Edit profile'),
+                  child: Text(
+                    me == null ? tr('Create profile') : tr('Edit profile'),
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -195,7 +198,9 @@ class _CommunityHeader extends StatelessWidget {
                       ? () => AppNavigator.userSearch(context)
                       : () => SocialFlows.shareProfile(context, me.username),
                   style: style,
-                  child: Text(me == null ? 'Find friends' : 'Share profile'),
+                  child: Text(
+                    me == null ? tr('Find friends') : tr('Share profile'),
+                  ),
                 ),
               ),
             ],
@@ -219,7 +224,7 @@ class _AddPhotoBadge extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: 'Change profile photo',
+      label: tr('Change profile photo'),
       child: GestureDetector(
         onTap: onTap,
         child: Container(

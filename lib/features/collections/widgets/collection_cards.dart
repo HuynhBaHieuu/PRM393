@@ -15,6 +15,7 @@ import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The pieces and outfits a collection points at that still exist.
 typedef CollectionContents = ({List<ClothingItem> items, List<Outfit> outfits});
@@ -34,7 +35,7 @@ CollectionContents watchCollectionContents(
 
 /// "3 pieces · 2 outfits".
 String collectionCountLine(CollectionContents contents) {
-  if (contents.items.isEmpty && contents.outfits.isEmpty) return 'Empty';
+  if (contents.items.isEmpty && contents.outfits.isEmpty) return tr('Empty');
   return [
     if (contents.items.isNotEmpty)
       AppFormatters.count(contents.items.length, 'piece'),

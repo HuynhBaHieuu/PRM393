@@ -10,6 +10,7 @@ import 'package:all_fits/app/app_dependencies.dart';
 import 'package:all_fits/app/app_material_app.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
@@ -229,6 +230,88 @@ void main() {
     await _openSettings(tester);
     expect(find.text('Your wardrobe'), findsOneWidget);
     expect(find.text('Archive'), findsOneWidget);
+  });
+
+  testWidgets('switching to Vietnamese translates the open app', (
+    tester,
+  ) async {
+    addTearDown(() => L10n.current = AppLanguage.en);
+    final storage = InMemoryStorageService();
+    await _pumpApp(tester, testDependencies(storage: storage));
+    await _openSettings(tester);
+    await tester.scrollUntilVisible(find.text('Language'), 200);
+    await _tap(tester, find.text('Language'));
+    await _tap(tester, find.text('Tiếng Việt'));
+
+    expect(find.text('Cài đặt'), findsOneWidget);
+    expect(find.text('Tủ đồ của bạn'), findsOneWidget);
+    expect(find.text('Settings'), findsNothing);
+    expect(storage.values[StorageKeys.language], 'vi');
+
+    // pageBack() looks for the English "Back" tooltip.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Trang chủ'), findsOneWidget);
+
+    await _tapNav(tester, 'Hồ sơ');
+    await _tap(tester, find.byTooltip('Cài đặt'));
+    await tester.scrollUntilVisible(find.text('Ngôn ngữ'), 200);
+    await _tap(tester, find.text('Ngôn ngữ'));
+    await _tap(tester, find.text('English'));
+    expect(find.text('Settings'), findsOneWidget);
+  });
+
+  testWidgets('main screens fit on a phone in Vietnamese', (tester) async {
+    // Vietnamese runs longer than English; any overflow fails the test.
+    L10n.current = AppLanguage.vi;
+    addTearDown(() => L10n.current = AppLanguage.en);
+    await _pumpApp(tester, testDependencies(seedSampleData: true));
+    await tester.scrollUntilVisible(
+      find.text('Cho hôm nay'),
+      300,
+      scrollable: _homeScroll,
+    );
+    await tester.pumpAndSettle();
+
+    await _tapNav(tester, 'Hồ sơ');
+    for (final tab in ['Quần áo', 'Outfit', 'Bộ sưu tập']) {
+      await _tap(tester, find.widgetWithText(Tab, tab));
+    }
+    await _tap(tester, find.byTooltip('Lịch'));
+    expect(find.text('Hôm nay'), findsWidgets);
+    await _tap(tester, find.widgetWithText(Tab, 'Tháng'));
+    expect(find.text('Tháng 10, 2026'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('Thống kê'));
+    expect(find.text('Thống kê tủ đồ'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('Cài đặt'));
+    await tester.scrollUntilVisible(find.text('Ngôn ngữ'), 300);
+    expect(find.text('Tiếng Việt'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Nâng cấp Premium'), -300);
+    await _tap(tester, find.text('Nâng cấp Premium'));
+    expect(find.text('Gói hiện tại'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    // A piece's detail page, the add form and the outfit builder.
+    await _tap(tester, find.widgetWithText(Tab, 'Quần áo'));
+    await _tap(tester, find.byType(ClothingTile).first);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('Tạo'));
+    await _tap(tester, find.text('Thêm quần áo'));
+    await _tap(tester, find.text('Từ ảnh'));
+    await _tap(tester, find.text('Lưu'));
+    expect(find.text('Cần có ảnh'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('Tạo'));
+    await _tap(tester, find.text('Tạo outfit'));
   });
 
   testWidgets('sample data is seeded on first launch only', (tester) async {

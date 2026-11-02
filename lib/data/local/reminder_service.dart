@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:all_fits/core/constants/app_config.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' "Daily reminders": one notification a day to log the outfit of
 /// the day. Abstract so tests and unsupported platforms can skip it.
@@ -36,10 +37,10 @@ class LocalReminderService implements ReminderService {
   bool _ready = false;
 
   static const int _dailyId = 1;
-  static const AndroidNotificationDetails _android = AndroidNotificationDetails(
+  static AndroidNotificationDetails get _android => AndroidNotificationDetails(
     'daily_reminder',
-    'Daily reminder',
-    channelDescription: 'A reminder to log your outfit of the day',
+    tr('Daily reminder'),
+    channelDescription: tr('A reminder to log your outfit of the day'),
   );
 
   static bool get isSupported =>
@@ -69,10 +70,10 @@ class LocalReminderService implements ReminderService {
       await _plugin.periodicallyShow(
         id: _dailyId,
         repeatInterval: RepeatInterval.daily,
-        notificationDetails: const NotificationDetails(android: _android),
+        notificationDetails: NotificationDetails(android: _android),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        title: 'What are you wearing today?',
-        body: 'Log your outfit of the day in ${AppConfig.appName}.',
+        title: tr('What are you wearing today?'),
+        body: tr('Log your outfit of the day in {0}.', [AppConfig.appName]),
       );
       return true;
     } catch (error) {

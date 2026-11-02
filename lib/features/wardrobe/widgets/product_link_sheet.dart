@@ -9,6 +9,7 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/remote/product_link_service.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Asks for a shop's product link, reads the page and, when it has several
 /// photos, lets the user pick the main one. Resolves to null when the user
@@ -69,7 +70,9 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
   Future<void> _read() async {
     final text = _link.text.trim();
     if (ProductPageParser.findUrl(text) == null) {
-      setState(() => _inputError = 'Paste a link that starts with https://');
+      setState(
+        () => _inputError = tr('Paste a link that starts with https://'),
+      );
       return;
     }
     FocusScope.of(context).unfocus();
@@ -150,8 +153,8 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
             children: [
               SheetHeader(
                 title: _phase == _Phase.choosing
-                    ? 'Choose the main photo'
-                    : 'Add from a shop link',
+                    ? tr('Choose the main photo')
+                    : tr('Add from a shop link'),
               ),
               Flexible(
                 child: SingleChildScrollView(
@@ -161,14 +164,14 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
                   child: switch (_phase) {
                     _Phase.input => _buildInput(context),
                     _Phase.reading => _Loading(
-                      title: 'Reading the shop page…',
-                      message:
-                          'This takes up to '
-                          '${WebProductLinkService.timeout.inSeconds} seconds.',
+                      title: tr('Reading the shop page…'),
+                      message: tr('This takes up to {0} seconds.', [
+                        WebProductLinkService.timeout.inSeconds,
+                      ]),
                       onCancel: _cancelLoading,
                     ),
                     _Phase.downloading => _Loading(
-                      title: 'Downloading the photo…',
+                      title: tr('Downloading the photo…'),
                       onCancel: _cancelLoading,
                     ),
                     _Phase.choosing => _buildChoice(context),
@@ -188,11 +191,13 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Copy a product’s link from a brand’s own store, such as Yame, '
-          'IVY moda, Juno, 5S Fashion or Tiki. The photo, name, brand and '
-          'price are filled in for you to check before saving. Some shops, '
-          'like Shopee and Zara, only show products in a web browser and '
-          'can’t be read this way.',
+          tr(
+            'Copy a product’s link from a brand’s own store, such as Yame, '
+            'IVY moda, Juno, 5S Fashion or Tiki. The photo, name, brand and '
+            'price are filled in for you to check before saving. Some shops, '
+            'like Shopee and Zara, only show products in a web browser and '
+            'can’t be read this way.',
+          ),
           style: context.textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.md),
@@ -207,11 +212,11 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
           },
           onSubmitted: (_) => _read(),
           decoration: InputDecoration(
-            labelText: 'Product link',
+            labelText: tr('Product link'),
             hintText: 'https://…',
             errorText: _inputError,
             suffixIcon: IconButton(
-              tooltip: 'Paste',
+              tooltip: tr('Paste'),
               icon: const Icon(Icons.content_paste_rounded),
               onPressed: _paste,
             ),
@@ -221,12 +226,14 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
         FilledButton.icon(
           onPressed: _read,
           icon: const Icon(Icons.download_rounded),
-          label: const Text('Get details'),
+          label: Text(tr('Get details')),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Photos from shops are only for your own wardrobe: pieces added '
-          'from a link are never shown on your public profile.',
+          tr(
+            'Photos from shops are only for your own wardrobe: pieces added '
+            'from a link are never shown on your public profile.',
+          ),
           textAlign: TextAlign.center,
           style: context.textTheme.bodySmall?.copyWith(
             color: context.palette.textTertiary,
@@ -243,8 +250,10 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'This page has ${page.imageUrls.length} photos. Pick the one that '
-          'shows the piece best; you can add more photos later.',
+          tr(
+            'This page has {0} photos. Pick the one that shows the piece best; you can add more photos later.',
+            [page.imageUrls.length],
+          ),
           style: context.textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.md),
@@ -260,7 +269,7 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
               Semantics(
                 button: true,
                 selected: index == _chosen,
-                label: 'Photo ${index + 1}',
+                label: tr('Photo {0}', [index + 1]),
                 child: GestureDetector(
                   onTap: () => setState(() => _chosen = index),
                   child: DecoratedBox(
@@ -297,7 +306,7 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
           onPressed: () => _download(page.imageUrls[_chosen]),
-          child: const Text('Use this photo'),
+          child: Text(tr('Use this photo')),
         ),
       ],
     );
@@ -311,7 +320,7 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
         Icon(Icons.link_off_rounded, size: 40, color: palette.textSecondary),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Couldn’t read this page',
+          tr('Couldn’t read this page'),
           textAlign: TextAlign.center,
           style: context.textTheme.titleMedium,
         ),
@@ -324,12 +333,12 @@ class _ProductLinkSheetState extends State<_ProductLinkSheet> {
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
           onPressed: _fillByHand,
-          child: const Text('Add the photo myself'),
+          child: Text(tr('Add the photo myself')),
         ),
         const SizedBox(height: AppSpacing.xs),
         TextButton(
           onPressed: () => setState(() => _phase = _Phase.input),
-          child: const Text('Try another link'),
+          child: Text(tr('Try another link')),
         ),
       ],
     );
@@ -357,7 +366,7 @@ class _Loading extends StatelessWidget {
             Text(message, style: context.textTheme.bodySmall),
           ],
           const SizedBox(height: AppSpacing.lg),
-          OutlinedButton(onPressed: onCancel, child: const Text('Cancel')),
+          OutlinedButton(onPressed: onCancel, child: Text(tr('Cancel'))),
         ],
       ),
     );

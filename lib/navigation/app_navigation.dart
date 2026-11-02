@@ -9,6 +9,7 @@ import 'package:all_fits/features/home/screens/home_screen.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/stylist/widgets/stylist_widgets.dart';
 import 'package:all_fits/navigation/closet_screen.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum AppTab { home, profile }
 
@@ -19,9 +20,11 @@ enum ClosetTab {
   outfits('Outfits'),
   collections('Collections');
 
-  const ClosetTab(this.label);
+  const ClosetTab(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// Selected bottom-navigation tab and closet tab, shared so any screen can
@@ -108,7 +111,7 @@ class AppBottomBar extends StatelessWidget {
           child: Row(
             children: [
               _NavItem(
-                label: 'Home',
+                label: tr('Home'),
                 icon: Icons.home_outlined,
                 selectedIcon: Icons.home_rounded,
                 selected: tab == AppTab.home,
@@ -117,7 +120,7 @@ class AppBottomBar extends StatelessWidget {
               Expanded(
                 child: Center(
                   child: IconButton.filled(
-                    tooltip: 'Create',
+                    tooltip: tr('Create'),
                     onPressed: onAdd,
                     icon: const Icon(Icons.add_rounded, size: 28),
                     style: IconButton.styleFrom(
@@ -129,7 +132,7 @@ class AppBottomBar extends StatelessWidget {
                 ),
               ),
               _NavItem(
-                label: 'Profile',
+                label: tr('Profile'),
                 icon: Icons.person_outline_rounded,
                 selectedIcon: Icons.person_rounded,
                 selected: tab == AppTab.profile,
@@ -210,13 +213,13 @@ Future<void> _showCreateSheet(BuildContext context) {
             children: [
               _CreateRow(
                 leading: const Icon(Icons.checkroom_outlined, size: 30),
-                label: 'Add clothes',
+                label: tr('Add clothes'),
                 onTap: () => go(() => _showAddClothesSheet(context)),
               ),
               const SizedBox(height: AppSpacing.sm),
               _CreateRow(
                 leading: const Icon(Icons.dry_cleaning_outlined, size: 30),
-                label: 'Create outfit',
+                label: tr('Create outfit'),
                 onTap: () => go(() => AppNavigator.createOutfit(context)),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -228,7 +231,7 @@ Future<void> _showCreateSheet(BuildContext context) {
                     ),
                   ),
                 ),
-                label: 'Chat with AI stylist',
+                label: tr('Chat with AI stylist'),
                 onTap: () => go(() => AppNavigator.stylist(context)),
               ),
             ],
@@ -263,13 +266,13 @@ Future<void> _showAddClothesSheet(BuildContext context) {
             children: [
               _CreateRow(
                 leading: const Icon(Icons.photo_camera_outlined, size: 30),
-                label: 'From a photo',
+                label: tr('From a photo'),
                 onTap: () => go(fromLink: false),
               ),
               const SizedBox(height: AppSpacing.sm),
               _CreateRow(
                 leading: const Icon(Icons.link_rounded, size: 30),
-                label: 'From a web link',
+                label: tr('From a web link'),
                 onTap: () => go(fromLink: true),
               ),
             ],

@@ -34,6 +34,9 @@ abstract final class StorageKeys {
   static const String lastEmail = 'auth.lastEmail.v1';
   static const String legacyDataAdopted = 'auth.legacyAdopted.v1';
 
+  // Device-wide app language (see LanguageController).
+  static const String language = 'app.language.v1';
+
   /// Prefix that isolates one user's data from other accounts on the device.
   static String userScope(String userId) => 'user.$userId.';
 

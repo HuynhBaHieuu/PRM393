@@ -9,6 +9,7 @@ import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/features/planner/widgets/planner_day_view.dart';
 import 'package:all_fits/features/planner/widgets/planner_month_view.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' planner: a Day tab (week strip over swipeable day cards) and a
 /// Month tab, with "Today" in the app bar.
@@ -52,15 +53,15 @@ class _PlannerScreenState extends State<PlannerScreen>
     final palette = context.palette;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Planner'),
+        title: Text(tr('Planner')),
         actions: [
           IconButton(
-            tooltip: 'Plan my week',
+            tooltip: tr('Plan my week'),
             icon: const Icon(Icons.auto_awesome_outlined),
             onPressed: _planWeek,
           ),
           IconButton(
-            tooltip: 'Trips',
+            tooltip: tr('Trips'),
             icon: const Icon(Icons.luggage_outlined),
             onPressed: () => AppNavigator.trips(context),
           ),
@@ -72,15 +73,15 @@ class _PlannerScreenState extends State<PlannerScreen>
               minimumSize: const Size(0, AppSizes.compactButtonHeight - 4),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             ),
-            child: const Text('Today'),
+            child: Text(tr('Today')),
           ),
           const SizedBox(width: AppSpacing.md),
         ],
         bottom: TabBar(
           controller: _tabs,
-          tabs: const [
-            Tab(text: 'Day'),
-            Tab(text: 'Month'),
+          tabs: [
+            Tab(text: tr('Day')),
+            Tab(text: tr('Month')),
           ],
         ),
       ),

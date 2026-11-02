@@ -30,6 +30,7 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class OutfitBuilderArgs {
   const OutfitBuilderArgs({
@@ -184,7 +185,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
   void _openDetails() {
     final builder = _builder!;
     if (builder.isEmpty) {
-      context.showSnack('Add at least one piece to your outfit.');
+      context.showSnack(tr('Add at least one piece to your outfit.'));
       return;
     }
     builder.select(null);
@@ -205,7 +206,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
     if (_saving.value) return;
     FocusManager.instance.primaryFocus?.unfocus();
     if (builder.isEmpty && !_hasPhoto) {
-      context.showSnack('Add at least one piece to your outfit.');
+      context.showSnack(tr('Add at least one piece to your outfit.'));
       return;
     }
     final outfits = context.read<OutfitController>();
@@ -215,7 +216,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
     final route = ModalRoute.of(context);
     final draft = builder.buildDraft(
       name: _name.text,
-      fallbackName: 'Outfit ${outfits.outfits.length + 1}',
+      fallbackName: tr('Outfit {0}', [outfits.outfits.length + 1]),
       notes: _notes.text,
       newPhotoPath: _photoFile,
       keepsPhoto: _photoFile == null && _photoRef != null,
@@ -236,7 +237,7 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
       // (e.g. "Add outfit") the outfit was saved.
       if (route != null) navigator.popUntil((r) => r == route);
       navigator.pop(true);
-      if (mounted) context.showSnack('“${draft.name}” saved');
+      if (mounted) context.showSnack(tr('“{0}” saved', [draft.name]));
     } catch (error) {
       _saving.value = false;
       if (mounted) context.showErrorSnack(error);
@@ -246,10 +247,10 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
   Future<void> _confirmDiscard() async {
     final discard = await showConfirmDialog(
       context,
-      title: 'Discard outfit?',
-      message: 'Your changes to this outfit will be lost.',
-      confirmLabel: 'Discard',
-      cancelLabel: 'Keep editing',
+      title: tr('Discard outfit?'),
+      message: tr('Your changes to this outfit will be lost.'),
+      confirmLabel: tr('Discard'),
+      cancelLabel: tr('Keep editing'),
       destructive: true,
     );
     if (discard && mounted) {
@@ -262,9 +263,9 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
   Widget build(BuildContext context) {
     final builder = _builder;
     if (builder == null) {
-      return const NotFoundView(
-        title: 'Outfit not found',
-        message: 'This outfit no longer exists.',
+      return NotFoundView(
+        title: tr('Outfit not found'),
+        message: tr('This outfit no longer exists.'),
       );
     }
     final Widget page;
@@ -298,17 +299,17 @@ class _OutfitBuilderScreenState extends State<OutfitBuilderScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'Close',
+          tooltip: tr('Close'),
           icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(builder.isEditing ? 'Edit outfit' : 'New outfit'),
+        title: Text(builder.isEditing ? tr('Edit outfit') : tr('New outfit')),
         actions: [
           ValueListenableBuilder(
             valueListenable: _saving,
             builder: (context, saving, _) => TextButton(
               onPressed: saving ? null : _save,
-              child: const Text('Save'),
+              child: Text(tr('Save')),
             ),
           ),
           const SizedBox(width: AppSpacing.xs),
@@ -405,7 +406,7 @@ class _CollageStage extends StatelessWidget {
                                   IgnorePointer(
                                     child: Center(
                                       child: Text(
-                                        'Tap Add clothes to start',
+                                        tr('Tap Add clothes to start'),
                                         style: context.textTheme.bodyMedium
                                             ?.copyWith(
                                               color: palette.textSecondary,
@@ -417,7 +418,7 @@ class _CollageStage extends StatelessWidget {
                                   top: AppSpacing.sm,
                                   left: AppSpacing.sm,
                                   child: _RoundButton(
-                                    tooltip: 'Close',
+                                    tooltip: tr('Close'),
                                     icon: Icons.chevron_left_rounded,
                                     onTap: onClose,
                                   ),
@@ -463,7 +464,7 @@ class NextPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return Tooltip(
-      message: 'Next',
+      message: tr('Next'),
       child: Material(
         color: palette.ink,
         shape: const StadiumBorder(),
@@ -479,7 +480,7 @@ class NextPill extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Next',
+                  tr('Next'),
                   style: context.textTheme.titleSmall?.copyWith(
                     color: palette.onInk,
                   ),
@@ -553,7 +554,7 @@ class _PhotoPreview extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: onRemove,
-                child: const Text('Use a collage instead'),
+                child: Text(tr('Use a collage instead')),
               ),
             ),
           ],
@@ -585,7 +586,7 @@ class _OutfitDetails extends StatelessWidget {
     final wardrobe = context.watch<WardrobeController>();
     return Scaffold(
       appBar: AppBar(
-        title: Text(builder.isEditing ? 'Edit outfit' : 'New outfit'),
+        title: Text(builder.isEditing ? tr('Edit outfit') : tr('New outfit')),
       ),
       body: ListenableBuilder(
         listenable: Listenable.merge([builder, saving]),
@@ -623,7 +624,7 @@ class _OutfitDetails extends StatelessWidget {
                         color: palette.onInk,
                       ),
                     )
-                  : const Text('Save outfit'),
+                  : Text(tr('Save outfit')),
             ),
           ),
         ),
@@ -708,19 +709,19 @@ class _BoardTools extends StatelessWidget {
       return Row(
         children: [
           for (final (icon, label, onTap) in [
-            (Icons.checkroom_outlined, 'Add clothes', onAddClothes),
+            (Icons.checkroom_outlined, tr('Add clothes'), onAddClothes),
             (
               Icons.sticky_note_2_outlined,
-              'Stickers',
+              tr('Stickers'),
               () => _addSticker(context),
             ),
             (
               Icons.water_drop_outlined,
-              'Background',
+              tr('Background'),
               () => _pickBackground(context),
             ),
             if (canSwitchMode)
-              (Icons.swap_horiz_rounded, 'Switch mode', onSwitchMode),
+              (Icons.swap_horiz_rounded, tr('Switch mode'), onSwitchMode),
           ])
             Expanded(
               child: BoardToolTile(icon: icon, label: label, onTap: onTap),
@@ -737,40 +738,40 @@ class _BoardTools extends StatelessWidget {
         children: [
           BoardToolTile(
             icon: Icons.chevron_left_rounded,
-            label: 'Done',
+            label: tr('Done'),
             onTap: () => builder.select(null),
           ),
           if (sticker != null)
             BoardToolTile(
               icon: Icons.copy_rounded,
-              label: 'Duplicate',
+              label: tr('Duplicate'),
               onTap: builder.duplicateSelected,
             ),
           BoardToolTile(
             icon: Icons.flip_rounded,
-            label: 'Flip',
+            label: tr('Flip'),
             onTap: locked ? null : builder.flipSelected,
           ),
           if (builder.selectedBehind)
             BoardToolTile(
               icon: Icons.flip_to_front_rounded,
-              label: 'Bring to front',
+              label: tr('Bring to front'),
               onTap: builder.bringSelectedToFront,
             )
           else
             BoardToolTile(
               icon: Icons.flip_to_back_rounded,
-              label: 'Send to back',
+              label: tr('Send to back'),
               onTap: builder.sendSelectedToBack,
             ),
           BoardToolTile(
             icon: locked ? Icons.lock_rounded : Icons.lock_open_rounded,
-            label: locked ? 'Unlock' : 'Lock',
+            label: locked ? tr('Unlock') : tr('Lock'),
             onTap: builder.toggleLockSelected,
           ),
           BoardToolTile(
             icon: Icons.delete_outline_rounded,
-            label: sticker != null ? 'Delete' : 'Remove',
+            label: sticker != null ? tr('Delete') : tr('Remove'),
             onTap: builder.deleteSelected,
           ),
         ],
@@ -891,7 +892,7 @@ class _BuilderForm extends StatelessWidget {
         if (header != null) ...[header!, const SizedBox(height: AppSpacing.xl)],
         if (tagPieces) ...[
           LabeledSection(
-            label: 'Tag what you’re wearing',
+            label: tr('Tag what you’re wearing'),
             child: SlotSelector(
               countOf: (slot) => builder.idsInSlot(slot).length,
               onSelect: onPickSlot!,
@@ -900,9 +901,9 @@ class _BuilderForm extends StatelessWidget {
           if (items.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
             LabeledSection(
-              label: 'Your look',
+              label: tr('Your look'),
               trailing: Text(
-                'Drag to reorder',
+                tr('Drag to reorder'),
                 style: context.textTheme.bodySmall,
               ),
               child: CompositionList(
@@ -919,15 +920,15 @@ class _BuilderForm extends StatelessWidget {
           controller: name,
           maxLength: Validators.maxNameLength,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Outfit name',
-            hintText: 'e.g. Weekend denim',
+          decoration: InputDecoration(
+            labelText: tr('Outfit name'),
+            hintText: tr('e.g. Weekend denim'),
             counterText: '',
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
         LabeledSection(
-          label: 'Occasion',
+          label: tr('Occasion'),
           child: PillGroup<Occasion>(
             options: Occasion.values,
             selected: {?builder.occasion},
@@ -943,7 +944,7 @@ class _BuilderForm extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         LabeledSection(
-          label: 'Season',
+          label: tr('Season'),
           child: PillGroup<Season>(
             options: Season.values,
             selected: builder.seasons,
@@ -958,15 +959,15 @@ class _BuilderForm extends StatelessWidget {
           maxLines: 5,
           maxLength: Validators.maxNotesLength,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Notes',
-            hintText: 'Styling tips, where you wore it…',
+          decoration: InputDecoration(
+            labelText: tr('Notes'),
+            hintText: tr('Styling tips, where you wore it…'),
             alignLabelWithHint: true,
           ),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Favorite'),
+          title: Text(tr('Favorite')),
           value: builder.isFavorite,
           onChanged: builder.setFavorite,
         ),
@@ -982,7 +983,7 @@ class _BuilderForm extends StatelessWidget {
                       color: palette.onInk,
                     ),
                   )
-                : const Text('Save Outfit'),
+                : Text(tr('Save Outfit')),
           ),
         ],
       ],

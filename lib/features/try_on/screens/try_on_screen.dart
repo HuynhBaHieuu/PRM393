@@ -20,6 +20,7 @@ import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/try_on/widgets/try_on_clothes_picker.dart';
 import 'package:all_fits/features/try_on/widgets/try_on_widgets.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Draws the chosen clothes on the user, or on an AI model, with a
 /// background, speed and styling prompt to choose. Shows a blurred preview
@@ -86,7 +87,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
         maxChildSize: 0.95,
         builder: (_, scrollController) => Column(
           children: [
-            const SheetHeader(title: 'Clothes'),
+            SheetHeader(title: tr('Clothes')),
             Expanded(
               child: TryOnClothesPicker(
                 initial: _itemIds,
@@ -144,23 +145,23 @@ class _TryOnScreenState extends State<TryOnScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SheetHeader(title: 'Who wears it'),
+              SheetHeader(title: tr('Who wears it')),
               option(
                 TryOnWearer.me,
-                'Me',
+                tr('Me'),
                 profile.hasPhoto
-                    ? 'Your selfie and body photo'
-                    : 'Add a selfie in your try-on profile',
+                    ? tr('Your selfie and body photo')
+                    : tr('Add a selfie in your try-on profile'),
               ),
               option(
                 TryOnWearer.model,
-                'AI model',
+                tr('AI model'),
                 (profile.bodyType ?? BodyType.fallback).label,
               ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.person_outline_rounded),
-                title: const Text('Edit try-on profile'),
+                title: Text(tr('Edit try-on profile')),
                 onTap: () => Navigator.of(sheetContext).pop('profile'),
               ),
             ],
@@ -279,29 +280,31 @@ class _TryOnScreenState extends State<TryOnScreen> {
                                   onCancel: tryOn.cancel,
                                 )
                               else if (shown != null) ...[
-                                const Positioned(
+                                Positioned(
                                   top: AppSpacing.sm,
                                   left: AppSpacing.sm,
                                   child: OverlayPill(
-                                    text: 'AI-generated image',
+                                    text: tr('AI-generated image'),
                                     icon: Icons.auto_awesome_rounded,
                                   ),
                                 ),
-                                const Positioned(
+                                Positioned(
                                   bottom: AppSpacing.sm,
                                   left: 0,
                                   right: 0,
                                   child: Center(
                                     child: OverlayPill(
-                                      text: 'Tap and hold to see the clothes',
+                                      text: tr(
+                                        'Tap and hold to see the clothes',
+                                      ),
                                     ),
                                   ),
                                 ),
                               ] else
                                 _GenerateButton(
                                   costLabel: freeTry
-                                      ? 'Your free try-on'
-                                      : 'Costs 1 AI credit',
+                                      ? tr('Your free try-on')
+                                      : tr('Costs 1 AI credit'),
                                   error: _error,
                                   onPressed: items.isEmpty ? null : _generate,
                                 ),
@@ -322,22 +325,22 @@ class _TryOnScreenState extends State<TryOnScreen> {
                   children: [
                     _ResultAction(
                       icon: Icons.refresh_rounded,
-                      label: 'Try again',
+                      label: tr('Try again'),
                       onTap: _generate,
                     ),
                     _ResultAction(
                       icon: Icons.download_rounded,
-                      label: 'Save',
+                      label: tr('Save'),
                       onTap: () => TryOnFlows.save(context, shown),
                     ),
                     _ResultAction(
                       icon: Icons.ios_share_rounded,
-                      label: 'Share',
+                      label: tr('Share'),
                       onTap: () => TryOnFlows.share(context, shown),
                     ),
                     _ResultAction(
                       icon: Icons.delete_outline_rounded,
-                      label: 'Delete',
+                      label: tr('Delete'),
                       onTap: () => _delete(shown),
                     ),
                   ],
@@ -350,7 +353,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 Text(TryOnFlows.creditsLabel(context), style: text.titleSmall),
                 const SizedBox(width: AppSpacing.xs),
                 IconButton.filled(
-                  tooltip: 'Get more credits',
+                  tooltip: tr('Get more credits'),
                   style: IconButton.styleFrom(
                     backgroundColor: palette.ink,
                     foregroundColor: palette.onInk,
@@ -377,13 +380,13 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 ),
                 children: [
                   _OptionTile(
-                    label: 'Background',
+                    label: tr('Background'),
                     sublabel: _background.label,
                     onTap: _pickBackground,
                     child: _BackgroundImage(background: _background),
                   ),
                   _OptionTile(
-                    label: 'Clothes',
+                    label: tr('Clothes'),
                     sublabel: AppFormatters.count(items.length, 'piece'),
                     onTap: _pickClothes,
                     child: Row(
@@ -402,8 +405,8 @@ class _TryOnScreenState extends State<TryOnScreen> {
                     ),
                   ),
                   _OptionTile(
-                    label: _highQuality ? 'Quality' : 'Fast',
-                    sublabel: _highQuality ? '2x slower' : null,
+                    label: _highQuality ? tr('Quality') : tr('Fast'),
+                    sublabel: _highQuality ? tr('2x slower') : null,
                     active: _highQuality,
                     onTap: () => _change(() => _highQuality = !_highQuality),
                     child: Icon(
@@ -414,8 +417,8 @@ class _TryOnScreenState extends State<TryOnScreen> {
                     ),
                   ),
                   _OptionTile(
-                    label: 'Prompt',
-                    sublabel: _notes.isEmpty ? null : 'Added',
+                    label: tr('Prompt'),
+                    sublabel: _notes.isEmpty ? null : tr('Added'),
                     active: _notes.isNotEmpty,
                     onTap: _editPrompt,
                     child: Icon(
@@ -426,8 +429,8 @@ class _TryOnScreenState extends State<TryOnScreen> {
                   ),
                   _OptionTile(
                     label: _wearer == TryOnWearer.me
-                        ? 'Try on profile'
-                        : 'AI model',
+                        ? tr('Try on profile')
+                        : tr('AI model'),
                     onTap: _pickWearer,
                     child: _wearer == TryOnWearer.me
                         ? StoredPhoto(
@@ -457,8 +460,10 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 AppSpacing.sm,
               ),
               child: Text(
-                'To make a picture, we send the inputs above to our AI '
-                'provider. AI pictures can get colours or fit wrong.',
+                tr(
+                  'To make a picture, we send the inputs above to our AI '
+                  'provider. AI pictures can get colours or fit wrong.',
+                ),
                 textAlign: TextAlign.center,
                 style: text.bodySmall?.copyWith(color: palette.textTertiary),
               ),
@@ -532,7 +537,7 @@ class _GenerateButton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
                 child: Text(
-                  '${describeError(error)}\nNo credit was used.',
+                  tr('{0}\nNo credit was used.', [describeError(error)]),
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodyMedium,
                 ),
@@ -547,7 +552,9 @@ class _GenerateButton extends StatelessWidget {
               ),
               onPressed: onPressed,
               icon: const Icon(Icons.auto_awesome_rounded),
-              label: Text(error == null ? 'Generate image' : 'Try again'),
+              label: Text(
+                error == null ? tr('Generate image') : tr('Try again'),
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             OverlayPill(text: costLabel),
@@ -578,17 +585,25 @@ class _Generating extends StatelessWidget {
             children: [
               CircularProgressIndicator(color: palette.ink),
               const SizedBox(height: AppSpacing.md),
-              Text('Generating image…', style: text.titleMedium),
+              Text(tr('Generating image…'), style: text.titleMedium),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                '${highQuality ? 'About a minute or two' : 'Usually 20 to 60 '
-                          'seconds'}. You can leave this screen; we’ll let '
-                'you know when it’s ready.',
+                tr(
+                  '{0}. You can leave this screen; we’ll let you know when it’s ready.',
+                  [
+                    highQuality
+                        ? tr('About a minute or two')
+                        : tr(
+                            'Usually 20 to 60 '
+                            'seconds',
+                          ),
+                  ],
+                ),
                 textAlign: TextAlign.center,
                 style: text.bodySmall?.copyWith(color: palette.textSecondary),
               ),
               const SizedBox(height: AppSpacing.sm),
-              TextButton(onPressed: onCancel, child: const Text('Cancel')),
+              TextButton(onPressed: onCancel, child: Text(tr('Cancel'))),
             ],
           ),
         ),
@@ -749,7 +764,7 @@ class _BackgroundSheet extends StatelessWidget {
       maxChildSize: 0.95,
       builder: (_, scrollController) => Column(
         children: [
-          const SheetHeader(title: 'Background'),
+          SheetHeader(title: tr('Background')),
           Expanded(
             child: GridView.count(
               controller: scrollController,
@@ -856,7 +871,7 @@ class _PromptSheetState extends State<_PromptSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SheetHeader(title: 'Prompt'),
+              SheetHeader(title: tr('Prompt')),
               TextField(
                 controller: _controller,
                 autofocus: true,
@@ -864,8 +879,8 @@ class _PromptSheetState extends State<_PromptSheet> {
                 maxLines: 5,
                 maxLength: widget.maxLength,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'Example: Oversized fit, tee tucked in',
+                decoration: InputDecoration(
+                  hintText: tr('Example: Oversized fit, tee tucked in'),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -874,7 +889,7 @@ class _PromptSheetState extends State<_PromptSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(''),
-                      child: const Text('Clear'),
+                      child: Text(tr('Clear')),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -882,7 +897,7 @@ class _PromptSheetState extends State<_PromptSheet> {
                     child: FilledButton(
                       onPressed: () =>
                           Navigator.of(context).pop(_controller.text.trim()),
-                      child: const Text('Done'),
+                      child: Text(tr('Done')),
                     ),
                   ),
                 ],

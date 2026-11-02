@@ -9,6 +9,7 @@ import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Photo area of the clothing form. Shows the newly picked photo, else the
 /// item's current photo, else a prompt to add one.
@@ -44,15 +45,15 @@ class PhotoPickerField extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SheetHeader(title: 'Add a photo'),
+            SheetHeader(title: tr('Add a photo')),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: Text(tr('Choose from gallery')),
               onTap: () => Navigator.of(context).pop(ImagePickSource.gallery),
             ),
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take a photo'),
+              title: Text(tr('Take a photo')),
               onTap: () => Navigator.of(context).pop(ImagePickSource.camera),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -159,7 +160,7 @@ class _ImagePreview extends StatelessWidget {
               Icons.photo_camera_outlined,
               size: AppSizes.iconSm,
             ),
-            label: const Text('Change'),
+            label: Text(tr('Change')),
           ),
         ),
       ],
@@ -190,10 +191,10 @@ class _EmptyPrompt extends StatelessWidget {
               color: palette.textSecondary,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('Add a photo', style: text.titleLarge),
+            Text(tr('Add a photo'), style: text.titleLarge),
             const SizedBox(height: AppSpacing.xxs),
             Text(
-              'A clear photo on a plain background works best.',
+              tr('A clear photo on a plain background works best.'),
               textAlign: TextAlign.center,
               style: text.bodySmall,
             ),
@@ -213,7 +214,7 @@ class _EmptyPrompt extends StatelessWidget {
                     Icons.photo_library_outlined,
                     size: AppSizes.iconSm,
                   ),
-                  label: const Text('Gallery'),
+                  label: Text(tr('Gallery')),
                 ),
                 if (supportsCamera)
                   OutlinedButton.icon(
@@ -226,7 +227,7 @@ class _EmptyPrompt extends StatelessWidget {
                       Icons.photo_camera_outlined,
                       size: AppSizes.iconSm,
                     ),
-                    label: const Text('Camera'),
+                    label: Text(tr('Camera')),
                   ),
               ],
             ),

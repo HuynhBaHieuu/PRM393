@@ -4,6 +4,7 @@ import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 // Records shared between accounts. They come from the functions in
 // supabase/schema.sql, which use snake_case keys and never include price,
@@ -139,9 +140,11 @@ enum FeedFilter {
   following('Following'),
   saved('Saved');
 
-  const FeedFilter(this.label);
+  const FeedFilter(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// An outfit someone shared on Discover, with its pieces.

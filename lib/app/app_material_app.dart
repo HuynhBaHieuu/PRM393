@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'package:all_fits/app/theme/app_theme.dart';
 import 'package:all_fits/core/constants/app_config.dart';
 import 'package:all_fits/core/widgets/app_logo.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
+import 'package:all_fits/features/settings/controllers/language_controller.dart';
 
 /// The app's [MaterialApp] configuration, shared by the signed-out and
 /// signed-in trees.
@@ -28,7 +31,12 @@ class AppMaterialApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Null where a test builds this without the root widget.
+    final language = context.watch<LanguageController?>();
     return MaterialApp(
+      locale: language?.locale,
+      supportedLocales: const [Locale('en'), Locale('vi')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),

@@ -12,6 +12,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/social.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Round profile photo, or initials when there is none.
 class UserAvatar extends StatelessWidget {
@@ -223,13 +224,13 @@ class ProfileHeaderRow extends StatelessWidget {
                 children: [
                   CountLabel(
                     count: followers,
-                    label: 'Followers',
+                    label: tr('Followers'),
                     onTap: onFollowers,
                   ),
                   const SizedBox(width: AppSpacing.xl),
                   CountLabel(
                     count: following,
-                    label: 'Following',
+                    label: tr('Following'),
                     onTap: onFollowing,
                   ),
                 ],
@@ -444,7 +445,7 @@ class CommentTile extends StatelessWidget {
             ),
             if (onMore != null)
               IconButton(
-                tooltip: 'Comment options',
+                tooltip: tr('Comment options'),
                 visualDensity: VisualDensity.compact,
                 onPressed: onMore,
                 icon: const Icon(Icons.more_horiz_rounded, size: 20),
@@ -512,7 +513,7 @@ class CategoryPillBar extends StatelessWidget {
     return PillBar(
       pills: [
         SelectablePill(
-          label: 'All',
+          label: tr('All'),
           selected: selected == null,
           onTap: () => onSelected(null),
         ),
@@ -542,7 +543,9 @@ class NotificationBell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: count == 0 ? 'Notifications' : 'Notifications, $count new',
+      tooltip: count == 0
+          ? tr('Notifications')
+          : tr('Notifications, {0} new', [count]),
       onPressed: onPressed,
       icon: Badge(
         isLabelVisible: count > 0,

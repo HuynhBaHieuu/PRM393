@@ -8,6 +8,7 @@ import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Lets the user pick wardrobe items for one outfit slot, or from the whole
 /// wardrobe when [slot] is null.
@@ -74,7 +75,9 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
         .where((item) => slot?.categories.contains(item.category) ?? true)
         .toList();
     final what = slot?.label.toLowerCase() ?? 'pieces';
-    final title = widget.single ? 'Replace $what' : 'Choose $what';
+    final title = widget.single
+        ? tr('Replace {0}', [what])
+        : tr('Choose {0}', [what]);
 
     return DraggableScrollableSheet(
       expand: false,
@@ -91,13 +94,14 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
                     child: AppEmptyState(
                       compact: true,
                       icon: Icons.checkroom_outlined,
-                      title: 'Nothing here yet',
-                      message:
-                          'Add $what to your wardrobe to use them in '
-                          'outfits.',
+                      title: tr('Nothing here yet'),
+                      message: tr(
+                        'Add {0} to your wardrobe to use them in outfits.',
+                        [what],
+                      ),
                       actionLabel: widget.onAddClothing == null
                           ? null
-                          : 'Add Clothing',
+                          : tr('Add Clothing'),
                       onAction: widget.onAddClothing == null
                           ? null
                           : () {
@@ -142,8 +146,15 @@ class _ItemPickerSheetState extends State<_ItemPickerSheet> {
                         Navigator.of(context).pop(_selected.toList()),
                     child: Text(
                       _selected.isEmpty
-                          ? 'Done'
-                          : 'Done · ${AppFormatters.count(items.where((i) => _selected.contains(i.id)).length, 'piece')}',
+                          ? tr('Done')
+                          : tr('Done · {0}', [
+                              AppFormatters.count(
+                                items
+                                    .where((i) => _selected.contains(i.id))
+                                    .length,
+                                'piece',
+                              ),
+                            ]),
                     ),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'dart:ui' show Color, Rect;
 
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The colour behind an outfit collage. [plain] follows the app theme.
 enum BoardBackground {
@@ -15,9 +16,11 @@ enum BoardBackground {
   sand('Sand', Color(0xFFE9DECB)),
   charcoal('Charcoal', Color(0xFF2B2B2E));
 
-  const BoardBackground(this.label, this.color);
+  const BoardBackground(this._label, this.color);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   /// Null for [plain], which uses the theme's surface colour.
   final Color? color;
@@ -51,9 +54,11 @@ enum Hairstyle {
   fauxHawk('Faux hawk'),
   shortCurls('Short curls');
 
-  const Hairstyle(this.label);
+  const Hairstyle(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   static const int freeCount = 3;
 
@@ -78,10 +83,12 @@ enum HairColor {
   pink('Pink', Color(0xFFE79AB8)),
   gray('Gray', Color(0xFFA7A4A0));
 
-  const HairColor(this.label, this.color);
+  const HairColor(this._label, this.color);
 
-  final String label;
+  final String _label;
   final Color color;
+
+  String get label => tr(_label);
 }
 
 /// Colours a shape or arrow sticker can be drawn in.
@@ -99,10 +106,12 @@ enum StickerInk {
   yellow('Yellow', Color(0xFFF7C928)),
   orange('Orange', Color(0xFFF07A22));
 
-  const StickerInk(this.label, this.color);
+  const StickerInk(this._label, this.color);
 
-  final String label;
+  final String _label;
   final Color color;
+
+  String get label => tr(_label);
 }
 
 /// The tabs of the Stickers sheet.
@@ -114,9 +123,11 @@ enum StickerCategory {
   objects('Objects'),
   emoji('Emoji');
 
-  const StickerCategory(this.label, {this.tintable = false});
+  const StickerCategory(this._label, {this.tintable = false});
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   /// Whether the sheet offers a colour row for this tab.
   final bool tintable;

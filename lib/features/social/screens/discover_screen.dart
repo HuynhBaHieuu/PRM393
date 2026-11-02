@@ -17,6 +17,7 @@ import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_tile.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Public outfits from the community, newest first (Fits' Community tab).
 class DiscoverScreen extends StatefulWidget {
@@ -102,10 +103,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Discover'),
+        title: Text(tr('Discover')),
         actions: [
           IconButton(
-            tooltip: 'Search people',
+            tooltip: tr('Search people'),
             onPressed: () => AppNavigator.userSearch(context),
             icon: const Icon(Icons.search_rounded),
           ),
@@ -148,18 +149,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   hasScrollBody: false,
                   child: AppEmptyState(
                     icon: Icons.public_rounded,
-                    title: 'No outfits yet',
+                    title: tr('No outfits yet'),
                     message: switch (_filter) {
-                      FeedFilter.latest =>
+                      FeedFilter.latest => tr(
                         'No outfits were shared yet. Check back later!',
-                      FeedFilter.following =>
+                      ),
+                      FeedFilter.following => tr(
                         'Follow people to see their outfits here.',
-                      FeedFilter.saved =>
+                      ),
+                      FeedFilter.saved => tr(
                         'Save outfit inspiration from others to find it '
-                            'here.',
+                        'here.',
+                      ),
                     },
                     actionLabel: _filter == FeedFilter.following
-                        ? 'Find friends'
+                        ? tr('Find friends')
                         : null,
                     onAction: () => AppNavigator.userSearch(context),
                   ),
@@ -249,7 +253,9 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
       await _social.repository.setSaved(_post, saved: saved);
       if (!mounted) return;
       setState(() => _post = _post.copyWith(saved: saved));
-      context.showSnack(saved ? 'Saved to your ideas' : 'Removed from ideas');
+      context.showSnack(
+        saved ? tr('Saved to your ideas') : tr('Removed from ideas'),
+      );
     } catch (error) {
       if (mounted) context.showErrorSnack(error);
     } finally {
@@ -334,13 +340,13 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
             if (canDelete)
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded),
-                title: const Text('Delete comment'),
+                title: Text(tr('Delete comment')),
                 onTap: () => Navigator.of(sheetContext).pop('delete'),
               ),
             if (!mine)
               ListTile(
                 leading: const Icon(Icons.error_outline_rounded),
-                title: const Text('Report'),
+                title: Text(tr('Report')),
                 onTap: () => Navigator.of(sheetContext).pop('report'),
               ),
             const SizedBox(height: AppSpacing.sm),
@@ -364,9 +370,9 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
   Future<void> _deleteComment(PostComment comment) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete this comment?',
-      message: 'It will be removed for everyone.',
-      confirmLabel: 'Delete',
+      title: tr('Delete this comment?'),
+      message: tr('It will be removed for everyone.'),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -402,7 +408,9 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
           actions: [
             if (widget.fromFeed && !_isMine)
               IconButton(
-                tooltip: _post.saved ? 'Remove from ideas' : 'Save idea',
+                tooltip: _post.saved
+                    ? tr('Remove from ideas')
+                    : tr('Save idea'),
                 onPressed: _busy ? null : _toggleSaved,
                 icon: Icon(
                   _post.saved
@@ -412,7 +420,7 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
               ),
             if (!_isMine)
               IconButton(
-                tooltip: 'More',
+                tooltip: tr('More'),
                 onPressed: () => SocialFlows.showPostMenu(
                   context,
                   _post,
@@ -494,7 +502,7 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
                     Row(
                       children: [
                         IconButton(
-                          tooltip: _post.liked ? 'Unlike' : 'Like',
+                          tooltip: _post.liked ? tr('Unlike') : tr('Like'),
                           onPressed: _liking ? null : _toggleLiked,
                           icon: Icon(
                             _post.liked
@@ -522,7 +530,7 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
                   ],
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'Clothes in outfit',
+                    tr('Clothes in outfit'),
                     style: text.bodyMedium?.copyWith(
                       color: palette.textSecondary,
                     ),
@@ -550,7 +558,7 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
                   if (widget.fromFeed) ...[
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'Comments',
+                      tr('Comments'),
                       style: text.bodyMedium?.copyWith(
                         color: palette.textSecondary,
                       ),
@@ -574,8 +582,8 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
       return [
         Row(
           children: [
-            const Expanded(child: Text('Couldn’t load comments.')),
-            TextButton(onPressed: _loadComments, child: const Text('Retry')),
+            Expanded(child: Text(tr('Couldn’t load comments.'))),
+            TextButton(onPressed: _loadComments, child: Text(tr('Retry'))),
           ],
         ),
       ];
@@ -591,7 +599,7 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
     if (comments.isEmpty) {
       return [
         Text(
-          'No comments yet. Be the first to say something!',
+          tr('No comments yet. Be the first to say something!'),
           style: context.textTheme.bodyMedium,
         ),
       ];
@@ -635,15 +643,15 @@ class _PublicOutfitScreenState extends State<PublicOutfitScreen> {
                   textCapitalization: TextCapitalization.sentences,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _sendComment(),
-                  decoration: const InputDecoration(
-                    hintText: 'Add a comment…',
+                  decoration: InputDecoration(
+                    hintText: tr('Add a comment…'),
                     counterText: '',
                     isDense: true,
                   ),
                 ),
               ),
               IconButton(
-                tooltip: 'Send',
+                tooltip: tr('Send'),
                 onPressed: _sending ? null : _sendComment,
                 icon: _sending
                     ? const SizedBox.square(

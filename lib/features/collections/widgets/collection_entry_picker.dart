@@ -9,6 +9,7 @@ import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What the user ticked in [showCollectionEntryPicker].
 typedef CollectionSelection = ({Set<String> itemIds, Set<String> outfitIds});
@@ -70,22 +71,22 @@ class _EntryPickerSheetState extends State<_EntryPickerSheet> {
         // Each tab scrolls on its own, so the sheet's controller goes unused.
         builder: (context, _) => Column(
           children: [
-            SheetHeader(title: 'Add to ${widget.collection.name}'),
+            SheetHeader(title: tr('Add to {0}', [widget.collection.name])),
             TabBar(
               tabs: [
-                Tab(text: 'Clothes ($selectedItems)'),
-                Tab(text: 'Outfits ($selectedOutfits)'),
+                Tab(text: tr('Clothes ({0})', [selectedItems])),
+                Tab(text: tr('Outfits ({0})', [selectedOutfits])),
               ],
             ),
             Expanded(
               child: TabBarView(
                 children: [
                   items.isEmpty
-                      ? const AppEmptyState(
+                      ? AppEmptyState(
                           compact: true,
                           icon: Icons.checkroom_outlined,
-                          title: 'No clothes yet',
-                          message: 'Add pieces to your wardrobe first.',
+                          title: tr('No clothes yet'),
+                          message: tr('Add pieces to your wardrobe first.'),
                         )
                       : CustomScrollView(
                           slivers: [
@@ -100,11 +101,11 @@ class _EntryPickerSheetState extends State<_EntryPickerSheet> {
                           ],
                         ),
                   outfits.isEmpty
-                      ? const AppEmptyState(
+                      ? AppEmptyState(
                           compact: true,
                           icon: Icons.style_outlined,
-                          title: 'No outfits yet',
-                          message: 'Create an outfit first.',
+                          title: tr('No outfits yet'),
+                          message: tr('Create an outfit first.'),
                         )
                       : CustomScrollView(
                           slivers: [
@@ -141,8 +142,10 @@ class _EntryPickerSheetState extends State<_EntryPickerSheet> {
                     )),
                     child: Text(
                       selectedItems + selectedOutfits == 0
-                          ? 'Done'
-                          : 'Done · ${selectedItems + selectedOutfits} selected',
+                          ? tr('Done')
+                          : tr('Done · {0} selected', [
+                              selectedItems + selectedOutfits,
+                            ]),
                     ),
                   ),
                 ),

@@ -8,6 +8,7 @@ import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/selectable_pill.dart';
@@ -23,6 +24,7 @@ import 'package:all_fits/features/outfits/widgets/sticker_art.dart';
 import 'package:all_fits/features/premium/premium_flows.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class SwipeOutfitArgs {
   const SwipeOutfitArgs({
@@ -274,7 +276,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SwitchListTile(
-                  title: const Text('Show hair'),
+                  title: Text(tr('Show hair')),
                   value: _showHair,
                   onChanged: (on) => change(() => _showHair = on),
                 ),
@@ -289,7 +291,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                     ),
                     child: HairView(style: _hairstyle, color: _hairColor),
                   ),
-                  title: const Text('Change hair style'),
+                  title: Text(tr('Change hair style')),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () async {
                     await _pickHair();
@@ -298,7 +300,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                 ),
                 const Divider(height: AppSpacing.lg),
                 SwitchListTile(
-                  title: const Text('Show body'),
+                  title: Text(tr('Show body')),
                   value: _showBody,
                   onChanged: (on) => change(() => _showBody = on),
                 ),
@@ -388,7 +390,10 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.page,
                     ),
-                    child: Text('Clothes', style: context.textTheme.titleLarge),
+                    child: Text(
+                      tr('Clothes'),
+                      style: context.textTheme.titleLarge,
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
@@ -398,7 +403,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                       AppSpacing.sm,
                     ),
                     child: Text(
-                      'Choose the layers you wear',
+                      tr('Choose the layers you wear'),
                       style: context.textTheme.bodySmall,
                     ),
                   ),
@@ -407,7 +412,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                     SwitchListTile(
                       title: Text(slot.categories.first.label),
                       subtitle: Text(
-                        '${pieces.length} ${pieces.length == 1 ? 'piece' : 'pieces'}',
+                        AppFormatters.count(pieces.length, 'piece'),
                       ),
                       value: visible.contains(slot),
                       // At least one row stays on.
@@ -441,12 +446,12 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
 
     if (available.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Dressing Room')),
+        appBar: AppBar(title: Text(tr('Dressing Room'))),
         body: AppEmptyState(
           icon: Icons.swipe_outlined,
-          title: 'Nothing to swipe yet',
-          message: 'Add tops, bottoms or shoes to start swiping looks.',
-          actionLabel: 'Add clothes',
+          title: tr('Nothing to swipe yet'),
+          message: tr('Add tops, bottoms or shoes to start swiping looks.'),
+          actionLabel: tr('Add clothes'),
           onAction: () => AppNavigator.addClothing(context),
         ),
       );
@@ -559,7 +564,7 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                     top: AppSpacing.xs,
                     left: AppSpacing.xs,
                     child: IconButton(
-                      tooltip: 'Back',
+                      tooltip: tr('Back'),
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_back_rounded),
                     ),
@@ -612,22 +617,22 @@ class _SwipeOutfitScreenState extends State<SwipeOutfitScreen> {
                       for (final (icon, label, onTap) in [
                         (
                           Icons.checkroom_outlined,
-                          'Clothes',
+                          tr('Clothes'),
                           () => _editRows(available),
                         ),
                         (
                           Icons.person_outline_rounded,
-                          'Hair & Body',
+                          tr('Hair & Body'),
                           _editHairAndBody,
                         ),
                         (
                           Icons.shuffle_rounded,
-                          'Shuffle',
+                          tr('Shuffle'),
                           () => _shuffle(bySlot),
                         ),
                         (
                           Icons.swap_horiz_rounded,
-                          'Switch mode',
+                          tr('Switch mode'),
                           () => _switchMode(picks),
                         ),
                       ])
@@ -690,7 +695,7 @@ class _RowActions extends StatelessWidget {
     return Column(
       children: [
         IconButton.filled(
-          tooltip: 'Done',
+          tooltip: tr('Done'),
           onPressed: onDone,
           style: IconButton.styleFrom(
             backgroundColor: palette.ink,
@@ -701,8 +706,8 @@ class _RowActions extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         for (final (icon, tooltip, onTap) in [
-          (Icons.shuffle_rounded, 'Shuffle row', onShuffle),
-          (Icons.delete_outline_rounded, 'Take off', onHide),
+          (Icons.shuffle_rounded, tr('Shuffle row'), onShuffle),
+          (Icons.delete_outline_rounded, tr('Take off'), onHide),
         ]) ...[
           IconButton.filledTonal(
             tooltip: tooltip,
@@ -973,7 +978,7 @@ class _PieceTray extends StatelessWidget {
               PillBar(
                 pills: [
                   _SubcategoryChip(
-                    label: 'All',
+                    label: tr('All'),
                     selected: filter == null,
                     onTap: () => onFilter(null),
                   ),

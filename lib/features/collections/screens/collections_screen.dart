@@ -11,6 +11,7 @@ import 'package:all_fits/features/collections/collection_flows.dart';
 import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/collections/widgets/collection_cards.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The Collections tab of the Profile closet.
 class CollectionsScreen extends StatelessWidget {
@@ -41,11 +42,12 @@ class CollectionsScreen extends StatelessWidget {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.collections_bookmark_outlined,
-                title: 'No collections yet',
-                message:
-                    'Group pieces and outfits your way, like “Beach trip”, '
-                    '“Work” or “Wishlist”.',
-                actionLabel: 'New collection',
+                title: tr('No collections yet'),
+                message: tr(
+                  'Group pieces and outfits your way, like “Beach trip”, '
+                  '“Work” or “Wishlist”.',
+                ),
+                actionLabel: tr('New collection'),
                 onAction: () => _create(context),
               ),
             )
@@ -62,15 +64,17 @@ class CollectionsScreen extends StatelessWidget {
                                 collections.length,
                                 'collection',
                               )
-                            : '${collections.length} of $limit collections '
-                                  'on Free',
+                            : tr('{0} of {1} collections on Free', [
+                                collections.length,
+                                limit,
+                              ]),
                         style: context.textTheme.bodySmall,
                       ),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _create(context),
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('New collection'),
+                      label: Text(tr('New collection')),
                     ),
                   ],
                 ),

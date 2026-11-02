@@ -1,4 +1,5 @@
 import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// A finer kind of piece within a [ClothingCategory], e.g. T-Shirts.
 enum ClothingSubcategory {
@@ -36,10 +37,12 @@ enum ClothingSubcategory {
   belts('Belts', ClothingCategory.accessories),
   sunglasses('Sunglasses', ClothingCategory.accessories);
 
-  const ClothingSubcategory(this.label, this.category);
+  const ClothingSubcategory(this._label, this.category);
 
-  final String label;
+  final String _label;
   final ClothingCategory category;
+
+  String get label => tr(_label);
 
   static List<ClothingSubcategory> of(ClothingCategory category) => [
     for (final sub in values)

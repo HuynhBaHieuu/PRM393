@@ -6,6 +6,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Small ink tag marking Premium status or a Premium-only feature.
 class PremiumBadge extends StatelessWidget {
@@ -58,7 +59,7 @@ class PlanCard extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text(name, style: text.headlineSmall)),
-              if (isCurrent) const TagLabel('Current plan'),
+              if (isCurrent) TagLabel(tr('Current plan')),
             ],
           ),
           const SizedBox(height: AppSpacing.xxs),
@@ -156,7 +157,7 @@ class _PaymentWaitDialogState extends State<PaymentWaitDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Waiting for payment'),
+      title: Text(tr('Waiting for payment')),
       content: Row(
         children: [
           const SizedBox.square(
@@ -166,8 +167,10 @@ class _PaymentWaitDialogState extends State<PaymentWaitDialog> {
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              'Finish paying on the payOS page, then come back here. '
-              'Premium starts as soon as the payment arrives.',
+              tr(
+                'Finish paying on the payOS page, then come back here. '
+                'Premium starts as soon as the payment arrives.',
+              ),
               style: context.textTheme.bodyMedium,
             ),
           ),
@@ -176,9 +179,9 @@ class _PaymentWaitDialogState extends State<PaymentWaitDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(tr('Close')),
         ),
-        TextButton(onPressed: _reopen, child: const Text('Open payment page')),
+        TextButton(onPressed: _reopen, child: Text(tr('Open payment page'))),
       ],
     );
   }

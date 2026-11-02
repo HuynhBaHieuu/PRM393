@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
+import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/core/widgets/app_dialogs.dart';
 import 'package:all_fits/core/widgets/option_sheets.dart';
@@ -11,6 +12,7 @@ import 'package:all_fits/data/models/outfit_calendar_entry.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What the planner can do with one day; shared by the Day and Month views.
 abstract final class PlannerActions {
@@ -25,12 +27,12 @@ abstract final class PlannerActions {
           children: [
             SheetActionTile(
               icon: Icons.add_rounded,
-              label: 'Create a new outfit',
+              label: tr('Create a new outfit'),
               onTap: () => Navigator.of(sheetContext).pop(true),
             ),
             SheetActionTile(
               icon: Icons.style_outlined,
-              label: 'Choose a saved outfit',
+              label: tr('Choose a saved outfit'),
               onTap: () => Navigator.of(sheetContext).pop(false),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -75,7 +77,7 @@ abstract final class PlannerActions {
               if (canWear)
                 SheetActionTile(
                   icon: Icons.check_rounded,
-                  label: 'Mark as worn',
+                  label: tr('Mark as worn'),
                   onTap: () => go(
                     () => ClosetFlows.markWorn(
                       context,
@@ -86,12 +88,12 @@ abstract final class PlannerActions {
                 ),
               SheetActionTile(
                 icon: Icons.add_rounded,
-                label: 'Add another outfit',
+                label: tr('Add another outfit'),
                 onTap: () => go(() => addOutfit(context, day)),
               ),
               SheetActionTile(
                 icon: Icons.delete_outline_rounded,
-                label: 'Remove',
+                label: tr('Remove'),
                 onTap: () => go(() => remove(context, plan)),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -112,7 +114,7 @@ abstract final class PlannerActions {
       if (worn != null) await closet.unmarkWorn(worn);
       final planned = plan.planned;
       if (planned != null) await planner.removeEntry(planned.id);
-    }, successMessage: 'Removed from planner');
+    }, successMessage: tr('Removed from planner'));
   }
 
   static Future<void> editNote(
@@ -121,9 +123,9 @@ abstract final class PlannerActions {
   ) async {
     final note = await showTextInputDialog(
       context,
-      title: 'Note',
+      title: tr('Note'),
       initialValue: entry.note ?? '',
-      hint: 'Add a note...',
+      hint: tr('Add a note...'),
       maxLength: Validators.maxNotesLength,
       multiline: true,
     );
@@ -139,19 +141,12 @@ abstract final class PlannerActions {
   static String dayLabel(DateTime day, DateTime today) {
     final diff = DateHelpers.daysBetween(today, day);
     return switch (diff) {
-      0 => 'Today',
-      1 => 'Tomorrow',
-      -1 => 'Yesterday',
-      _ => '${_weekday(day)}, ${_month(day)} ${day.day}',
+      0 => tr('Today'),
+      1 => tr('Tomorrow'),
+      -1 => tr('Yesterday'),
+      _ =>
+        '${AppFormatters.weekdayShort(day)}, '
+            '${AppFormatters.shortDate(day, now: day)}',
     };
   }
-
-  static String _weekday(DateTime day) => const [
-    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', //
-  ][day.weekday - 1];
-
-  static String _month(DateTime day) => const [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', //
-    'Nov', 'Dec',
-  ][day.month - 1];
 }
