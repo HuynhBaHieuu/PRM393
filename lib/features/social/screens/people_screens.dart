@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
+import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/extensions/string_extensions.dart';
+import 'package:all_fits/core/utils/formatters.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
 import 'package:all_fits/core/widgets/section_header.dart';
@@ -371,29 +373,62 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   }
 }
 
-/// Fits' bell: follow requests and outfits made for the user.
-class NotificationsScreen extends StatelessWidget {
+/// Fits' bell: follow requests, outfits made for the user, and likes and
+/// comments on their Discover posts. Opening it clears the likes and
+/// comments from the bell; the ones that were new keep a dot until it closes.
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  /// When the user last looked, before this visit.
+  late final PostActivityFeed _before;
+
+  @override
+  void initState() {
+    super.initState();
+    _before = context.read<SocialController>().activity;
+    _markSeen();
+  }
+
+  Future<void> _markSeen() async {
+    final social = context.read<SocialController>();
+    await social.loadActivity();
+    await social.markActivitySeen();
+  }
+
+  Future<void> _refresh() async {
+    final social = context.read<SocialController>();
+    await social.load();
+    await social.markActivitySeen();
+  }
+
+  bool _isNew(PostActivity activity) =>
+      _before.seenAt == null || activity.createdAt.isAfter(_before.seenAt!);
 
   @override
   Widget build(BuildContext context) {
     final social = context.watch<SocialController>();
     final requests = social.incomingRequests;
     final styled = social.styledForMe.where((s) => s.isPending).toList();
+    final activity = social.activity.items;
     return Scaffold(
       appBar: AppBar(title: const Text('Notifications')),
       body: RefreshIndicator(
-        onRefresh: social.load,
+        onRefresh: _refresh,
         child: ListView(
           children: [
-            if (requests.isEmpty && styled.isEmpty)
+            if (requests.isEmpty && styled.isEmpty && activity.isEmpty)
               const AppEmptyState(
                 icon: Icons.notifications_off_outlined,
                 title: 'No notifications yet',
                 message:
                     'You’ll get notified for activities, for example when '
-                    'someone wants to follow you or creates an outfit for '
-                    'you.',
+                    'someone wants to follow you, creates an outfit for '
+                    'you, or likes or comments on your outfits.',
               ),
             if (requests.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -443,7 +478,61 @@ class NotificationsScreen extends StatelessWidget {
                   ),
                 ),
             ],
+            if (activity.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              const SectionHeader(title: 'Likes & comments'),
+              for (final item in activity)
+                _ActivityRow(activity: item, isNew: _isNew(item)),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "mia liked your outfit." or "mia commented: Love it", with the outfit.
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow({required this.activity, required this.isNew});
+
+  final PostActivity activity;
+  final bool isNew;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final actor = activity.actor;
+    final post = activity.post;
+    final what = switch (activity.kind) {
+      PostActivityKind.like => '${actor.username} liked your outfit.',
+      PostActivityKind.comment =>
+        '${actor.username} commented: ${activity.body ?? ''}',
+    };
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+      onTap: () => AppNavigator.publicOutfit(context, post),
+      leading: Badge(
+        isLabelVisible: isNew,
+        smallSize: 10,
+        backgroundColor: palette.danger,
+        child: GestureDetector(
+          onTap: () => SocialFlows.openProfile(context, actor.userId),
+          child: UserAvatar(name: actor.name, url: actor.avatarUrl),
+        ),
+      ),
+      title: Text(what, maxLines: 2, overflow: TextOverflow.ellipsis),
+      subtitle: Text(AppFormatters.timeAgo(activity.createdAt)),
+      trailing: SizedBox(
+        width: AppSizes.thumbMd,
+        child: AspectRatio(
+          aspectRatio: AppSizes.outfitImageAspect,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            child: OutfitCanvas(
+              items: post.orderedItems,
+              layout: post.outfit.layout,
+            ),
+          ),
         ),
       ),
     );

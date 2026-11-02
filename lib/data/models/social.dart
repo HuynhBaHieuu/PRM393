@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:all_fits/core/utils/json_reader.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
@@ -150,6 +152,9 @@ class FeedPost {
     required this.items,
     required this.postedAt,
     this.saved = false,
+    this.likes = 0,
+    this.liked = false,
+    this.comments = 0,
   });
 
   factory FeedPost.fromJson(JsonMap json) {
@@ -161,6 +166,9 @@ class FeedPost {
       items: parseRecords(json['items'], ClothingItem.fromJson),
       postedAt: postedAt,
       saved: JsonReader.boolean(json, 'saved'),
+      likes: math.max(0, JsonReader.integer(json, 'likes')),
+      liked: JsonReader.boolean(json, 'liked'),
+      comments: math.max(0, JsonReader.integer(json, 'comments')),
     );
   }
 
@@ -170,19 +178,120 @@ class FeedPost {
   final DateTime postedAt;
   final bool saved;
 
+  /// How many people liked it, and whether the signed-in user is one.
+  final int likes;
+  final bool liked;
+  final int comments;
+
   /// Pieces in the outfit's order.
   List<ClothingItem> get orderedItems {
     final byId = {for (final item in items) item.id: item};
     return [for (final id in outfit.itemIds) ?byId[id]];
   }
 
-  FeedPost copyWith({bool? saved}) => FeedPost(
-    owner: owner,
-    outfit: outfit,
-    items: items,
-    postedAt: postedAt,
-    saved: saved ?? this.saved,
+  /// Whether [other] is the same post, whatever its counts.
+  bool isSamePost(FeedPost other) =>
+      owner.userId == other.owner.userId && outfit.id == other.outfit.id;
+
+  FeedPost copyWith({bool? saved, int? likes, bool? liked, int? comments}) =>
+      FeedPost(
+        owner: owner,
+        outfit: outfit,
+        items: items,
+        postedAt: postedAt,
+        saved: saved ?? this.saved,
+        likes: likes ?? this.likes,
+        liked: liked ?? this.liked,
+        comments: comments ?? this.comments,
+      );
+}
+
+/// A comment under a Discover post.
+class PostComment {
+  const PostComment({
+    required this.id,
+    required this.author,
+    required this.body,
+    required this.createdAt,
+  });
+
+  factory PostComment.fromJson(JsonMap json) {
+    final id = JsonReader.nonEmptyString(json, 'id');
+    final body = JsonReader.nonEmptyString(json, 'body');
+    final createdAt = JsonReader.date(json, 'created_at');
+    if (id == null || body == null || createdAt == null) {
+      throw const FormatException('Comment is missing an id, text or date');
+    }
+    return PostComment(
+      id: id,
+      author: SocialProfile.fromJson(_map(json['author'])),
+      body: body,
+      createdAt: createdAt,
+    );
+  }
+
+  /// Longest comment the server accepts.
+  static const int maxLength = 300;
+
+  final String id;
+  final SocialProfile author;
+  final String body;
+  final DateTime createdAt;
+}
+
+enum PostActivityKind { like, comment }
+
+/// Someone liked or commented on one of the signed-in user's posts.
+class PostActivity {
+  const PostActivity({
+    required this.kind,
+    required this.actor,
+    required this.post,
+    required this.createdAt,
+    this.body,
+  });
+
+  factory PostActivity.fromJson(JsonMap json) {
+    final kind = JsonReader.enumValue(PostActivityKind.values, json['kind']);
+    final createdAt = JsonReader.date(json, 'created_at');
+    if (kind == null || createdAt == null) {
+      throw const FormatException('Activity is missing a kind or date');
+    }
+    return PostActivity(
+      kind: kind,
+      actor: SocialProfile.fromJson(_map(json['actor'])),
+      post: FeedPost.fromJson(_map(json['post'])),
+      createdAt: createdAt,
+      body: JsonReader.nonEmptyString(json, 'body'),
+    );
+  }
+
+  final PostActivityKind kind;
+  final SocialProfile actor;
+  final FeedPost post;
+  final DateTime createdAt;
+
+  /// The comment's text; null for a like.
+  final String? body;
+}
+
+/// Likes and comments on the signed-in user's posts, newest first, and when
+/// they last opened Notifications (null if never).
+class PostActivityFeed {
+  const PostActivityFeed({this.items = const [], this.seenAt});
+
+  factory PostActivityFeed.fromJson(JsonMap json) => PostActivityFeed(
+    items: parseRecords(json['items'], PostActivity.fromJson),
+    seenAt: JsonReader.date(json, 'seen_at'),
   );
+
+  final List<PostActivity> items;
+  final DateTime? seenAt;
+
+  bool isUnread(PostActivity activity) =>
+      seenAt == null || activity.createdAt.isAfter(seenAt!);
+
+  int get unreadCount => items.where(isUnread).length;
 }
 
 enum StyledStatus { pending, saved, dismissed }

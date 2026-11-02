@@ -16,6 +16,7 @@ import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/remote/payos_checkout.dart';
 import 'package:all_fits/data/remote/product_link_service.dart';
+import 'package:all_fits/features/auth/auth_flows.dart';
 import 'package:all_fits/features/collections/controllers/collection_controller.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
@@ -261,8 +262,26 @@ class _UserSessionState extends State<UserSession> {
                 return const AppSplashView();
               }
               if (snapshot.hasError) {
+                // Log out too, so an account the server no longer knows
+                // can't leave the user stuck here.
                 return Scaffold(
-                  body: AppErrorView(error: snapshot.error!, onRetry: _retry),
+                  body: Column(
+                    children: [
+                      Expanded(
+                        child: AppErrorView(
+                          error: snapshot.error!,
+                          onRetry: _retry,
+                        ),
+                      ),
+                      SafeArea(
+                        top: false,
+                        child: TextButton(
+                          onPressed: () => AuthFlows.signOut(context),
+                          child: const Text('Log out'),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               }
               return const AppShell();

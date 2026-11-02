@@ -265,6 +265,7 @@ class SocialOutfitCard extends StatelessWidget {
     required this.onTap,
     this.owner,
     this.caption,
+    this.footer,
   });
 
   final List<ClothingItem> items;
@@ -274,6 +275,9 @@ class SocialOutfitCard extends StatelessWidget {
 
   /// Small line under the card, e.g. "For you · 2 days ago".
   final String? caption;
+
+  /// Shown under the card instead of [caption], e.g. [PostStats].
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -328,7 +332,10 @@ class SocialOutfitCard extends StatelessWidget {
               ),
             ),
           ),
-          if (caption != null) ...[
+          if (footer != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            footer!,
+          ] else if (caption != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
               caption!,
@@ -338,6 +345,112 @@ class SocialOutfitCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A Discover post's likes and comments, e.g. "♥ 12  💬 3".
+class PostStats extends StatelessWidget {
+  const PostStats({super.key, required this.post});
+
+  final FeedPost post;
+
+  static const double _iconSize = 16;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final style = context.textTheme.bodySmall;
+    return Row(
+      children: [
+        Icon(
+          post.liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          size: _iconSize,
+          color: post.liked ? palette.danger : palette.textSecondary,
+        ),
+        const SizedBox(width: AppSpacing.xxs),
+        Text('${post.likes}', style: style),
+        const SizedBox(width: AppSpacing.sm),
+        Icon(
+          Icons.chat_bubble_outline_rounded,
+          size: _iconSize,
+          color: palette.textSecondary,
+        ),
+        const SizedBox(width: AppSpacing.xxs),
+        Text('${post.comments}', style: style),
+      ],
+    );
+  }
+}
+
+/// One comment under a post: who wrote it, when, and what.
+class CommentTile extends StatelessWidget {
+  const CommentTile({
+    super.key,
+    required this.comment,
+    this.onAuthorTap,
+    this.onMore,
+  });
+
+  final PostComment comment;
+  final VoidCallback? onAuthorTap;
+
+  /// Opens Delete / Report; also on long press.
+  final VoidCallback? onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final text = context.textTheme;
+    final author = comment.author;
+    return InkWell(
+      onLongPress: onMore,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: onAuthorTap,
+              child: UserAvatar(
+                name: author.name,
+                url: author.avatarUrl,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: author.username, style: text.labelLarge),
+                        TextSpan(
+                          text: '  ${AppFormatters.timeAgo(comment.createdAt)}',
+                          style: text.bodySmall?.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(comment.body, style: text.bodyMedium),
+                ],
+              ),
+            ),
+            if (onMore != null)
+              IconButton(
+                tooltip: 'Comment options',
+                visualDensity: VisualDensity.compact,
+                onPressed: onMore,
+                icon: const Icon(Icons.more_horiz_rounded, size: 20),
+              ),
+          ],
+        ),
       ),
     );
   }

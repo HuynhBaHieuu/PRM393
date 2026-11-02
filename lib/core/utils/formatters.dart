@@ -56,6 +56,18 @@ abstract final class AppFormatters {
     return shortDate(date, now: reference);
   }
 
+  /// "now", "5m", "3h", "2d", then a short date: how long ago a comment or
+  /// like was left.
+  static String timeAgo(DateTime date, {DateTime? now}) {
+    final reference = now ?? DateTime.now();
+    final diff = reference.difference(date);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m';
+    if (diff.inDays < 1) return '${diff.inHours}h';
+    if (diff.inDays < _recentDayWindow) return '${diff.inDays}d';
+    return shortDate(date.toLocal(), now: reference);
+  }
+
   /// "$45" or "$45.50", with thousands separators.
   static String price(double value, String currencySymbol) {
     final isWhole = value == value.roundToDouble();
