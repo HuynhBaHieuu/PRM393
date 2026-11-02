@@ -240,6 +240,8 @@ App làm gì phía sau:
 3. Nút trên widget mở app bằng một link "allfits://widget/…" (wear, compose, outfit, add-clothes); app đọc link và làm việc tương ứng.
 4. Qua ngày mới mà chưa mở app thì widget không hiện outfit của hôm qua: Android kiểm tra lại mỗi 30 phút, thấy ngày đã cũ thì hiện "Open All Fits to see today's outfit".
 
+5. Chữ trên widget theo ngôn ngữ của app (mục Settings, Language): phần Flutter dịch rồi mới gửi xuống Android, và đổi ngôn ngữ thì widget cập nhật ngay. Tên widget trong danh sách Widgets của điện thoại và nội dung xem trước do Android hiển thị, nên theo ngôn ngữ của điện thoại (res/values-vi/widget_strings.xml).
+
 Ghi chú: chỉ có trên Android (iOS cần viết widget riêng bằng SwiftUI). Test nằm ở test/features/today_widget_test.dart.
 
 Miễn phí và Premium: miễn phí cho mọi người.

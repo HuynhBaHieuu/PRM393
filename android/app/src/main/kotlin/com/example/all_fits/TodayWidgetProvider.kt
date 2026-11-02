@@ -41,11 +41,12 @@ class TodayWidgetProvider : HomeWidgetProvider() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
         // Never opened, or the outfit is from an earlier day: the app hasn't
-        // run since midnight, so ask the user to open it.
+        // run since midnight, so ask the user to open it. The app saves this
+        // text in its own language, which can differ from the phone's.
         val current = state == "signedOut" || (state != null && day == today)
         if (!current) {
-            views.setTextViewText(R.id.today_heading, context.getString(R.string.today_widget_heading))
-            views.setTextViewText(R.id.today_title, context.getString(R.string.today_widget_open))
+            views.setTextViewText(R.id.today_heading, data.getString("today_open_heading", null) ?: context.getString(R.string.today_widget_heading))
+            views.setTextViewText(R.id.today_title, data.getString("today_open_title", null) ?: context.getString(R.string.today_widget_open))
             views.setViewVisibility(R.id.today_weather, View.GONE)
             views.setViewVisibility(R.id.today_subtitle, View.GONE)
             views.setViewVisibility(R.id.today_action, View.GONE)

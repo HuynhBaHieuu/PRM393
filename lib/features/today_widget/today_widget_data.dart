@@ -1,3 +1,4 @@
+import 'package:all_fits/core/l10n/l10n.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
@@ -81,8 +82,8 @@ class TodayWidgetData {
     return TodayWidgetData(
       state: TodayWidgetState.empty,
       day: day,
-      title: 'Nothing planned today',
-      subtitle: 'Add tops, bottoms and shoes to get a look every day.',
+      title: tr('Nothing planned today'),
+      subtitle: tr('Add tops, bottoms and shoes to get a look every day.'),
       weather: weatherLine,
     );
   }
@@ -105,18 +106,18 @@ class TodayWidgetData {
 
   /// The small label above the title.
   String get heading => switch (state) {
-    TodayWidgetState.worn => 'Worn today',
-    TodayWidgetState.planned => 'Planned for today',
-    TodayWidgetState.idea => 'Idea for today',
-    TodayWidgetState.empty => 'Today',
+    TodayWidgetState.worn => tr('Worn today'),
+    TodayWidgetState.planned => tr('Planned for today'),
+    TodayWidgetState.idea => tr('Idea for today'),
+    TodayWidgetState.empty => tr('Today'),
   };
 
   /// The button under the title; null when there is nothing to do.
   String? get actionLabel => switch (state) {
     TodayWidgetState.worn => null,
-    TodayWidgetState.planned => 'Mark as worn',
-    TodayWidgetState.idea => 'Save this look',
-    TodayWidgetState.empty => 'Add clothes',
+    TodayWidgetState.planned => tr('Mark as worn'),
+    TodayWidgetState.idea => tr('Save this look'),
+    TodayWidgetState.empty => tr('Add clothes'),
   };
 
   /// What the button does, as a link the app opens; see [TodayWidgetLink].
@@ -135,7 +136,9 @@ class TodayWidgetData {
       : TodayWidgetLink.outfit(outfit!.id);
 
   /// The values handed to the Android widget. The day lets the widget tell
-  /// a stale outfit from today's when the app hasn't run since midnight.
+  /// a stale outfit from today's when the app hasn't run since midnight;
+  /// it then shows the "open" text, in the app's language rather than the
+  /// phone's.
   Map<String, String?> toWidgetValues() => {
     'today_day': DateHelpers.toKey(day),
     'today_state': state.name,
@@ -146,14 +149,16 @@ class TodayWidgetData {
     'today_action': actionLabel,
     'today_action_link': actionLink?.toString(),
     'today_open_link': openLink.toString(),
+    'today_open_heading': tr('Today'),
+    'today_open_title': tr('Open All Fits to see today’s outfit'),
   };
 
   /// What the widget shows once the user has signed out.
-  static const Map<String, String?> signedOutValues = {
+  static Map<String, String?> get signedOutValues => {
     'today_day': null,
     'today_state': 'signedOut',
     'today_heading': 'All Fits',
-    'today_title': 'Sign in to see today’s outfit',
+    'today_title': tr('Sign in to see today’s outfit'),
     'today_subtitle': null,
     'today_weather': null,
     'today_action': null,
@@ -184,7 +189,7 @@ class TodayWidgetData {
       };
 
   static String _pieces(List<ClothingItem> items) =>
-      items.isEmpty ? 'No pieces' : items.map((i) => i.name).join(' · ');
+      items.isEmpty ? tr('No pieces') : items.map((i) => i.name).join(' · ');
 }
 
 /// Links the widget opens the app with. Only the app reads them.

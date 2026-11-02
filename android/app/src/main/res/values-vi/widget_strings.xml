@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="today_widget_label">Outfit hôm nay</string>
+    <string name="today_widget_description">Outfit và thời tiết hôm nay, đánh dấu đã mặc ngay trên widget.</string>
+    <string name="today_widget_picture">Outfit hôm nay</string>
+    <string name="today_widget_heading">Hôm nay</string>
+    <string name="today_widget_open">Mở All Fits để xem outfit hôm nay</string>
+    <string name="today_widget_preview_weather">☀️ 29° · Đà Nẵng</string>
+    <string name="today_widget_preview_heading">Đã lên lịch hôm nay</string>
+    <string name="today_widget_preview_title">Outfit hôm nay của bạn</string>
+    <string name="today_widget_preview_subtitle">Áo thun · Quần jeans · Giày sneaker</string>
+    <string name="today_widget_preview_action">Đánh dấu đã mặc</string>
+</resources>

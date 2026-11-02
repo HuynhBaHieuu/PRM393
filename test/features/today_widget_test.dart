@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import 'package:all_fits/core/l10n/l10n.dart';
 import 'package:all_fits/core/utils/date_helpers.dart';
 import 'package:all_fits/data/local/home_screen_widget.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/weather.dart';
 import 'package:all_fits/data/repositories/settings_repository.dart';
+import 'package:all_fits/features/settings/controllers/language_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/today_widget/today_widget_data.dart';
 import 'package:all_fits/features/today_widget/today_widget_sync.dart';
@@ -115,6 +117,50 @@ void main() {
       expect(data.actionLink, TodayWidgetLink.addClothes);
     });
 
+    test('everything it says follows the app language', () async {
+      addTearDown(() => L10n.current = AppLanguage.en);
+      L10n.current = AppLanguage.vi;
+
+      final idea = dataFor();
+      expect(idea.heading, 'Gợi ý hôm nay');
+      expect(idea.actionLabel, 'Lưu outfit này');
+
+      final outfit = await closet.addOutfit('Casual', [tee, jeans]);
+      await closet.planner.planOutfit(today, outfit);
+      final planned = dataFor();
+      expect(planned.heading, 'Đã lên lịch hôm nay');
+      expect(planned.actionLabel, 'Đánh dấu đã mặc');
+      expect(planned.title, 'Casual');
+      expect(
+        planned.toWidgetValues()['today_open_title'],
+        'Mở All Fits để xem outfit hôm nay',
+      );
+
+      await closet.closet.markWorn(outfit);
+      expect(dataFor().heading, 'Đã mặc hôm nay');
+
+      final none = TestCloset();
+      final empty = TodayWidgetData.from(
+        today: testNow,
+        plan: none.planner.dayPlan(today),
+        outfitById: none.outfits.outfitById,
+        itemsByIds: none.wardrobe.itemsByIds,
+        wardrobe: const [],
+      );
+      expect(empty.heading, 'Hôm nay');
+      expect(empty.title, 'Hôm nay chưa có lịch');
+      expect(
+        empty.subtitle,
+        'Thêm áo, quần và giày để có gợi ý outfit mỗi ngày.',
+      );
+      expect(empty.actionLabel, 'Thêm quần áo');
+
+      expect(
+        TodayWidgetData.signedOutValues['today_title'],
+        'Đăng nhập để xem outfit hôm nay',
+      );
+    });
+
     test('the weather line and a signature that follows changes', () async {
       final report = WeatherReport(
         location: testCity,
@@ -146,7 +192,10 @@ void main() {
       await settings.load();
     });
 
-    Future<void> pumpSync(WidgetTester tester) async {
+    Future<void> pumpSync(
+      WidgetTester tester, {
+      LanguageController? language,
+    }) async {
       homeWidget = _FakeHomeWidget();
       final weather = WeatherController(service: const FakeWeatherService());
       addTearDown(weather.dispose);
@@ -161,6 +210,7 @@ void main() {
             ChangeNotifierProvider.value(value: weather),
             ChangeNotifierProvider.value(value: settings),
             Provider.value(value: closet.closet),
+            if (language != null) ChangeNotifierProvider.value(value: language),
           ],
           child: const MaterialApp(
             home: TodayWidgetSync(child: Scaffold(body: Text('App'))),
@@ -189,6 +239,23 @@ void main() {
       await closet.addItem('Scarf', ClothingCategory.accessories);
       await tester.pump(const Duration(seconds: 1));
       expect(homeWidget.updates, hasLength(2));
+    });
+
+    testWidgets('changing the language updates the widget', (tester) async {
+      addTearDown(() => L10n.current = AppLanguage.en);
+      final language = LanguageController(closet.storage);
+      addTearDown(language.dispose);
+      final outfit = await closet.addOutfit('Casual', [tee, jeans]);
+      await closet.planner.planOutfit(today, outfit);
+      await pumpSync(tester, language: language);
+      expect(homeWidget.last['today_heading'], 'Planned for today');
+
+      await language.setLanguage(AppLanguage.vi);
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(homeWidget.last['today_heading'], 'Đã lên lịch hôm nay');
+      expect(homeWidget.last['today_action'], 'Đánh dấu đã mặc');
+      expect(homeWidget.last['today_title'], 'Casual');
     });
 
     testWidgets('loads the weather for the saved city', (tester) async {

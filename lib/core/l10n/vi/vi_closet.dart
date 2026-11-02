@@ -547,4 +547,16 @@ const Map<String, String> viCloset = {
       'Hôm nay mát. Thêm một lớp áo mỏng là vừa.',
   'Mild weather. Most of your wardrobe works today.':
       'Thời tiết dễ chịu. Mặc gì cũng hợp.',
+
+  // Home screen widget
+  'Worn today': 'Đã mặc hôm nay',
+  'Planned for today': 'Đã lên lịch hôm nay',
+  'Idea for today': 'Gợi ý hôm nay',
+  'Save this look': 'Lưu outfit này',
+  'Nothing planned today': 'Hôm nay chưa có lịch',
+  'Add tops, bottoms and shoes to get a look every day.':
+      'Thêm áo, quần và giày để có gợi ý outfit mỗi ngày.',
+  'No pieces': 'Không có món nào',
+  'Sign in to see today’s outfit': 'Đăng nhập để xem outfit hôm nay',
+  'Open All Fits to see today’s outfit': 'Mở All Fits để xem outfit hôm nay',
 };

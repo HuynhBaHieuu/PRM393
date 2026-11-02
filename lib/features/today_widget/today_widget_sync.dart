@@ -14,6 +14,7 @@ import 'package:all_fits/features/outfits/outfit_layout.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/planner/controllers/planner_controller.dart';
+import 'package:all_fits/features/settings/controllers/language_controller.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
@@ -38,7 +39,7 @@ class TodayWidgetSync extends StatefulWidget {
 class _TodayWidgetSyncState extends State<TodayWidgetSync>
     with WidgetsBindingObserver {
   late final HomeScreenWidget _homeWidget;
-  late final Listenable _closet;
+  late final Listenable _changes;
   StreamSubscription<Uri>? _taps;
   Timer? _debounce;
   String? _shown;
@@ -49,11 +50,13 @@ class _TodayWidgetSyncState extends State<TodayWidgetSync>
   void initState() {
     super.initState();
     _homeWidget = context.read<HomeScreenWidget>();
-    _closet = Listenable.merge([
+    _changes = Listenable.merge([
       context.read<PlannerController>(),
       context.read<OutfitController>(),
       context.read<WardrobeController>(),
       context.read<WeatherController>(),
+      // The widget's text follows the app's language.
+      context.read<LanguageController?>(),
     ])..addListener(_schedule);
     WidgetsBinding.instance.addObserver(this);
     _taps = _homeWidget.taps.listen(_open);
@@ -62,7 +65,7 @@ class _TodayWidgetSyncState extends State<TodayWidgetSync>
 
   @override
   void dispose() {
-    _closet.removeListener(_schedule);
+    _changes.removeListener(_schedule);
     WidgetsBinding.instance.removeObserver(this);
     _taps?.cancel();
     _debounce?.cancel();
