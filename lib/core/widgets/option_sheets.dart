@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' sheet layout: a centered title over a divider, scrolling content,
 /// and a footer with a grey secondary button and a black "Done".
@@ -77,7 +78,7 @@ class OptionSheetFrame extends StatelessWidget {
                       child: Text(secondaryLabel!),
                     ),
                   const Spacer(),
-                  FilledButton(onPressed: onDone, child: const Text('Done')),
+                  FilledButton(onPressed: onDone, child: Text(tr('Done'))),
                 ],
               ),
             ),
@@ -205,7 +206,7 @@ class _MultiSelectSheetState<T> extends State<_MultiSelectSheet<T>> {
     return OptionSheetFrame(
       title: widget.title,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      secondaryLabel: 'Clear selection',
+      secondaryLabel: tr('Clear selection'),
       onSecondary: () => setState(_selected.clear),
       onDone: () => Navigator.of(context).pop(_selected),
       children: [

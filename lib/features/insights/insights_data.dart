@@ -4,6 +4,7 @@ import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/outfit_calendar_entry.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What the donut chart splits the wardrobe by, as in Fits.
 enum InsightDimension {
@@ -12,9 +13,11 @@ enum InsightDimension {
   brands('Brands'),
   season('Season');
 
-  const InsightDimension(this.label);
+  const InsightDimension(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// One slice: its label, how many pieces, and the clothing color it stands
@@ -47,7 +50,7 @@ class InsightsData {
 
   /// More slices than this fold into "Other".
   static const int maxSlices = 8;
-  static const String other = 'Other';
+  static String get other => tr('Other');
 
   /// Slices for [dimension], biggest first. Categories split into types
   /// (Sneakers, Jeans…), limited to [category] when given.
@@ -72,14 +75,14 @@ class InsightsData {
         case InsightDimension.colors:
           final color = item.color;
           if (color == null) {
-            add('No color');
+            add(tr('No color'));
           } else {
             add(color.label, color: color);
           }
         case InsightDimension.brands:
-          add(item.brand?.trim() ?? 'No brand');
+          add(item.brand?.trim() ?? tr('No brand'));
         case InsightDimension.season:
-          if (item.seasons.isEmpty) add('No season');
+          if (item.seasons.isEmpty) add(tr('No season'));
           for (final season in item.seasons) {
             add(season.label);
           }

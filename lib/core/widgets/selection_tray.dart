@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// "N selected" over a row of square action buttons.
 class SelectionTray extends StatelessWidget {
@@ -31,7 +32,10 @@ class SelectionTray extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$count selected', style: context.textTheme.titleMedium),
+              Text(
+                tr('{0} selected', [count]),
+                style: context.textTheme.titleMedium,
+              ),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [

@@ -24,6 +24,7 @@ import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_filter_sheet.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' "Add outfit": tick pieces first, pick how to put them together
 /// (Collage, Dressing Room or AI Try On), then "Next →".
@@ -72,7 +73,7 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
       initialDate: _planDate ?? today,
       firstDate: today.subtract(const Duration(days: 365)),
       lastDate: today.add(const Duration(days: 365)),
-      helpText: 'Plan this outfit for',
+      helpText: tr('Plan this outfit for'),
     );
     if (date != null) setState(() => _planDate = date);
   }
@@ -109,13 +110,13 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add outfit'),
+        title: Text(tr('Add outfit')),
         centerTitle: true,
         actions: [
           IconButton(
             tooltip: _planDate == null
-                ? 'Plan for a day'
-                : 'Planned for ${AppFormatters.shortDate(_planDate!)}',
+                ? tr('Plan for a day')
+                : tr('Planned for {0}', [AppFormatters.shortDate(_planDate!)]),
             onPressed: _pickPlanDate,
             icon: Badge(
               isLabelVisible: _planDate != null,
@@ -142,7 +143,7 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
                   Expanded(
                     child: _BigOption(
                       icon: Icons.accessibility_new_rounded,
-                      label: 'Selfie',
+                      label: tr('Selfie'),
                       onTap: _selfie,
                     ),
                   ),
@@ -150,7 +151,7 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
                   Expanded(
                     child: _BigOption(
                       icon: Icons.auto_awesome_outlined,
-                      label: 'Suggestions',
+                      label: tr('Suggestions'),
                       onTap: _suggestions,
                     ),
                   ),
@@ -172,9 +173,9 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.checkroom_outlined,
-                title: 'Your wardrobe is empty',
-                message: 'Add clothes to put outfits together.',
-                actionLabel: 'Add clothes',
+                title: tr('Your wardrobe is empty'),
+                message: tr('Add clothes to put outfits together.'),
+                actionLabel: tr('Add clothes'),
                 onAction: () => AppNavigator.addClothing(context),
               ),
             )
@@ -183,9 +184,9 @@ class _OutfitPickScreenState extends State<OutfitPickScreen> {
               hasScrollBody: false,
               child: AppEmptyState(
                 icon: Icons.search_off_rounded,
-                title: 'No clothes match your filters',
-                message: 'Change your filters and try again',
-                actionLabel: 'Clear filters',
+                title: tr('No clothes match your filters'),
+                message: tr('Change your filters and try again'),
+                actionLabel: tr('Clear filters'),
                 onAction: () => setState(() => _query = _query.cleared()),
               ),
             )
@@ -296,7 +297,7 @@ class _PickTray extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${items.length} selected',
+                tr('{0} selected', [items.length]),
                 style: context.textTheme.titleMedium,
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -339,7 +340,7 @@ class _PickTray extends StatelessWidget {
                             right: -6,
                             child: Semantics(
                               button: true,
-                              label: 'Remove ${item.name}',
+                              label: tr('Remove {0}', [item.name]),
                               child: GestureDetector(
                                 onTap: () => onRemove(item.id),
                                 child: CircleAvatar(
@@ -378,7 +379,7 @@ class _PickTray extends StatelessWidget {
                     onPressed: onNext,
                     iconAlignment: IconAlignment.end,
                     icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Next'),
+                    label: Text(tr('Next')),
                   ),
                 ],
               ),
@@ -434,8 +435,8 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
         children: [
           Text(
             _editingDefault
-                ? 'Select your default mode'
-                : 'Select how to create outfits',
+                ? tr('Select your default mode')
+                : tr('Select how to create outfits'),
             style: text.titleLarge,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -494,7 +495,7 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
                             style: text.titleSmall,
                           ),
                           if (mode == defaultMode)
-                            Text('Default', style: text.bodySmall),
+                            Text(tr('Default'), style: text.bodySmall),
                         ],
                       ),
                     ),
@@ -510,7 +511,9 @@ class _OutfitModeSheetState extends State<OutfitModeSheet> {
               backgroundColor: palette.surface,
               side: BorderSide(color: palette.border, width: 1.5),
             ),
-            child: Text(_editingDefault ? 'Cancel' : 'Edit default mode'),
+            child: Text(
+              _editingDefault ? tr('Cancel') : tr('Edit default mode'),
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
         ],

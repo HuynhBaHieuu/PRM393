@@ -1,6 +1,7 @@
 import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' outfit "Sort items by" options.
 enum OutfitSort {
@@ -9,9 +10,11 @@ enum OutfitSort {
   mostWorn('Most worn'),
   leastWorn('Least worn');
 
-  const OutfitSort(this.label);
+  const OutfitSort(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// Fits' outfit "Group items by" options; occasions are its categories.
@@ -20,9 +23,11 @@ enum OutfitGroup {
   categories('Categories'),
   season('Season');
 
-  const OutfitGroup(this.label);
+  const OutfitGroup(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// Fits' "Image type": collages, outfit photos (selfies), or both.
@@ -31,9 +36,11 @@ enum OutfitImageType {
   collages('Collages'),
   photos('Photos');
 
-  const OutfitImageType(this.label);
+  const OutfitImageType(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 const Object _unset = Object();
@@ -152,7 +159,10 @@ class OutfitQuery {
             if (outfits.any((x) => x.occasion == o))
               (o.label, outfits.where((x) => x.occasion == o).toList()),
           if (outfits.any((x) => x.occasion == null))
-            ('No occasion', outfits.where((x) => x.occasion == null).toList()),
+            (
+              tr('No occasion'),
+              outfits.where((x) => x.occasion == null).toList(),
+            ),
         ];
       case OutfitGroup.season:
         return [
@@ -163,7 +173,7 @@ class OutfitQuery {
                 outfits.where((x) => x.seasons.contains(s)).toList(),
               ),
           if (outfits.any((x) => x.seasons.isEmpty))
-            ('No season', outfits.where((x) => x.seasons.isEmpty).toList()),
+            (tr('No season'), outfits.where((x) => x.seasons.isEmpty).toList()),
         ];
     }
   }

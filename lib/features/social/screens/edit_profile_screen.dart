@@ -12,6 +12,7 @@ import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' Edit profile: photo, rows that open an editor, and the privacy
 /// switches. With a profile, every change saves at once; without one, the
@@ -74,7 +75,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
       if (creating) {
         navigator.pop();
-        context.showSnack('Profile created');
+        context.showSnack(tr('Profile created'));
       }
     } catch (error) {
       if (mounted) context.showErrorSnack(error);
@@ -95,14 +96,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: Text(tr('Choose from gallery')),
               onTap: () =>
                   Navigator.of(sheetContext).pop(ImagePickSource.gallery),
             ),
             if (picker.supportsCamera)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Take a photo'),
+                title: Text(tr('Take a photo')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.camera),
               ),
@@ -140,7 +141,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(creating ? 'Create profile' : 'Edit profile'),
+        title: Text(creating ? tr('Create profile') : tr('Edit profile')),
         bottom: _saving
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(2),
@@ -170,7 +171,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: palette.textSecondary,
               ),
-              child: const Text('Change photo'),
+              child: Text(tr('Change photo')),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -192,7 +193,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               horizontal: AppSpacing.page,
             ),
             secondary: const Icon(Icons.lock_outline_rounded),
-            title: Text('Private account', style: text.titleMedium),
+            title: Text(tr('Private account'), style: text.titleMedium),
             value: _draft.isPrivate,
             onChanged: _saving
                 ? null
@@ -204,17 +205,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'When your account is public, your profile, clothes and '
-                  'outfits can be seen by anyone. Price, notes and how often '
-                  'you wear something always stay private.',
+                  tr(
+                    'When your account is public, your profile, clothes and '
+                    'outfits can be seen by anyone. Price, notes and how often '
+                    'you wear something always stay private.',
+                  ),
                   style: helpStyle,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'When your account is private, only the followers you '
-                  'approve can see your wardrobe, and your outfits leave '
-                  'Discover. Your username and profile picture is visible to '
-                  'anyone.',
+                  tr(
+                    'When your account is private, only the followers you '
+                    'approve can see your wardrobe, and your outfits leave '
+                    'Discover. Your username and profile picture is visible to '
+                    'anyone.',
+                  ),
                   style: helpStyle,
                 ),
               ],
@@ -226,10 +231,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               horizontal: AppSpacing.page,
             ),
             secondary: const Icon(Icons.style_outlined),
-            title: Text('Let others style me', style: text.titleMedium),
-            subtitle: const Text(
-              'People who can see your closet can make outfits from it for '
-              'you.',
+            title: Text(tr('Let others style me'), style: text.titleMedium),
+            subtitle: Text(
+              tr(
+                'People who can see your closet can make outfits from it for '
+                'you.',
+              ),
             ),
             value: _draft.allowStyling,
             onChanged: _saving
@@ -242,7 +249,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               child: FilledButton(
                 onPressed: _saving ? null : _save,
-                child: const Text('Create profile'),
+                child: Text(tr('Create profile')),
               ),
             ),
           ],
@@ -267,10 +274,12 @@ enum _Field {
   username('Username', Validators.maxUsernameLength),
   bio('Bio', Validators.maxBioLength);
 
-  const _Field(this.label, this.maxLength);
+  const _Field(this._label, this.maxLength);
 
-  final String label;
+  final String _label;
   final int maxLength;
+
+  String get label => tr(_label);
 
   String read(SocialProfile p) => switch (this) {
     _Field.name => p.displayName,
@@ -285,12 +294,14 @@ enum _Field {
   };
 
   String get help => switch (this) {
-    _Field.name =>
+    _Field.name => tr(
       'Help people discover your account by using the name you are known by.',
-    _Field.username =>
+    ),
+    _Field.username => tr(
       'Choose a unique username for your profile. Lowercase letters, '
-          'numbers, _ and . only.',
-    _Field.bio => 'A few words about your style.',
+      'numbers, _ and . only.',
+    ),
+    _Field.bio => tr('A few words about your style.'),
   };
 }
 
@@ -322,7 +333,7 @@ class _FieldRow extends StatelessWidget {
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Text(
-                empty ? 'Add' : value,
+                empty ? tr('Add') : value,
                 textAlign: TextAlign.end,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -412,7 +423,7 @@ class _FieldEditorState extends State<_FieldEditor> {
         leadingWidth: 96,
         leading: TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(tr('Cancel')),
         ),
         centerTitle: true,
         title: Text(widget.field.label),
@@ -421,7 +432,7 @@ class _FieldEditorState extends State<_FieldEditor> {
             onPressed: _canSave
                 ? () => Navigator.of(context).pop(_value)
                 : null,
-            child: const Text('Save'),
+            child: Text(tr('Save')),
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
@@ -455,8 +466,8 @@ class _FieldEditorState extends State<_FieldEditor> {
                 const SizedBox(width: AppSpacing.xs),
                 Text(
                   _available!
-                      ? 'Username is available'
-                      : 'This username is taken',
+                      ? tr('Username is available')
+                      : tr('This username is taken'),
                   style: text.bodyMedium,
                 ),
               ],

@@ -26,6 +26,7 @@ import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Chat with the AI stylist, which answers with outfits built from the
 /// user's wardrobe, packing lists, shopping ideas and try-on pictures. Chats
@@ -53,26 +54,30 @@ class StylistScreen extends StatefulWidget {
 
   /// Fits' quick starts that send a message: chip label, then the message.
   /// "Rate my outfit" follows them and asks for a photo.
-  static const List<(String, String)> prompts = [
-    ('Make an outfit', 'Make an outfit for me from my wardrobe.'),
-    ('Create a packing list', 'Create a packing list for my next trip.'),
+  static List<(String, String)> get prompts => [
+    (tr('Make an outfit'), tr('Make an outfit for me from my wardrobe.')),
+    (
+      tr('Create a packing list'),
+      tr('Create a packing list for my next trip.'),
+    ),
   ];
 
   /// Sent when the user attaches pieces without typing anything.
-  static const String attachPrompt =
-      'Please include my selected pieces in the outfit.';
+  static String get attachPrompt =>
+      tr('Please include my selected pieces in the outfit.');
 
   /// Sent when the user attaches a photo without typing anything.
-  static const String photoPrompt =
-      'Pick clothes from my wardrobe that go with this photo.';
+  static String get photoPrompt =>
+      tr('Pick clothes from my wardrobe that go with this photo.');
 
-  static const String ratePrompt = 'Rate my outfit.';
+  static String get ratePrompt => tr('Rate my outfit.');
 
-  static const String colorsPrompt =
-      'Find my colors: which color palette suits me best, and which pieces '
-      'in my wardrobe match it?';
+  static String get colorsPrompt => tr(
+    'Find my colors: which color palette suits me best, and which pieces '
+    'in my wardrobe match it?',
+  );
 
-  static const String findOutfitPrompt = 'Find me an outfit for today.';
+  static String get findOutfitPrompt => tr('Find me an outfit for today.');
 
   @override
   State<StylistScreen> createState() => _StylistScreenState();
@@ -241,7 +246,7 @@ class _StylistScreenState extends State<StylistScreen> {
     final weather = _todayWeather();
     final resolve = context.read<ImageStorageService>().resolvePath;
     return _run(
-      'Styling…',
+      tr('Styling…'),
       (cancel) => service.reply(
         wardrobe: wardrobe,
         history: List.of(_messages),
@@ -289,13 +294,13 @@ class _StylistScreenState extends State<StylistScreen> {
             if (context.read<ImagePickerService>().supportsCamera)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Camera'),
+                title: Text(tr('Camera')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.camera),
               ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Library'),
+              title: Text(tr('Library')),
               onTap: () =>
                   Navigator.of(sheetContext).pop(ImagePickSource.gallery),
             ),
@@ -348,25 +353,25 @@ class _StylistScreenState extends State<StylistScreen> {
               option(
                 sheetContext,
                 Icons.photo_camera_outlined,
-                'Camera',
+                tr('Camera'),
                 _Attachment.camera,
               ),
             option(
               sheetContext,
               Icons.photo_library_outlined,
-              'Library',
+              tr('Library'),
               _Attachment.library,
             ),
             option(
               sheetContext,
               Icons.checkroom_outlined,
-              'Clothes',
+              tr('Clothes'),
               _Attachment.clothes,
             ),
             option(
               sheetContext,
               Icons.style_outlined,
-              'Outfits',
+              tr('Outfits'),
               _Attachment.outfit,
             ),
           ],
@@ -392,7 +397,7 @@ class _StylistScreenState extends State<StylistScreen> {
         final outfits = context.read<OutfitController>();
         final id = await showOutfitPickerSheet(
           context,
-          title: 'Attach an outfit',
+          title: tr('Attach an outfit'),
           outfits: outfits.outfits,
         );
         picked = id == null ? null : outfits.outfitById(id)?.itemIds;
@@ -442,7 +447,7 @@ class _StylistScreenState extends State<StylistScreen> {
       );
       if (!mounted) return;
       setState(() => _saved.add(suggestion));
-      context.showSnack('${suggestion.name} saved to your outfits');
+      context.showSnack(tr('{0} saved to your outfits', [suggestion.name]));
     } catch (error) {
       if (mounted) context.showErrorSnack(error);
     }
@@ -455,7 +460,7 @@ class _StylistScreenState extends State<StylistScreen> {
     });
     if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
         mounted) {
-      context.showSnack('Could not open the browser.');
+      context.showSnack(tr('Could not open the browser.'));
     }
   }
 
@@ -465,17 +470,19 @@ class _StylistScreenState extends State<StylistScreen> {
     try {
       final result = await SharePlus.instance.share(
         ShareParams(
-          text:
-              'I plan my outfits with ${AppConfig.appName} and its AI '
-              'stylist. Give it a try!',
+          text: tr(
+            'I plan my outfits with {0} and its AI stylist. Give it a try!',
+            [AppConfig.appName],
+          ),
         ),
       );
       if (result.status == ShareResultStatus.dismissed) return;
       await store.grantShareBonus();
       if (mounted) {
         context.showSnack(
-          'Thanks! You got ${AppConfig.shareBonusMessages} more messages '
-          'today.',
+          tr('Thanks! You got {0} more messages today.', [
+            AppConfig.shareBonusMessages,
+          ]),
         );
       }
     } catch (error) {
@@ -489,7 +496,7 @@ class _StylistScreenState extends State<StylistScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: tr('Back'),
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
@@ -498,13 +505,13 @@ class _StylistScreenState extends State<StylistScreen> {
         actions: [
           if (service.isConfigured && _messages.isNotEmpty)
             IconButton(
-              tooltip: 'New chat',
+              tooltip: tr('New chat'),
               onPressed: _busy ? null : () => _show(null),
               icon: const Icon(Icons.add_comment_outlined),
             ),
           if (service.isConfigured)
             IconButton(
-              tooltip: 'Chat history',
+              tooltip: tr('Chat history'),
               onPressed: _busy ? null : _openHistory,
               icon: const Icon(Icons.history_rounded),
             ),
@@ -515,11 +522,12 @@ class _StylistScreenState extends State<StylistScreen> {
               context,
               canTryOn: context.read<TryOnController>().isAvailable,
             )
-          : const AppEmptyState(
+          : AppEmptyState(
               icon: Icons.auto_awesome_outlined,
-              title: 'AI stylist isn’t set up',
-              message:
-                  'Add your API key to assets/env.json, then restart the app.',
+              title: tr('AI stylist isn’t set up'),
+              message: tr(
+                'Add your API key to assets/env.json, then restart the app.',
+              ),
             ),
     );
   }
@@ -582,7 +590,7 @@ class _StylistScreenState extends State<StylistScreen> {
                         onPressed: () => _send(prompt),
                       ),
                     ActionChip(
-                      label: const Text('Rate my outfit'),
+                      label: Text(tr('Rate my outfit')),
                       onPressed: () => _sendPhoto(StylistScreen.ratePrompt),
                     ),
                   ])

@@ -7,6 +7,7 @@ import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/validators.dart';
 import 'package:all_fits/data/models/user_account.dart';
 import 'package:all_fits/data/repositories/auth_repository.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum AuthStatus { unknown, signedOut, signedIn }
 
@@ -46,7 +47,7 @@ class AuthController extends ChangeNotifier {
         developer.log('Browser login failed', name: 'auth', error: error);
         _externalError = error is AppException
             ? error.message
-            : 'Login failed. Please try again.';
+            : tr('Login failed. Please try again.');
         notifyListeners();
       },
     );

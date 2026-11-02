@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Heart toggle drawn on top of photos.
 class FavoriteOverlayButton extends StatelessWidget {
@@ -21,7 +22,7 @@ class FavoriteOverlayButton extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+      label: isFavorite ? tr('Remove from favorites') : tr('Add to favorites'),
       child: Material(
         color: palette.surface.withValues(alpha: 0.9),
         shape: const CircleBorder(),

@@ -37,6 +37,7 @@ import 'package:all_fits/features/wardrobe/widgets/photo_picker_field.dart';
 import 'package:all_fits/features/wardrobe/widgets/photo_tips_sheet.dart';
 import 'package:all_fits/features/wardrobe/widgets/product_link_sheet.dart';
 import 'package:all_fits/navigation/app_navigation.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Form fields the AI can fill in from the photo.
 enum _AiField { name, category, subcategory, color, seasons, brand }
@@ -238,7 +239,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     final link = page.url.toString();
     if (link.length <= Validators.maxLinkLength) _link.text = link;
     if (page.isEmpty) {
-      context.showSnack('Add a photo of the piece, then fill in the rest.');
+      context.showSnack(tr('Add a photo of the piece, then fill in the rest.'));
       return;
     }
     _stopDetection();
@@ -250,7 +251,9 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
       // The number is kept as the shop wrote it, never converted.
       final symbol = context.read<SettingsController>().currencySymbol;
       if (page.currency case final currency? when !page.isPricedIn(symbol)) {
-        _addNote('Shop price: ${_formatPriceInput(price)} $currency');
+        _addNote(
+          tr('Shop price: {0} {1}', [_formatPriceInput(price), currency]),
+        );
       }
     }
     final path = result.imagePath;
@@ -260,9 +263,13 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     if (path != null) unawaited(_detect(path));
     context.showSnack(
       path == null
-          ? 'Details added from ${page.url.host}. The photo couldn’t be '
-                'downloaded, so add one yourself.'
-          : 'Added from ${page.url.host}. Check the details before saving.',
+          ? tr(
+              'Details added from {0}. The photo couldn’t be downloaded, so add one yourself.',
+              [page.url.host],
+            )
+          : tr('Added from {0}. Check the details before saving.', [
+              page.url.host,
+            ]),
     );
   }
 
@@ -280,7 +287,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     if (url == null || Validators.optionalLink(text) != null) return;
     if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
         mounted) {
-      context.showSnack('Could not open the browser.');
+      context.showSnack(tr('Could not open the browser.'));
     }
   }
 
@@ -295,19 +302,20 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     if (!detector.consented) {
       final agreed = await showConfirmDialog(
         context,
-        title: 'Let AI fill in this piece?',
-        message:
-            'AI can read the category, type, color, season, name and brand '
-            'from your photo. To do that, the photo is sent to an AI '
-            'service. You can turn this off in Settings at any time.',
-        confirmLabel: 'Allow',
-        cancelLabel: 'Not now',
+        title: tr('Let AI fill in this piece?'),
+        message: tr(
+          'AI can read the category, type, color, season, name and brand '
+          'from your photo. To do that, the photo is sent to an AI '
+          'service. You can turn this off in Settings at any time.',
+        ),
+        confirmLabel: tr('Allow'),
+        cancelLabel: tr('Not now'),
       );
       if (!mounted) return;
       if (!agreed) {
         await detector.setEnabled(false);
         if (mounted) {
-          context.showSnack('AI detection is off. Turn it on in Settings.');
+          context.showSnack(tr('AI detection is off. Turn it on in Settings.'));
         }
         return;
       }
@@ -432,7 +440,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
     setState(() => _showErrors = true);
     final formValid = _formKey.currentState?.validate() ?? false;
     if (!formValid || _missingImage || _category == null) {
-      context.showSnack('Please complete the highlighted fields.');
+      context.showSnack(tr('Please complete the highlighted fields.'));
       return;
     }
 
@@ -468,12 +476,14 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
         shell.openCloset(ClosetTab.clothes);
         _dirty = false;
         navigator.pop(item.id);
-        if (mounted) context.showSnack('${item.name} added to your wardrobe');
+        if (mounted) {
+          context.showSnack(tr('{0} added to your wardrobe', [item.name]));
+        }
       } else {
         await wardrobe.updateItem(_existing!.id, draft);
         _dirty = false;
         navigator.pop();
-        if (mounted) context.showSnack('Changes saved');
+        if (mounted) context.showSnack(tr('Changes saved'));
       }
     } catch (error) {
       if (mounted) {
@@ -486,10 +496,10 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   Future<void> _confirmDiscard() async {
     final discard = await showConfirmDialog(
       context,
-      title: 'Discard changes?',
-      message: 'Your edits to this item will be lost.',
-      confirmLabel: 'Discard',
-      cancelLabel: 'Keep editing',
+      title: tr('Discard changes?'),
+      message: tr('Your edits to this item will be lost.'),
+      confirmLabel: tr('Discard'),
+      cancelLabel: tr('Keep editing'),
       destructive: true,
     );
     if (discard && mounted) {
@@ -501,9 +511,9 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isEditing && _existing == null) {
-      return const NotFoundView(
-        title: 'Item not found',
-        message: 'This item is no longer in your wardrobe.',
+      return NotFoundView(
+        title: tr('Item not found'),
+        message: tr('This item is no longer in your wardrobe.'),
       );
     }
     final picker = context.read<ImagePickerService>();
@@ -520,15 +530,15 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            tooltip: 'Close',
+            tooltip: tr('Close'),
             icon: const Icon(Icons.close_rounded),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
-          title: Text(_isEditing ? 'Edit item' : 'Add clothing'),
+          title: Text(_isEditing ? tr('Edit item') : tr('Add clothing')),
           actions: [
             TextButton(
               onPressed: _saving ? null : _save,
-              child: const Text('Save'),
+              child: Text(tr('Save')),
             ),
             const SizedBox(width: AppSpacing.xs),
           ],
@@ -558,7 +568,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                       supportsCamera: picker.supportsCamera,
                       onPick: _pickImage,
                       errorText: _showErrors && _missingImage
-                          ? 'A photo is required'
+                          ? tr('A photo is required')
                           : null,
                     ),
                     DetectStatus(
@@ -584,7 +594,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                             Icons.link_rounded,
                             size: AppSizes.iconSm,
                           ),
-                          label: const Text('Add from a shop link'),
+                          label: Text(tr('Add from a shop link')),
                         ),
                       ),
                     ],
@@ -606,20 +616,20 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                       minLines: 1,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        labelText: 'Name',
-                        hintText: 'e.g. White linen shirt',
+                        labelText: tr('Name'),
+                        hintText: tr('e.g. White linen shirt'),
                         counterText: '',
                         suffixIcon: _markIf(_AiField.name),
                       ),
                       validator: (v) => Validators.requiredName(
                         v,
-                        subject: 'a name',
+                        subject: tr('a name'),
                         max: Validators.maxItemNameLength,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
-                      label: 'Category',
+                      label: tr('Category'),
                       badge: _markIf(_AiField.category),
                       child: PillGroup<ClothingCategory>(
                         options: ClothingCategory.values,
@@ -644,7 +654,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                         when ClothingSubcategory.of(category).isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.lg),
                       LabeledSection(
-                        label: 'Type',
+                        label: tr('Type'),
                         badge: _markIf(_AiField.subcategory),
                         child: PillGroup<ClothingSubcategory>(
                           options: ClothingSubcategory.of(category),
@@ -661,7 +671,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                     if (_showErrors && _category == null) ...[
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Choose a category',
+                        tr('Choose a category'),
                         style: context.textTheme.bodySmall?.copyWith(
                           color: palette.danger,
                         ),
@@ -669,7 +679,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                     ],
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
-                      label: 'Color',
+                      label: tr('Color'),
                       badge: _markIf(_AiField.color),
                       trailing: _color == null
                           ? null
@@ -698,7 +708,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                     ],
                     const SizedBox(height: AppSpacing.lg),
                     LabeledSection(
-                      label: 'Season',
+                      label: tr('Season'),
                       badge: _markIf(_AiField.seasons),
                       child: PillGroup<Season>(
                         options: Season.values,
@@ -721,7 +731,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                             textCapitalization: TextCapitalization.words,
                             textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
-                              labelText: 'Brand',
+                              labelText: tr('Brand'),
                               suffixIcon: _markIf(_AiField.brand),
                             ),
                             validator: Validators.optionalName,
@@ -742,7 +752,7 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                             ],
                             textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
-                              labelText: 'Price',
+                              labelText: tr('Price'),
                               prefixText: currency,
                             ),
                             validator: Validators.optionalPrice,
@@ -781,10 +791,11 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                       maxLines: 6,
                       maxLength: Validators.maxNotesLength,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Notes',
-                        hintText:
-                            'Fit, care instructions, where you bought it…',
+                      decoration: InputDecoration(
+                        labelText: tr('Notes'),
+                        hintText: tr(
+                          'Fit, care instructions, where you bought it…',
+                        ),
                         alignLabelWithHint: true,
                       ),
                     ),
@@ -797,13 +808,13 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                         autocorrect: false,
                         maxLines: 1,
                         decoration: InputDecoration(
-                          labelText: 'Shop link',
-                          hintText: 'Where the piece is sold',
+                          labelText: tr('Shop link'),
+                          hintText: tr('Where the piece is sold'),
                           suffixIcon:
                               Validators.optionalLink(value.text) == null &&
                                   value.text.trim().isNotEmpty
                               ? IconButton(
-                                  tooltip: 'Open the shop page',
+                                  tooltip: tr('Open the shop page'),
                                   icon: const Icon(Icons.open_in_new_rounded),
                                   onPressed: _openLink,
                                 )
@@ -814,8 +825,8 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Favorite'),
-                      subtitle: const Text('Show this piece in your favorites'),
+                      title: Text(tr('Favorite')),
+                      subtitle: Text(tr('Show this piece in your favorites')),
                       value: _isFavorite,
                       onChanged: (v) => _update(() => _isFavorite = v),
                     ),
@@ -831,13 +842,17 @@ class _ClothingFormScreenState extends State<ClothingFormScreen> {
                               ),
                             )
                           : Text(
-                              _isEditing ? 'Save changes' : 'Add to wardrobe',
+                              _isEditing
+                                  ? tr('Save changes')
+                                  : tr('Add to wardrobe'),
                             ),
                     ),
                     if (_existing != null) ...[
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'Added ${AppFormatters.shortDate(_existing!.createdAt)}',
+                        tr('Added {0}', [
+                          AppFormatters.shortDate(_existing!.createdAt),
+                        ]),
                         textAlign: TextAlign.center,
                         style: context.textTheme.bodySmall,
                       ),

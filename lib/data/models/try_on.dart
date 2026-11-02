@@ -1,15 +1,18 @@
 import 'package:all_fits/core/utils/json_reader.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 enum BodyGender {
   female('Female', 'woman'),
   male('Male', 'man');
 
-  const BodyGender(this.label, this.noun);
+  const BodyGender(this._label, this.noun);
 
-  final String label;
+  final String _label;
 
   /// Used in the image prompt.
   final String noun;
+
+  String get label => tr(_label);
 }
 
 enum BodySize {
@@ -17,10 +20,12 @@ enum BodySize {
   m('M', 'average'),
   l('L', 'fuller');
 
-  const BodySize(this.label, this.build);
+  const BodySize(this._label, this.build);
 
-  final String label;
+  final String _label;
   final String build;
+
+  String get label => tr(_label);
 }
 
 enum LegLength {
@@ -28,10 +33,12 @@ enum LegLength {
   short('Short legs', 'shorter legs'),
   long('Long legs', 'long legs');
 
-  const LegLength(this.label, this.prompt);
+  const LegLength(this._label, this.prompt);
 
-  final String? label;
+  final String? _label;
   final String? prompt;
+
+  String? get label => _label == null ? null : tr(_label);
 }
 
 /// One of the 18 silhouettes on the "Body type" sheet.
@@ -114,11 +121,13 @@ enum TryOnBackground {
   ),
   beach('Beach', 'assets/tryon/beach.jpg', 'a sunny beach with palm trees');
 
-  const TryOnBackground(this.label, this.asset, this.prompt);
+  const TryOnBackground(this._label, this.asset, this.prompt);
 
-  final String label;
+  final String _label;
   final String? asset;
   final String prompt;
+
+  String get label => tr(_label);
 }
 
 /// Who wears the outfit: the user's own photos, or an AI model of their

@@ -6,6 +6,7 @@ import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/models/clothing_subcategory.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// User input for creating or editing a clothing item.
 class ClothingDraft {
@@ -49,7 +50,7 @@ class ClothingDraft {
   /// the existing one.
   void ensureValid({required bool requireImage}) {
     if (requireImage && newImagePath == null) {
-      throw const ValidationException('Add a photo of this item.');
+      throw ValidationException(tr('Add a photo of this item.'));
     }
     final nameError = Validators.requiredName(
       name,
@@ -57,17 +58,19 @@ class ClothingDraft {
     );
     if (nameError != null) throw ValidationException(nameError);
     if (category == null) {
-      throw const ValidationException('Choose a category.');
+      throw ValidationException(tr('Choose a category.'));
     }
     final value = price;
     if (value != null && (value < 0 || value > Validators.maxPrice)) {
-      throw const ValidationException('Enter a valid price.');
+      throw ValidationException(tr('Enter a valid price.'));
     }
     final linkError = Validators.optionalLink(sourceUrl);
     if (linkError != null) throw ValidationException(linkError);
     if ((extraPhotos?.length ?? 0) > AppConfig.maxExtraPhotos) {
-      throw const ValidationException(
-        'A piece can have up to ${AppConfig.maxExtraPhotos} extra photos.',
+      throw ValidationException(
+        tr('A piece can have up to {0} extra photos.', [
+          AppConfig.maxExtraPhotos,
+        ]),
       );
     }
   }

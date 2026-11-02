@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/widgets/app_empty_state.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class AppLoadingView extends StatelessWidget {
   const AppLoadingView({super.key});
@@ -29,9 +30,9 @@ class AppErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppEmptyState(
       icon: Icons.cloud_off_outlined,
-      title: 'Something went wrong',
+      title: tr('Something went wrong'),
       message: describeError(error),
-      actionLabel: onRetry == null ? null : 'Try again',
+      actionLabel: onRetry == null ? null : tr('Try again'),
       onAction: onRetry,
     );
   }
@@ -39,14 +40,10 @@ class AppErrorView extends StatelessWidget {
 
 /// Shown when a route points at a record that no longer exists.
 class NotFoundView extends StatelessWidget {
-  const NotFoundView({
-    super.key,
-    this.title = 'Not found',
-    this.message = 'This page is no longer available.',
-  });
+  const NotFoundView({super.key, this.title, this.message});
 
-  final String title;
-  final String message;
+  final String? title;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +51,9 @@ class NotFoundView extends StatelessWidget {
       appBar: AppBar(),
       body: AppEmptyState(
         icon: Icons.search_off_rounded,
-        title: title,
-        message: message,
-        actionLabel: 'Go back',
+        title: title ?? tr('Not found'),
+        message: message ?? tr('This page is no longer available.'),
+        actionLabel: tr('Go back'),
         onAction: () => Navigator.of(context).maybePop(),
       ),
     );

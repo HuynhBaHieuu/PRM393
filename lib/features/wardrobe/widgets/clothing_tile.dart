@@ -7,6 +7,7 @@ import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/core/widgets/option_sheets.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Image-only wardrobe tile: the piece cut out of its background.
 class ClothingTile extends StatelessWidget {
@@ -92,10 +93,10 @@ class ClothingTile extends StatelessWidget {
                   ),
                 ),
               if (item.isArchived)
-                const Positioned(
+                Positioned(
                   left: _overlayInset,
                   bottom: _overlayInset,
-                  child: TagLabel('Archived', inverted: true),
+                  child: TagLabel(tr('Archived'), inverted: true),
                 ),
               if (checkable)
                 Positioned(

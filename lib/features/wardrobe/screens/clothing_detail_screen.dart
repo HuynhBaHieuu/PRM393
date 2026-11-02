@@ -33,6 +33,7 @@ import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/extra_photos.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What the detail screen opens with: a piece, and the pieces around it in
 /// the list it was opened from (for the ‹ › buttons).
@@ -90,7 +91,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   Future<void> _rename(ClothingItem item) async {
     final name = await showTextInputDialog(
       context,
-      title: 'Name',
+      title: tr('Name'),
       initialValue: item.name,
       maxLength: Validators.maxItemNameLength,
     );
@@ -101,7 +102,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   Future<void> _pickCategory(ClothingItem item) async {
     final category = await showMultiSelectSheet<ClothingCategory>(
       context,
-      title: 'Category',
+      title: tr('Category'),
       single: true,
       options: ClothingCategory.values,
       selected: {item.category},
@@ -115,7 +116,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     if (types.isNotEmpty) {
       final picked = await showMultiSelectSheet<ClothingSubcategory>(
         context,
-        title: 'Type',
+        title: tr('Type'),
         single: true,
         options: types,
         selected: {
@@ -131,10 +132,10 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
 
   Future<void> _pickBrand(ClothingItem item) async {
     final brands = {..._wardrobe.brands, ...AppConfig.suggestedBrands}.toList();
-    const other = '+ Other brand';
+    final other = tr('+ Other brand');
     final picked = await showMultiSelectSheet<String>(
       context,
-      title: 'Brand',
+      title: tr('Brand'),
       single: true,
       options: [other, ...brands],
       selected: {?item.brand},
@@ -145,7 +146,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     if (brand == other) {
       brand = await showTextInputDialog(
         context,
-        title: 'Brand',
+        title: tr('Brand'),
         initialValue: item.brand ?? '',
         maxLength: Validators.maxNameLength,
       );
@@ -159,7 +160,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   Future<void> _pickColor(ClothingItem item) async {
     final picked = await showMultiSelectSheet<ClothingColor>(
       context,
-      title: 'Color',
+      title: tr('Color'),
       single: true,
       options: ClothingColor.values,
       selected: {?item.color},
@@ -171,7 +172,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   }
 
   Future<void> _pickMaterials(ClothingItem item) async {
-    const other = '+ Other material';
+    final other = tr('+ Other material');
     final options = {
       ...AppConfig.suggestedMaterials,
       ..._wardrobe.materials,
@@ -179,7 +180,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     }.toList();
     final picked = await showMultiSelectSheet<String>(
       context,
-      title: 'Materials',
+      title: tr('Materials'),
       options: [...options, other],
       selected: item.materials.toSet(),
       labelOf: (m) => m,
@@ -192,8 +193,8 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     if (picked.contains(other)) {
       final typed = await showTextInputDialog(
         context,
-        title: 'Material',
-        hint: 'e.g. Velvet',
+        title: tr('Material'),
+        hint: tr('e.g. Velvet'),
         maxLength: Validators.maxNameLength,
       );
       if (typed != null && typed.isNotEmpty) materials.add(typed);
@@ -204,7 +205,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   /// Picks from the tags already in the closet, or adds a new one. A new tag
   /// needs room in the plan; reusing one never does.
   Future<void> _pickTags(ClothingItem item) async {
-    const other = '+ New tag';
+    final other = tr('+ New tag');
     // The piece's own spelling first, so its tags show as selected even when
     // another piece spells one differently.
     final options = ClothingItem.normalizeTags([
@@ -213,7 +214,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     ]);
     final picked = await showMultiSelectSheet<String>(
       context,
-      title: 'Tags',
+      title: tr('Tags'),
       options: [...options, other],
       selected: item.tags.toSet(),
       labelOf: (t) => t == other ? t : '#$t',
@@ -226,8 +227,8 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     if (picked.contains(other)) {
       final typed = (await showTextInputDialog(
         context,
-        title: 'New tag',
-        hint: 'e.g. school, vintage, to wash',
+        title: tr('New tag'),
+        hint: tr('e.g. school, vintage, to wash'),
         maxLength: Validators.maxTagLength,
       ))?.trim().replaceFirst(RegExp(r'^#+'), '');
       if (!mounted) return;
@@ -264,7 +265,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   Future<void> _editPrice(ClothingItem item, String currency) async {
     final text = await showTextInputDialog(
       context,
-      title: 'Price',
+      title: tr('Price'),
       initialValue: item.price == null
           ? ''
           : item.price!.toStringAsFixed(
@@ -277,7 +278,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     final cleaned = text.replaceAll(',', '');
     final price = cleaned.isEmpty ? null : double.tryParse(cleaned);
     if (cleaned.isNotEmpty && (price == null || price < 0)) {
-      if (mounted) context.showSnack('Enter a price, e.g. 45 or 45.50');
+      if (mounted) context.showSnack(tr('Enter a price, e.g. 45 or 45.50'));
       return;
     }
     await _patch((i) => i.copyWith(price: price));
@@ -298,9 +299,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   Future<void> _editNote(ClothingItem item) async {
     final note = await showTextInputDialog(
       context,
-      title: 'Note',
+      title: tr('Note'),
       initialValue: item.notes ?? '',
-      hint: 'Add a note...',
+      hint: tr('Add a note...'),
       maxLength: Validators.maxNotesLength,
       multiline: true,
     );
@@ -312,7 +313,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     final url = Uri.tryParse(link.contains('://') ? link : 'https://$link');
     if (url == null ||
         !await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) context.showSnack('Could not open the shop page.');
+      if (mounted) context.showSnack(tr('Could not open the shop page.'));
     }
   }
 
@@ -328,19 +329,19 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
             if (picker.supportsCamera)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Take a new photo'),
+                title: Text(tr('Take a new photo')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_PhotoAction.camera),
               ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose a new photo'),
+              title: Text(tr('Choose a new photo')),
               onTap: () => Navigator.of(sheetContext).pop(_PhotoAction.gallery),
             ),
             if (item.imagePath != null)
               ListTile(
                 leading: const Icon(Icons.auto_fix_high_outlined),
-                title: const Text('Remove background again'),
+                title: Text(tr('Remove background again')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(_PhotoAction.cutout),
               ),
@@ -354,7 +355,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
         setState(() => _busy = true);
         final done = await _wardrobe.redoCutout(_id);
         if (mounted && !done) {
-          context.showSnack('The background couldn’t be removed.');
+          context.showSnack(tr('The background couldn’t be removed.'));
         }
         return;
       }
@@ -414,12 +415,12 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.zoom_out_map_rounded),
-                title: const Text('View full screen'),
+                title: Text(tr('View full screen')),
                 onTap: () => pick(_ExtraPhotoAction.view),
               ),
               ListTile(
                 leading: Icon(photo.kind.icon),
-                title: const Text('Change what it shows'),
+                title: Text(tr('Change what it shows')),
                 trailing: Text(
                   photo.kind.label,
                   style: context.textTheme.bodySmall,
@@ -428,7 +429,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.star_outline_rounded),
-                title: const Text('Use as main photo'),
+                title: Text(tr('Use as main photo')),
                 onTap: () => pick(_ExtraPhotoAction.makeMain),
               ),
               ListTile(
@@ -437,7 +438,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                   color: palette.danger,
                 ),
                 title: Text(
-                  'Delete photo',
+                  tr('Delete photo'),
                   style: TextStyle(color: palette.danger),
                 ),
                 onTap: () => pick(_ExtraPhotoAction.delete),
@@ -463,7 +464,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
         final done = await ClosetFlows.guard(
           context,
           () => _wardrobe.makeMainPhoto(_id, photo.path),
-          successMessage: 'Main photo changed',
+          successMessage: tr('Main photo changed'),
         );
         if (!mounted) return;
         setState(() {
@@ -473,11 +474,11 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
       case _ExtraPhotoAction.delete:
         final confirmed = await showConfirmDialog(
           context,
-          title: 'Delete this photo?',
-          message:
-              'The ${photo.kind.label.toLowerCase()} photo will be '
-              'removed from this piece.',
-          confirmLabel: 'Delete',
+          title: tr('Delete this photo?'),
+          message: tr('The {0} photo will be removed from this piece.', [
+            photo.kind.label.toLowerCase(),
+          ]),
+          confirmLabel: tr('Delete'),
           destructive: true,
         );
         if (!confirmed || !mounted) return;
@@ -497,8 +498,8 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
     );
     if (!done || !mounted) return;
     context.showSnack(
-      archived ? 'Moved to archive' : 'Restored to your wardrobe',
-      actionLabel: 'Undo',
+      archived ? tr('Moved to archive') : tr('Restored to your wardrobe'),
+      actionLabel: tr('Undo'),
       onAction: () => ClosetFlows.guard(
         context,
         () => wardrobe.setArchived(item.id, archived: !archived),
@@ -516,9 +517,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
   Widget build(BuildContext context) {
     final item = context.watch<WardrobeController>().itemById(_id);
     if (item == null) {
-      return const NotFoundView(
-        title: 'Item not found',
-        message: 'This item is no longer in your wardrobe.',
+      return NotFoundView(
+        title: tr('Item not found'),
+        message: tr('This item is no longer in your wardrobe.'),
       );
     }
     final usedIn = context.select<OutfitController, int>(
@@ -552,7 +553,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     ),
                     child: Semantics(
                       button: true,
-                      label: 'View photos full screen',
+                      label: tr('View photos full screen'),
                       child: GestureDetector(
                         onTap: () => AppNavigator.clothingPhotos(
                           context,
@@ -586,7 +587,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     right: 0,
                     child: _StepButton(
                       icon: Icons.more_horiz_rounded,
-                      tooltip: 'Photo options',
+                      tooltip: tr('Photo options'),
                       onTap: () => _extraPhotoOptions(extra),
                     ),
                   ),
@@ -595,7 +596,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     alignment: Alignment.centerLeft,
                     child: _StepButton(
                       icon: Icons.chevron_left_rounded,
-                      tooltip: 'Previous piece',
+                      tooltip: tr('Previous piece'),
                       onTap: () => _show(previous),
                     ),
                   ),
@@ -604,7 +605,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     alignment: Alignment.centerRight,
                     child: _StepButton(
                       icon: Icons.chevron_right_rounded,
-                      tooltip: 'Next piece',
+                      tooltip: tr('Next piece'),
                       onTap: () => _show(next),
                     ),
                   ),
@@ -627,7 +628,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     fit: BoxFit.contain,
                     decodeWidth: PhotoThumb.width,
                   ),
-                  label: 'Main',
+                  label: tr('Main'),
                   icon: Icons.star_outline_rounded,
                   selected: photoIndex == 0,
                   onTap: () => setState(() => _photo = 0),
@@ -661,7 +662,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                   Row(
                     children: [
                       IconButton(
-                        tooltip: item.isFavorite ? 'Unfavorite' : 'Favorite',
+                        tooltip: item.isFavorite
+                            ? tr('Unfavorite')
+                            : tr('Favorite'),
                         onPressed: () => ClosetFlows.guard(
                           context,
                           () => _wardrobe.toggleFavorite(item.id),
@@ -674,11 +677,13 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Ask the AI stylist',
+                        tooltip: tr('Ask the AI stylist'),
                         onPressed: () => AppNavigator.stylist(
                           context,
                           launch: StylistLaunch(
-                            prompt: 'What can I wear with my ${item.name}?',
+                            prompt: tr('What can I wear with my {0}?', [
+                              item.name,
+                            ]),
                             itemIds: [item.id],
                           ),
                         ),
@@ -691,7 +696,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       FilledButton.icon(
                         onPressed: _busy ? null : () => _editPhoto(item),
                         icon: const Icon(Icons.image_outlined),
-                        label: const Text('Edit'),
+                        label: Text(tr('Edit')),
                         style: FilledButton.styleFrom(
                           backgroundColor: palette.surfaceMuted,
                           foregroundColor: palette.ink,
@@ -738,7 +743,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       DetailRow(
                         icon: Icons.verified_outlined,
                         label: item.brand,
-                        placeholder: 'Add brand',
+                        placeholder: tr('Add brand'),
                         onTap: () => _pickBrand(item),
                       ),
                       DetailRow(
@@ -747,7 +752,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                             ? null
                             : ColorSwatchDot(color: item.color!, size: 26),
                         label: item.color?.label,
-                        placeholder: 'Add color',
+                        placeholder: tr('Add color'),
                         onTap: () => _pickColor(item),
                       ),
                       DetailRow(
@@ -755,7 +760,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                         label: item.materials.isEmpty
                             ? null
                             : item.materials.join(', '),
-                        placeholder: 'Add materials',
+                        placeholder: tr('Add materials'),
                         onTap: () => _pickMaterials(item),
                       ),
                       DetailRow(
@@ -770,7 +775,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                                         : '${s.emoji} ${s.label}',
                                   )
                                   .join('  '),
-                        placeholder: 'Add season',
+                        placeholder: tr('Add season'),
                         onTap: () => _pickSeasons(item),
                       ),
                       DetailRow(
@@ -778,7 +783,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                         label: item.tags.isEmpty
                             ? null
                             : item.tags.map((t) => '#$t').join('  '),
-                        placeholder: 'Add tags',
+                        placeholder: tr('Add tags'),
                         onTap: () => _pickTags(item),
                       ),
                     ],
@@ -798,7 +803,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                                         item.price!,
                                         currency,
                                       ),
-                                placeholder: 'Price',
+                                placeholder: tr('Price'),
                                 chevron: false,
                                 onTap: () => _editPrice(item, currency),
                               ),
@@ -812,7 +817,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                                     : AppFormatters.shortDate(
                                         item.purchaseDate!,
                                       ),
-                                placeholder: 'Purchase date',
+                                placeholder: tr('Purchase date'),
                                 chevron: false,
                                 onTap: () => _pickPurchaseDate(item),
                               ),
@@ -828,7 +833,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       DetailRow(
                         icon: Icons.edit_note_rounded,
                         label: item.notes,
-                        placeholder: 'Add a note...',
+                        placeholder: tr('Add a note...'),
                         chevron: false,
                         multiline: true,
                         onTap: () => _editNote(item),
@@ -841,7 +846,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       children: [
                         DetailRow(
                           icon: Icons.storefront_outlined,
-                          label: 'Open shop page · ${_hostOf(link)}',
+                          label: tr('Open shop page · {0}', [_hostOf(link)]),
                           onTap: () => _openShopPage(link),
                         ),
                       ],
@@ -852,7 +857,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     children: [
                       DetailRow(
                         icon: Icons.checkroom_outlined,
-                        label: 'Create outfit',
+                        label: tr('Create outfit'),
                         onTap: item.isArchived
                             ? null
                             : () => AppNavigator.createOutfit(
@@ -867,14 +872,14 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                     children: [
                       DetailSwitchRow(
                         icon: Icons.visibility_off_outlined,
-                        label: 'Hide in my profile',
+                        label: tr('Hide in my profile'),
                         value: item.hideInProfile,
                         onChanged: (value) =>
                             _patch((i) => i.copyWith(hideInProfile: value)),
                       ),
                       DetailSwitchRow(
                         icon: Icons.do_not_touch_outlined,
-                        label: 'Don’t let others add this item',
+                        label: tr('Don’t let others add this item'),
                         value: item.noStyling,
                         onChanged: (value) =>
                             _patch((i) => i.copyWith(noStyling: value)),
@@ -887,7 +892,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       Expanded(
                         child: TrayAction(
                           icon: Icons.bookmark_border_rounded,
-                          label: 'Add to collection',
+                          label: tr('Add to collection'),
                           onTap: () => CollectionFlows.addItem(context, _id),
                         ),
                       ),
@@ -895,7 +900,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       Expanded(
                         child: TrayAction(
                           icon: Icons.download_rounded,
-                          label: 'Save image',
+                          label: tr('Save image'),
                           onTap: () => ClosetFlows.saveItemImage(context, item),
                         ),
                       ),
@@ -905,7 +910,9 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                           icon: item.isArchived
                               ? Icons.unarchive_outlined
                               : Icons.inventory_2_outlined,
-                          label: item.isArchived ? 'Restore' : 'Archive',
+                          label: item.isArchived
+                              ? tr('Restore')
+                              : tr('Archive'),
                           onTap: () =>
                               _setArchived(item, archived: !item.isArchived),
                         ),
@@ -914,7 +921,7 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                       Expanded(
                         child: TrayAction(
                           icon: Icons.delete_outline_rounded,
-                          label: 'Delete',
+                          label: tr('Delete'),
                           onTap: () => _delete(item),
                         ),
                       ),
@@ -922,16 +929,18 @@ class _ClothingDetailScreenState extends State<ClothingDetailScreen> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    '${AppFormatters.wearCount(item.wearCount)} · '
-                    'in ${AppFormatters.count(usedIn, 'outfit')}',
+                    tr('{0} · in {1}', [
+                      AppFormatters.wearCount(item.wearCount),
+                      AppFormatters.count(usedIn, 'outfit'),
+                    ]),
                     textAlign: TextAlign.center,
                     style: text.bodySmall,
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    'Added on ${AppFormatters.weekdayName(item.createdAt).substring(0, 3)}, '
-                    '${AppFormatters.monthName(item.createdAt)} '
-                    '${item.createdAt.day}, ${item.createdAt.year}',
+                    tr('Added on {0}', [
+                      AppFormatters.fullDate(item.createdAt),
+                    ]),
                     textAlign: TextAlign.center,
                     style: text.bodyMedium?.copyWith(color: hint),
                   ),
@@ -1006,8 +1015,8 @@ class _ArchivedBanner extends StatelessWidget {
         children: [
           const Icon(Icons.inventory_2_outlined, size: AppSizes.iconSm),
           const SizedBox(width: AppSpacing.sm),
-          const Expanded(child: Text('This item is archived')),
-          TextButton(onPressed: onRestore, child: const Text('Restore')),
+          Expanded(child: Text(tr('This item is archived'))),
+          TextButton(onPressed: onRestore, child: Text(tr('Restore'))),
         ],
       ),
     );

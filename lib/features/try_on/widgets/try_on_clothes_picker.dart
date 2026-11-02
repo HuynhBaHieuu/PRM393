@@ -10,6 +10,7 @@ import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The category chips above the clothes, as in Fits.
 enum _Filter {
@@ -24,10 +25,12 @@ enum _Filter {
     ClothingCategory.bags,
   });
 
-  const _Filter(this.label, this.categories);
+  const _Filter(this._label, this.categories);
 
-  final String label;
+  final String _label;
   final Set<ClothingCategory> categories;
+
+  String get label => tr(_label);
 
   bool matches(ClothingItem item) =>
       categories.isEmpty || categories.contains(item.category);
@@ -63,7 +66,7 @@ class _TryOnClothesPickerState extends State<TryOnClothesPicker> {
     if (_selected.contains(item.id)) {
       setState(() => _selected.remove(item.id));
     } else if (_selected.length >= _max) {
-      context.showSnack('Try on up to $_max pieces at a time.');
+      context.showSnack(tr('Try on up to {0} pieces at a time.', [_max]));
     } else {
       setState(() => _selected.add(item.id));
     }
@@ -103,11 +106,11 @@ class _TryOnClothesPickerState extends State<TryOnClothesPicker> {
           child: items.isEmpty
               ? SingleChildScrollView(
                   controller: widget.scrollController,
-                  child: const AppEmptyState(
+                  child: AppEmptyState(
                     compact: true,
                     icon: Icons.checkroom_outlined,
-                    title: 'Nothing here yet',
-                    message: 'Add clothes to your wardrobe to try them on.',
+                    title: tr('Nothing here yet'),
+                    message: tr('Add clothes to your wardrobe to try them on.'),
                   ),
                 )
               : GridView.builder(
@@ -171,7 +174,7 @@ class _TryOnClothesPickerState extends State<TryOnClothesPicker> {
                       children: [
                         Expanded(
                           child: Text(
-                            '${chosen.length} selected',
+                            tr('{0} selected', [chosen.length]),
                             style: text.titleMedium,
                           ),
                         ),
@@ -179,10 +182,10 @@ class _TryOnClothesPickerState extends State<TryOnClothesPicker> {
                           onPressed: () => widget.onNext([
                             for (final item in chosen) item.id,
                           ]),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Next'),
+                              Text(tr('Next')),
                               SizedBox(width: AppSpacing.xs),
                               Icon(Icons.arrow_forward_rounded),
                             ],
@@ -277,7 +280,7 @@ class _TrayThumb extends StatelessWidget {
     final palette = context.palette;
     return Semantics(
       button: true,
-      label: 'Remove ${item.name}',
+      label: tr('Remove {0}', [item.name]),
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onRemove,

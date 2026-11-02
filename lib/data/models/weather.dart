@@ -1,3 +1,4 @@
+import 'package:all_fits/core/l10n/l10n.dart';
 import 'package:all_fits/core/utils/json_reader.dart';
 
 /// A place the user gets weather for, chosen by city name.
@@ -51,16 +52,18 @@ class WeatherLocation {
 }
 
 enum WeatherCondition {
-  clear('Clear'),
+  clear('Clear|weather'),
   cloudy('Cloudy'),
   fog('Foggy'),
   rain('Rain'),
   snow('Snow'),
   storm('Storm');
 
-  const WeatherCondition(this.label);
+  const WeatherCondition(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   /// Maps a WMO weather code, as used by Open-Meteo.
   static WeatherCondition fromCode(int code) => switch (code) {

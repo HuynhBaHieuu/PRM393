@@ -24,6 +24,8 @@ import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/auto_detect_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
+import 'package:all_fits/features/settings/controllers/language_controller.dart';
 
 /// Fits' one-page settings: Rate / Share, then Your wardrobe, Community
 /// and the app's own settings, each a list of rows.
@@ -35,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _editCurrency(BuildContext context, SettingsController s) async {
     final value = await showTextInputDialog(
       context,
-      title: 'Currency symbol',
+      title: tr('Currency symbol'),
       initialValue: s.currencySymbol,
       hint: '\$, €, £, ₫…',
       maxLength: _maxCurrencyLength,
@@ -48,13 +50,13 @@ class SettingsScreen extends StatelessWidget {
     final stars = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Enjoying ${AppConfig.appName}?'),
+        title: Text(tr('Enjoying {0}?', [AppConfig.appName])),
         content: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             for (var i = 1; i <= 5; i++)
               IconButton(
-                tooltip: '$i stars',
+                tooltip: tr('{0} stars', [i]),
                 onPressed: () => Navigator.of(dialogContext).pop(i),
                 icon: const Icon(Icons.star_border_rounded, size: 32),
               ),
@@ -63,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
     if (stars != null && context.mounted) {
-      context.showSnack('Thanks for rating ${AppConfig.appName}!');
+      context.showSnack(tr('Thanks for rating {0}!', [AppConfig.appName]));
     }
   }
 
@@ -71,7 +73,9 @@ class SettingsScreen extends StatelessWidget {
     try {
       await SharePlus.instance.share(
         ShareParams(
-          text: 'I plan my outfits with ${AppConfig.appName}. Give it a try!',
+          text: tr('I plan my outfits with {0}. Give it a try!', [
+            AppConfig.appName,
+          ]),
         ),
       );
     } catch (error) {
@@ -85,7 +89,7 @@ class SettingsScreen extends StatelessWidget {
       query: 'subject=${Uri.encodeComponent(subject)}',
     );
     if (!await launchUrl(url) && context.mounted) {
-      context.showSnack('No email app found.');
+      context.showSnack(tr('No email app found.'));
     }
   }
 
@@ -94,7 +98,7 @@ class SettingsScreen extends StatelessWidget {
     await ClosetFlows.guard(
       context,
       closet.reloadAll,
-      successMessage: 'Wardrobe re-synced',
+      successMessage: tr('Wardrobe re-synced'),
     );
   }
 
@@ -104,24 +108,25 @@ class SettingsScreen extends StatelessWidget {
       await ClosetFlows.guard(
         context,
         closet.loadSampleData,
-        successMessage: 'Sample wardrobe added',
+        successMessage: tr('Sample wardrobe added'),
       );
       return;
     }
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Remove sample data?',
-      message:
-          'The demo clothes and outfits will be deleted. '
-          'Anything you added yourself is kept.',
-      confirmLabel: 'Remove',
+      title: tr('Remove sample data?'),
+      message: tr(
+        'The demo clothes and outfits will be deleted. '
+        'Anything you added yourself is kept.',
+      ),
+      confirmLabel: tr('Remove'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return;
     await ClosetFlows.guard(
       context,
       closet.removeSampleData,
-      successMessage: 'Sample data removed',
+      successMessage: tr('Sample data removed'),
     );
   }
 
@@ -146,7 +151,7 @@ class SettingsScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: Text(
-                  'Account',
+                  tr('Account'),
                   textAlign: TextAlign.center,
                   style: sheetContext.textTheme.titleLarge,
                 ),
@@ -170,8 +175,10 @@ class SettingsScreen extends StatelessWidget {
                           Text(email, style: sheetContext.textTheme.bodyLarge),
                           Text(
                             settings.displayName.isEmpty
-                                ? 'You’re signed in.'
-                                : 'Signed in as ${settings.displayName}.',
+                                ? tr('You’re signed in.')
+                                : tr('Signed in as {0}.', [
+                                    settings.displayName,
+                                  ]),
                             style: sheetContext.textTheme.bodySmall,
                           ),
                         ],
@@ -182,17 +189,17 @@ class SettingsScreen extends StatelessWidget {
               ),
               SheetActionTile(
                 icon: Icons.badge_outlined,
-                label: 'Change name',
+                label: tr('Change name'),
                 onTap: () => go(() => _editName(context)),
               ),
               SheetActionTile(
                 icon: Icons.logout_rounded,
-                label: 'Log out',
+                label: tr('Log out'),
                 onTap: () => go(() => AuthFlows.signOut(context)),
               ),
               SheetActionTile(
                 icon: Icons.delete_outline_rounded,
-                label: 'Delete all my data',
+                label: tr('Delete all my data'),
                 onTap: () => go(() => _eraseAll(context)),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -207,9 +214,9 @@ class SettingsScreen extends StatelessWidget {
     final settings = context.read<SettingsController>();
     final value = await showTextInputDialog(
       context,
-      title: 'Your name',
+      title: tr('Your name'),
       initialValue: settings.displayName,
-      hint: 'e.g. Alex Morgan',
+      hint: tr('e.g. Alex Morgan'),
       maxLength: Validators.maxNameLength,
     );
     if (value == null || !context.mounted) return;
@@ -222,11 +229,12 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _eraseAll(BuildContext context) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete all your data?',
-      message:
-          'Every clothing item, photo, outfit and plan will be permanently '
-          'deleted. This can’t be undone.',
-      confirmLabel: 'Delete everything',
+      title: tr('Delete all your data?'),
+      message: tr(
+        'Every clothing item, photo, outfit and plan will be permanently '
+        'deleted. This can’t be undone.',
+      ),
+      confirmLabel: tr('Delete everything'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return;
@@ -234,7 +242,7 @@ class SettingsScreen extends StatelessWidget {
     await ClosetFlows.guard(
       context,
       closet.eraseAllData,
-      successMessage: 'All data deleted',
+      successMessage: tr('All data deleted'),
     );
   }
 
@@ -274,18 +282,18 @@ class SettingsScreen extends StatelessWidget {
     final profile = await _choose<bool>(
       context,
       current: s.startsInProfile,
-      options: const [
+      options: [
         (
           false,
           Icons.home_outlined,
-          'Home',
-          'Open the app on the home tab by default',
+          tr('Home'),
+          tr('Open the app on the home tab by default'),
         ),
         (
           true,
           Icons.person_outline_rounded,
-          'Profile',
-          'Open the app on the profile tab by default',
+          tr('Profile'),
+          tr('Open the app on the profile tab by default'),
         ),
       ],
     );
@@ -316,13 +324,16 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _pickLanguage(BuildContext context) async {
-    await _choose<String>(
+    final languages = context.read<LanguageController>();
+    final picked = await _choose<AppLanguage>(
       context,
-      current: 'en',
-      options: const [
-        ('en', Icons.language_rounded, 'English', 'All Fits is in English'),
+      current: languages.language,
+      options: [
+        for (final language in AppLanguage.values)
+          (language, Icons.language_rounded, language.nativeName, null),
       ],
     );
+    if (picked != null) await languages.setLanguage(picked);
   }
 
   Future<void> _showCredits(BuildContext context) {
@@ -336,12 +347,14 @@ class SettingsScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('AI credits', style: sheetContext.textTheme.titleLarge),
+              Text(tr('AI credits'), style: sheetContext.textTheme.titleLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Each AI try-on picture costs 1 credit. Premium adds '
-                'credits every month; the AI stylist chat and AI detection '
-                'have their own daily and monthly allowances.',
+                tr(
+                  'Each AI try-on picture costs 1 credit. Premium adds '
+                  'credits every month; the AI stylist chat and AI detection '
+                  'have their own daily and monthly allowances.',
+                ),
                 style: sheetContext.textTheme.bodyLarge,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -350,7 +363,7 @@ class SettingsScreen extends StatelessWidget {
                   Navigator.of(sheetContext).pop();
                   AppNavigator.premium(context);
                 },
-                child: const Text('Get more with Premium'),
+                child: Text(tr('Get more with Premium')),
               ),
             ],
           ),
@@ -363,16 +376,18 @@ class SettingsScreen extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Community guidelines'),
-        content: const Text(
-          'Be kind. Share your own outfits and photos only. No nudity, '
-          'hate or harassment. Don’t spam people with outfits they didn’t '
-          'ask for. Report or block anyone who breaks these rules.',
+        title: Text(tr('Community guidelines')),
+        content: Text(
+          tr(
+            'Be kind. Share your own outfits and photos only. No nudity, '
+            'hate or harassment. Don’t spam people with outfits they didn’t '
+            'ask for. Report or block anyone who breaks these rules.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Got it'),
+            child: Text(tr('Got it')),
           ),
         ],
       ),
@@ -390,7 +405,7 @@ class SettingsScreen extends StatelessWidget {
     final archived = wardrobe.archivedItems.length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(tr('Settings'))),
       body: ListView(
         padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
         children: [
@@ -410,7 +425,7 @@ class SettingsScreen extends StatelessWidget {
                       Expanded(
                         child: _TopTile(
                           icon: Icons.star_border_rounded,
-                          label: 'Rate the app',
+                          label: tr('Rate the app'),
                           onTap: () => _rate(context),
                         ),
                       ),
@@ -418,7 +433,7 @@ class SettingsScreen extends StatelessWidget {
                       Expanded(
                         child: _TopTile(
                           icon: Icons.ios_share_rounded,
-                          label: 'Share the app',
+                          label: tr('Share the app'),
                           onTap: () => _shareApp(context),
                         ),
                       ),
@@ -426,33 +441,33 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 SettingsSection(
-                  title: 'Your wardrobe',
+                  title: tr('Your wardrobe'),
                   children: [
                     SettingsRow(
                       icon: Icons.pie_chart_outline_rounded,
-                      label: 'Insights',
+                      label: tr('Insights'),
                       onTap: () => AppNavigator.insights(context),
                     ),
                     SettingsRow(
                       icon: Icons.favorite_border_rounded,
-                      label: 'Favorites',
+                      label: tr('Favorites'),
                       onTap: () => AppNavigator.favorites(context),
                     ),
                     SettingsRow(
                       icon: Icons.inventory_2_outlined,
-                      label: 'Archive',
+                      label: tr('Archive'),
                       value: archived == 0 ? null : '$archived',
                       onTap: () => AppNavigator.archived(context),
                     ),
                     SettingsRow(
                       icon: Icons.paid_outlined,
-                      label: 'Currency',
+                      label: tr('Currency'),
                       value: settings.currencySymbol,
                       onTap: () => _editCurrency(context, settings),
                     ),
                     SettingsRow(
                       icon: Icons.cloud_sync_outlined,
-                      label: 'Re-sync wardrobe',
+                      label: tr('Re-sync wardrobe'),
                       onTap: () => _resync(context),
                     ),
                     SettingsRow(
@@ -460,37 +475,37 @@ class SettingsScreen extends StatelessWidget {
                           ? Icons.layers_clear_outlined
                           : Icons.auto_awesome_motion_outlined,
                       label: closet.hasSampleData
-                          ? 'Remove sample data'
-                          : 'Load sample wardrobe',
+                          ? tr('Remove sample data')
+                          : tr('Load sample wardrobe'),
                       onTap: () => _toggleSampleData(context),
                     ),
                   ],
                 ),
                 if (social != null)
                   SettingsSection(
-                    title: 'Community',
+                    title: tr('Community'),
                     children: [
                       SettingsRow(
                         icon: Icons.lock_outline_rounded,
-                        label: 'Account privacy',
+                        label: tr('Account privacy'),
                         value: social.me == null
                             ? null
                             : social.me!.isPrivate
-                            ? 'Private'
-                            : 'Public',
+                            ? tr('Private')
+                            : tr('Public'),
                         onTap: () => AppNavigator.editProfile(context),
                       ),
                       SettingsRow(
                         icon: Icons.people_outline_rounded,
-                        label: 'Styled together',
+                        label: tr('Styled together'),
                         value: social.unansweredStyledCount == 0
                             ? null
-                            : '${social.unansweredStyledCount} new',
+                            : tr('{0} new', [social.unansweredStyledCount]),
                         onTap: () => AppNavigator.styledTogether(context),
                       ),
                       SettingsRow(
                         icon: Icons.lightbulb_outline_rounded,
-                        label: 'Feature requests',
+                        label: tr('Feature requests'),
                         onTap: () => _email(
                           context,
                           '${AppConfig.appName} feature request',
@@ -498,12 +513,12 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       SettingsRow(
                         icon: Icons.block_rounded,
-                        label: 'Blocked users',
+                        label: tr('Blocked users'),
                         onTap: () => AppNavigator.blockedUsers(context),
                       ),
                       SettingsRow(
                         icon: Icons.volunteer_activism_outlined,
-                        label: 'Guidelines',
+                        label: tr('Guidelines'),
                         onTap: () => _showGuidelines(context),
                       ),
                     ],
@@ -514,50 +529,54 @@ class SettingsScreen extends StatelessWidget {
                     SettingsRow(
                       icon: Icons.star_border_rounded,
                       label: settings.isPremium
-                          ? 'All Fits Premium'
-                          : 'Upgrade to Premium',
+                          ? tr('All Fits Premium')
+                          : tr('Upgrade to Premium'),
                       value: settings.plan.label,
                       onTap: () => AppNavigator.premium(context),
                     ),
                     SettingsRow(
                       icon: Icons.person_outline_rounded,
-                      label: 'Account',
+                      label: tr('Account'),
                       onTap: () => _showAccount(context),
                     ),
                     SettingsRow(
                       icon: Icons.language_rounded,
-                      label: 'Language',
-                      value: 'English',
+                      label: tr('Language'),
+                      value: context
+                          .watch<LanguageController>()
+                          .language
+                          .nativeName,
                       onTap: () => _pickLanguage(context),
                     ),
                     SettingsRow(
                       icon: Icons.chat_bubble_outline_rounded,
-                      label: 'Contact us',
+                      label: tr('Contact us'),
                       onTap: () =>
                           _email(context, '${AppConfig.appName} feedback'),
                     ),
                     if (tryOn) ...[
                       SettingsRow(
                         icon: Icons.toll_outlined,
-                        label: 'AI credits',
+                        label: tr('AI credits'),
                         value: TryOnFlows.creditsLabel(context),
                         onTap: () => _showCredits(context),
                       ),
                       SettingsRow(
                         icon: Icons.accessibility_new_rounded,
-                        label: 'Try on profile',
+                        label: tr('Try on profile'),
                         onTap: () => AppNavigator.tryOnProfile(context),
                       ),
                     ],
                     if (detector.isAvailable)
                       SettingsSwitchRow(
                         icon: Icons.auto_awesome_outlined,
-                        label: 'AI detection',
+                        label: tr('AI detection'),
                         subtitle: switch (detector.left(settings.plan)) {
-                          null => 'Fill in new clothes from their photo',
-                          final left =>
-                            '$left of ${AppConfig.freeDetectionsPerMonth} '
-                                'free detections left this month',
+                          null => tr('Fill in new clothes from their photo'),
+                          final left => tr(
+                            '{0} of {1} free detections left this month',
+                            [left, AppConfig.freeDetectionsPerMonth],
+                          ),
                         },
                         // Turning it on here counts as agreeing to send
                         // photos to the AI service.
@@ -571,25 +590,27 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     SettingsRow(
                       icon: Icons.smartphone_rounded,
-                      label: 'App starts in',
-                      value: settings.startsInProfile ? 'Profile' : 'Home',
+                      label: tr('App starts in'),
+                      value: settings.startsInProfile
+                          ? tr('Profile')
+                          : tr('Home'),
                       onTap: () => _pickStart(context, settings),
                     ),
                     SettingsRow(
                       icon: Icons.dark_mode_outlined,
-                      label: 'Display',
+                      label: tr('Display'),
                       value: settings.settings.themePreference.label,
                       onTap: () => _pickDisplay(context, settings),
                     ),
                     SettingsRow(
                       icon: Icons.alarm_rounded,
-                      label: 'Daily reminders',
-                      value: settings.dailyReminder ? 'On' : 'Off',
+                      label: tr('Daily reminders'),
+                      value: settings.dailyReminder ? tr('On') : tr('Off'),
                       onTap: () => AppNavigator.dailyReminders(context),
                     ),
                     SettingsRow(
                       icon: Icons.info_outline_rounded,
-                      label: 'Licenses & photo credits',
+                      label: tr('Licenses & photo credits'),
                       onTap: () => showLicensePage(
                         context: context,
                         applicationName: AppConfig.appName,
@@ -599,7 +620,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
-                  '${AppConfig.appName} · Version 1.0',
+                  tr('{0} · Version 1.0', [AppConfig.appName]),
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodySmall,
                 ),
@@ -668,7 +689,9 @@ class _DailyRemindersScreenState extends State<DailyRemindersScreen> {
         if (!allowed) {
           if (mounted) {
             context.showSnack(
-              'Allow notifications for ${AppConfig.appName} to get reminders.',
+              tr('Allow notifications for {0} to get reminders.', [
+                AppConfig.appName,
+              ]),
             );
           }
           return;
@@ -689,7 +712,7 @@ class _DailyRemindersScreenState extends State<DailyRemindersScreen> {
     final palette = context.palette;
     final on = context.select<SettingsController, bool>((s) => s.dailyReminder);
     return Scaffold(
-      appBar: AppBar(title: const Text('Daily reminders')),
+      appBar: AppBar(title: Text(tr('Daily reminders'))),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.page),
         children: [
@@ -699,7 +722,7 @@ class _DailyRemindersScreenState extends State<DailyRemindersScreen> {
             clipBehavior: Clip.antiAlias,
             child: SwitchListTile(
               title: Text(
-                'Daily reminder',
+                tr('Daily reminder'),
                 style: context.textTheme.titleMedium,
               ),
               value: on,
@@ -710,7 +733,7 @@ class _DailyRemindersScreenState extends State<DailyRemindersScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             child: Text(
-              'Get a reminder to log your outfit of the day.',
+              tr('Get a reminder to log your outfit of the day.'),
               style: context.textTheme.bodyMedium?.copyWith(
                 color: palette.textSecondary,
               ),

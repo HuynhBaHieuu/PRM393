@@ -7,6 +7,7 @@ import 'package:all_fits/core/widgets/layout.dart';
 import 'package:all_fits/features/home/widgets/home_header.dart';
 import 'package:all_fits/features/home/widgets/home_sections.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' Home: shortcuts and today's ideas first, then the closet's recent
 /// and unworn pieces, ending with "Come back tomorrow for new ideas."
@@ -57,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const TryOnBackgroundsSection(),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
-                  'Come back tomorrow for new ideas.',
+                  tr('Come back tomorrow for new ideas.'),
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodyLarge?.copyWith(
                     color: context.palette.textSecondary,

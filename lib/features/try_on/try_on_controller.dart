@@ -21,6 +21,7 @@ import 'package:all_fits/data/models/subscription_plan.dart';
 import 'package:all_fits/data/models/try_on.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/data/sample/sample_data.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What to draw: these pieces, on whom, where.
 class TryOnRequest {
@@ -193,10 +194,10 @@ class TryOnController extends ChangeNotifier {
     required SubscriptionPlan plan,
   }) async {
     if (_job != null) {
-      throw const AiException('A try-on is already being drawn.');
+      throw AiException(tr('A try-on is already being drawn.'));
     }
     if (creditsLeft(plan) <= 0) {
-      throw const PlanLimitException('You have no AI try-on credits left.');
+      throw PlanLimitException(tr('You have no AI try-on credits left.'));
     }
     final cancel = Completer<void>();
     _job = request;
@@ -241,9 +242,11 @@ class TryOnController extends ChangeNotifier {
       selfie = await _readStored(_profile.selfiePhoto);
       body = await _readStored(_profile.bodyPhoto);
       if (selfie == null && body == null) {
-        throw const AiException(
-          'Your try-on photo could not be loaded. Add it again in your '
-          'try-on profile.',
+        throw AiException(
+          tr(
+            'Your try-on photo could not be loaded. Add it again in your '
+            'try-on profile.',
+          ),
         );
       }
     }
@@ -252,7 +255,7 @@ class TryOnController extends ChangeNotifier {
         ?await photoOf(item, _images),
     ];
     if (pieces.isEmpty) {
-      throw const AiException('These clothes have no photos to try on.');
+      throw AiException(tr('These clothes have no photos to try on.'));
     }
     final picture = await _service.tryOn(
       person: selfie,

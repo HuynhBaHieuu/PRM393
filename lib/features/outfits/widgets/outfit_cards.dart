@@ -11,6 +11,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cover.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 String outfitMetaLine(Outfit outfit, int pieceCount) => [
   AppFormatters.count(pieceCount, 'piece'),
@@ -315,7 +316,7 @@ class OutfitListRow extends StatelessWidget {
 Future<String?> showOutfitPickerSheet(
   BuildContext context, {
   required List<Outfit> outfits,
-  String title = 'Choose an outfit',
+  String? title,
   VoidCallback? onCreateOutfit,
 }) {
   return showModalBottomSheet<String>(
@@ -328,7 +329,7 @@ Future<String?> showOutfitPickerSheet(
       maxChildSize: 0.92,
       builder: (context, scrollController) => Column(
         children: [
-          SheetHeader(title: title),
+          SheetHeader(title: title ?? tr('Choose an outfit')),
           Expanded(
             child: outfits.isEmpty
                 ? _NoOutfits(onCreateOutfit: onCreateOutfit)
@@ -375,9 +376,12 @@ class _NoOutfits extends StatelessWidget {
             color: context.palette.textSecondary,
           ),
           const SizedBox(height: AppSpacing.md),
-          Text('No outfits yet', style: context.textTheme.titleLarge),
+          Text(tr('No outfits yet'), style: context.textTheme.titleLarge),
           const SizedBox(height: AppSpacing.xs),
-          Text('Create your first look.', style: context.textTheme.bodySmall),
+          Text(
+            tr('Create your first look.'),
+            style: context.textTheme.bodySmall,
+          ),
           if (onCreateOutfit != null) ...[
             const SizedBox(height: AppSpacing.lg),
             FilledButton(
@@ -385,7 +389,7 @@ class _NoOutfits extends StatelessWidget {
                 Navigator.of(context).pop();
                 onCreateOutfit!();
               },
-              child: const Text('Create Outfit'),
+              child: Text(tr('Create Outfit')),
             ),
           ],
         ],

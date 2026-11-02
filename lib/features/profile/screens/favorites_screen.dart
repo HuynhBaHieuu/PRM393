@@ -11,6 +11,7 @@ import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/clothing_grid.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -22,26 +23,28 @@ class FavoritesScreen extends StatelessWidget {
     final items = wardrobe.favoriteItems;
     final looks = outfits.favorites;
     final insets = pageInsets(context.screenSize.width);
-    const emptyMessage = 'Tap the heart on any piece or look to save it here.';
+    final emptyMessage = tr(
+      'Tap the heart on any piece or look to save it here.',
+    );
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Favorites'),
+          title: Text(tr('Favorites')),
           bottom: TabBar(
             tabs: [
-              Tab(text: 'Clothes (${items.length})'),
-              Tab(text: 'Outfits (${looks.length})'),
+              Tab(text: tr('Clothes ({0})', [items.length])),
+              Tab(text: tr('Outfits ({0})', [looks.length])),
             ],
           ),
         ),
         body: TabBarView(
           children: [
             items.isEmpty
-                ? const AppEmptyState(
+                ? AppEmptyState(
                     icon: Icons.favorite_border_rounded,
-                    title: 'No favorites yet',
+                    title: tr('No favorites yet'),
                     message: emptyMessage,
                   )
                 : CustomScrollView(
@@ -64,9 +67,9 @@ class FavoritesScreen extends StatelessWidget {
                     ],
                   ),
             looks.isEmpty
-                ? const AppEmptyState(
+                ? AppEmptyState(
                     icon: Icons.favorite_border_rounded,
-                    title: 'No favorites yet',
+                    title: tr('No favorites yet'),
                     message: emptyMessage,
                   )
                 : CustomScrollView(

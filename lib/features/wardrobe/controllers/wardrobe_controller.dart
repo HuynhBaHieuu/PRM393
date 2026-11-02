@@ -16,6 +16,7 @@ import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/clothing_photo.dart';
 import 'package:all_fits/data/repositories/wardrobe_repository.dart';
 import 'package:all_fits/features/wardrobe/controllers/clothing_draft.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Owns the wardrobe state and every mutation of clothing items.
 class WardrobeController extends ChangeNotifier {
@@ -176,7 +177,7 @@ class WardrobeController extends ChangeNotifier {
   ) async {
     final updated = change(_require(id)).copyWith(updatedAt: _clock());
     if (updated.name.trim().isEmpty) {
-      throw const ValidationException('Give this piece a name.');
+      throw ValidationException(tr('Give this piece a name.'));
     }
     await _commit([updated]);
     return updated;
@@ -205,8 +206,10 @@ class WardrobeController extends ChangeNotifier {
   Future<void> addExtraPhoto(String id, String source, PhotoKind kind) async {
     final existing = _require(id);
     if (existing.extraPhotos.length >= AppConfig.maxExtraPhotos) {
-      throw const ValidationException(
-        'A piece can have up to ${AppConfig.maxExtraPhotos} extra photos.',
+      throw ValidationException(
+        tr('A piece can have up to {0} extra photos.', [
+          AppConfig.maxExtraPhotos,
+        ]),
       );
     }
     final reference = await _images.saveImage(source);
@@ -511,7 +514,7 @@ class WardrobeController extends ChangeNotifier {
     final item = _byId[id];
     if (item == null) {
       developer.log('Missing clothing item $id', name: 'wardrobe');
-      throw const NotFoundException('This item is no longer in your wardrobe.');
+      throw NotFoundException(tr('This item is no longer in your wardrobe.'));
     }
     return item;
   }

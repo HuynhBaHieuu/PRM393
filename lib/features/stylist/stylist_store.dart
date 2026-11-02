@@ -12,6 +12,7 @@ import 'package:all_fits/data/local/json_collection_store.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
 import 'package:all_fits/data/models/stylist_persona.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// One saved conversation with the AI stylist.
 class StylistChat {
@@ -47,7 +48,7 @@ class StylistChat {
   String get title => messages
       .firstWhere(
         (m) => m.fromUser && m.text.isNotEmpty,
-        orElse: () => const StylistMessage.user('Chat'),
+        orElse: () => StylistMessage.user(tr('Chat')),
       )
       .text;
 

@@ -20,6 +20,7 @@ import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/wardrobe/widgets/wardrobe_toolbar.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' Insights: a donut by category, color, brand or season, the
 /// wardrobe's value, and wear figures. Free shows categories, value and
@@ -44,11 +45,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Future<void> _archiveIdle(List<ClothingItem> items) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Archive ${AppFormatters.count(items.length, 'piece')}?',
-      message:
-          'They’ll leave your wardrobe and outfit ideas but stay in Archived '
-          'items, so you can restore them, give them away or sell them.',
-      confirmLabel: 'Archive',
+      title: tr('Archive {0}?', [AppFormatters.count(items.length, 'piece')]),
+      message: tr(
+        'They’ll leave your wardrobe and outfit ideas but stay in Archived '
+        'items, so you can restore them, give them away or sell them.',
+      ),
+      confirmLabel: tr('Archive'),
     );
     if (!confirmed || !mounted) return;
     final wardrobe = context.read<WardrobeController>();
@@ -59,8 +61,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
     if (!done || !mounted) return;
     context.showSnack(
-      'Archived ${AppFormatters.count(ids.length, 'piece')}',
-      actionLabel: 'Undo',
+      tr('Archived {0}', [AppFormatters.count(ids.length, 'piece')]),
+      actionLabel: tr('Undo'),
       onAction: () => ClosetFlows.guard(
         context,
         () => wardrobe.setArchivedMany(ids, archived: false),
@@ -71,7 +73,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
   /// "7 mo idle" or "45 days idle".
   static String _idle(double days) {
     final months = days ~/ 30;
-    return months >= 1 ? '$months mo idle' : '${days.round()} days idle';
+    return months >= 1
+        ? tr('{0} mo idle', [months])
+        : tr('{0} days idle', [days.round()]);
   }
 
   @override
@@ -90,12 +94,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
     if (data.active.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Wardrobe Insights')),
+        appBar: AppBar(title: Text(tr('Wardrobe Insights'))),
         body: AppEmptyState(
           icon: Icons.pie_chart_outline_rounded,
-          title: 'Nothing to analyze yet',
-          message: 'Add clothes and log outfits to see your statistics.',
-          actionLabel: 'Add Clothing',
+          title: tr('Nothing to analyze yet'),
+          message: tr('Add clothes and log outfits to see your statistics.'),
+          actionLabel: tr('Add Clothing'),
           onAction: () => AppNavigator.addClothing(context),
         ),
       );
@@ -124,7 +128,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         premium ? child : LockedInsight(onUpgrade: _upgrade);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Wardrobe Insights')),
+      appBar: AppBar(title: Text(tr('Wardrobe Insights'))),
       body: ListView(
         padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
         children: [
@@ -152,8 +156,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
             child: DonutChart(
               slices: donut,
               title: AppFormatters.count(pieces, 'piece'),
-              subtitle:
-                  'in ${slices.length} ${InsightsData.groupNoun(dimension)}',
+              subtitle: tr('in {0} {1}', [
+                slices.length,
+                InsightsData.groupNoun(dimension),
+              ]),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -177,36 +183,40 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       (
                         Icons.payments_outlined,
                         price(data.wardrobeValue),
-                        'Wardrobe value',
+                        tr('Wardrobe value'),
                       ),
                       (
                         Icons.checkroom_outlined,
                         price(data.averagePrice),
-                        'Average item price',
+                        tr('Average item price'),
                       ),
                     ],
                   ),
                   InsightSection(
-                    title: 'Highest price',
+                    title: tr('Highest price'),
                     premiumBadge: true,
                     child: locked(
                       InsightItemStrip(
                         items: [for (final r in data.highestPrice) r.$1],
                         captionOf: (item) => price(item.price ?? 0),
                         onTap: (item) => _openItem(item.id),
-                        emptyText: 'Add prices to your clothes to see this.',
+                        emptyText: tr(
+                          'Add prices to your clothes to see this.',
+                        ),
                       ),
                     ),
                   ),
                   InsightSection(
-                    title: 'Cost per wear',
+                    title: tr('Cost per wear'),
                     premiumBadge: true,
                     child: locked(
                       _RankedStrip(
                         ranked: data.costPerWear,
-                        caption: (v) => '${price(v)} / wear',
+                        caption: (v) => tr('{0} / wear', [price(v)]),
                         onTap: _openItem,
-                        emptyText: 'Add prices to your clothes to see this.',
+                        emptyText: tr(
+                          'Add prices to your clothes to see this.',
+                        ),
                       ),
                     ),
                   ),
@@ -217,50 +227,51 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     onCategory: (c) => setState(() => _usageCategory = c),
                   ),
                   InsightSection(
-                    title: 'Worn last month',
+                    title: tr('Worn last month'),
                     premiumBadge: true,
                     child: locked(
                       _RankedStrip(
                         ranked: data.wornLastMonth,
                         caption: (v) => '${v.round()}×',
                         onTap: _openItem,
-                        emptyText: 'Nothing worn in the last 30 days.',
+                        emptyText: tr('Nothing worn in the last 30 days.'),
                       ),
                     ),
                   ),
                   InsightSection(
-                    title: 'Worn overall',
+                    title: tr('Worn overall'),
                     premiumBadge: true,
                     child: locked(
                       _RankedStrip(
                         ranked: data.wornOverall,
                         caption: (v) => '${v.round()}×',
                         onTap: _openItem,
-                        emptyText: 'Mark outfits as worn to see this.',
+                        emptyText: tr('Mark outfits as worn to see this.'),
                       ),
                     ),
                   ),
                   InsightSection(
-                    title: 'Never worn',
+                    title: tr('Never worn'),
                     premiumBadge: true,
                     child: locked(
                       InsightItemStrip(
                         items: data.neverWorn,
                         onTap: (item) => _openItem(item.id),
-                        emptyText: 'You have worn every piece. Nice!',
+                        emptyText: tr('You have worn every piece. Nice!'),
                       ),
                     ),
                   ),
                   if (data.letGo case final idle when idle.isNotEmpty)
                     InsightSection(
-                      title: 'Time to let go?',
-                      subtitle:
-                          'Not worn in 6 months. Archive, give away or sell '
-                          'them to keep your closet light.',
+                      title: tr('Time to let go?'),
+                      subtitle: tr(
+                        'Not worn in 6 months. Archive, give away or sell '
+                        'them to keep your closet light.',
+                      ),
                       action: TextButton(
                         onPressed: () =>
                             _archiveIdle([for (final r in idle) r.$1]),
-                        child: const Text('Archive all'),
+                        child: Text(tr('Archive all')),
                       ),
                       child: _RankedStrip(
                         ranked: idle,
@@ -270,7 +281,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ),
                     ),
                   InsightSection(
-                    title: 'Recently added',
+                    title: tr('Recently added'),
                     child: InsightItemStrip(
                       items: data.recentlyAdded,
                       onTap: (item) => _openItem(item.id),
@@ -342,7 +353,7 @@ class _UsageCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Wardrobe usage',
+                    tr('Wardrobe usage'),
                     style: text.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -367,7 +378,7 @@ class _UsageCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Text(
-              'You’re using $percent% of your wardrobe',
+              tr('You’re using {0}% of your wardrobe', [percent]),
               style: text.bodyLarge?.copyWith(color: palette.textSecondary),
             ),
           ),

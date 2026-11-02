@@ -1,3 +1,5 @@
+import 'package:all_fits/core/l10n/l10n.dart';
+
 enum ClothingCategory {
   tops('Tops', 'Top'),
   bottoms('Bottoms', 'Bottom'),
@@ -8,8 +10,11 @@ enum ClothingCategory {
   accessories('Accessories', 'Accessory'),
   other('Other', 'Other');
 
-  const ClothingCategory(this.label, this.singularLabel);
+  const ClothingCategory(this._label, this._singular);
 
-  final String label;
-  final String singularLabel;
+  final String _label;
+  final String _singular;
+
+  String get label => tr(_label);
+  String get singularLabel => tr(_singular);
 }

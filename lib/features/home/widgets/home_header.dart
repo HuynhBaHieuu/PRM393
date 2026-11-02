@@ -17,6 +17,7 @@ import 'package:all_fits/features/stylist/screens/stylist_screen.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/stylist/widgets/stylist_widgets.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Our wordmark, "Upgrade" for Free users, and the bell and search buttons.
 class HomeTopBar extends StatelessWidget {
@@ -48,7 +49,7 @@ class HomeTopBar extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => AppNavigator.premium(context),
               icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-              label: const Text('Upgrade'),
+              label: Text(tr('Upgrade')),
               style: FilledButton.styleFrom(
                 backgroundColor: palette.surfaceMuted,
                 foregroundColor: palette.ink,
@@ -62,7 +63,7 @@ class HomeTopBar extends StatelessWidget {
               onPressed: () => AppNavigator.notifications(context),
             ),
             IconButton(
-              tooltip: 'Search people',
+              tooltip: tr('Search people'),
               onPressed: () => AppNavigator.userSearch(context),
               icon: const Icon(Icons.search_rounded),
             ),
@@ -96,7 +97,7 @@ class StoryRow extends StatelessWidget {
         children: [
           if (social != null)
             _Story(
-              label: 'Community',
+              label: tr('Community'),
               onTap: () => AppNavigator.discover(context),
               child: CircleAvatar(
                 radius: _size / 2,
@@ -106,7 +107,7 @@ class StoryRow extends StatelessWidget {
               ),
             ),
           _Story(
-            label: 'Your OOTD',
+            label: tr('Your OOTD'),
             onTap: () => OutfitFlows.selfie(context),
             child: Stack(
               children: [
@@ -218,22 +219,22 @@ class GetStartedCard extends StatelessWidget {
       (s) => s.notes.isNotEmpty || s.chats.isNotEmpty,
     );
     final steps = [
-      _Step('Create your account', null, done: true),
+      _Step(tr('Create your account'), null, done: true),
       _Step(
-        'Train your AI stylist',
-        'Tell your stylist what you like',
+        tr('Train your AI stylist'),
+        tr('Tell your stylist what you like'),
         done: trained,
         onTap: () => AppNavigator.stylist(context),
       ),
       _Step(
-        'Add $_piecesGoal pieces',
-        'Snap the clothes you wear most',
+        tr('Add {0} pieces', [_piecesGoal]),
+        tr('Snap the clothes you wear most'),
         done: pieces >= _piecesGoal,
         onTap: () => AppNavigator.addClothing(context),
       ),
       _Step(
-        'Save your first outfit',
-        'Choose or create a look for today',
+        tr('Save your first outfit'),
+        tr('Choose or create a look for today'),
         done: hasOutfit,
         onTap: () => AppNavigator.createOutfit(context),
       ),
@@ -274,7 +275,7 @@ class GetStartedCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              Flexible(child: Text('Get started', style: text.titleLarge)),
+              Flexible(child: Text(tr('Get started'), style: text.titleLarge)),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -420,7 +421,7 @@ class FindOutfitBar extends StatelessWidget {
         customBorder: const StadiumBorder(),
         onTap: () => AppNavigator.stylist(
           context,
-          launch: const StylistLaunch(prompt: StylistScreen.findOutfitPrompt),
+          launch: StylistLaunch(prompt: StylistScreen.findOutfitPrompt),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -431,10 +432,12 @@ class FindOutfitBar extends StatelessWidget {
             children: [
               StylistAvatar(persona: persona, size: 40),
               const SizedBox(width: AppSpacing.md),
-              Expanded(child: Text('Find an outfit', style: text.titleMedium)),
+              Expanded(
+                child: Text(tr('Find an outfit'), style: text.titleMedium),
+              ),
               if (left != null)
                 Text(
-                  '${left}x free today',
+                  tr('{0}x free today', [left]),
                   style: text.bodyMedium?.copyWith(
                     color: palette.textSecondary,
                   ),

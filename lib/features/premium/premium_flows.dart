@@ -16,14 +16,16 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Plan checks and the upgrade / cancel flows: payOS with Supabase, a
 /// simulated checkout otherwise.
 abstract final class PremiumFlows {
   /// Price and length of paid Premium, e.g. "2,000 VND / 30 days".
-  static String get payOSPrice =>
-      '${AppFormatters.price(AppConfig.premiumPriceVnd.toDouble(), '')} VND'
-      ' / ${AppConfig.premiumDays} days';
+  static String get payOSPrice => tr('{0} VND / {1} days', [
+    AppFormatters.price(AppConfig.premiumPriceVnd.toDouble(), ''),
+    AppConfig.premiumDays,
+  ]);
 
   /// Whether the user's plan has room for another clothing item.
   /// Archived pieces count, since they still take up space.
@@ -53,23 +55,21 @@ abstract final class PremiumFlows {
   /// Explains which stickers and hairstyles the Free plan has.
   static Future<void> showStickerLimit(BuildContext context) => _showLimit(
     context,
-    title: 'A Premium sticker',
-    message:
-        'The Free plan has a few stickers and '
-        '${AppFormatters.count(Hairstyle.freeCount, 'hairstyle')}, and every '
-        'background. Go Premium for all of them. Stickers already on your '
-        'outfits stay either way.',
+    title: tr('A Premium sticker'),
+    message: tr(
+      'The Free plan has a few stickers and {0}, and every background. Go Premium for all of them. Stickers already on your outfits stay either way.',
+      [AppFormatters.count(Hairstyle.freeCount, 'hairstyle')],
+    ),
   );
 
   /// Explains the Free trip limit and offers Premium.
   static Future<void> showTripLimit(BuildContext context) => _showLimit(
     context,
-    title: 'You already have a trip planned',
-    message:
-        'The Free plan has '
-        '${AppFormatters.count(AppConfig.freeActiveTripLimit, 'trip')} at a '
-        'time until it ends. Go Premium to plan as many trips as you like, '
-        'or delete the one you have.',
+    title: tr('You already have a trip planned'),
+    message: tr(
+      'The Free plan has {0} at a time until it ends. Go Premium to plan as many trips as you like, or delete the one you have.',
+      [AppFormatters.count(AppConfig.freeActiveTripLimit, 'trip')],
+    ),
   );
 
   /// Whether the user's plan has room for another distinct tag.
@@ -81,34 +81,31 @@ abstract final class PremiumFlows {
   /// Explains the Free tag limit and offers Premium.
   static Future<void> showTagLimit(BuildContext context) => _showLimit(
     context,
-    title: 'Tag limit reached',
-    message:
-        'The Free plan has '
-        '${AppFormatters.count(AppConfig.freeTagLimit, 'custom tag')}. '
-        'Your tags keep working; go Premium to create more, or reuse one '
-        'you already have.',
+    title: tr('Tag limit reached'),
+    message: tr(
+      'The Free plan has {0}. Your tags keep working; go Premium to create more, or reuse one you already have.',
+      [AppFormatters.count(AppConfig.freeTagLimit, tr('custom tag'))],
+    ),
   );
 
   /// Explains the Free wardrobe limit and offers Premium.
   static Future<void> showWardrobeLimit(BuildContext context) => _showLimit(
     context,
-    title: 'Your wardrobe is full',
-    message:
-        'The Free plan holds '
-        '${AppFormatters.count(AppConfig.freeWardrobeLimit, 'piece')}, '
-        'archived ones included. Go Premium for unlimited '
-        'space, or delete pieces you no longer wear.',
+    title: tr('Your wardrobe is full'),
+    message: tr(
+      'The Free plan holds {0}, archived ones included. Go Premium for unlimited space, or delete pieces you no longer wear.',
+      [AppFormatters.count(AppConfig.freeWardrobeLimit, 'piece')],
+    ),
   );
 
   /// Explains the Free collection limit and offers Premium.
   static Future<void> showCollectionLimit(BuildContext context) => _showLimit(
     context,
-    title: 'Collection limit reached',
-    message:
-        'The Free plan holds '
-        '${AppFormatters.count(AppConfig.freeCollectionLimit, 'collection')}. '
-        'Go Premium for unlimited collections, or delete one you no '
-        'longer need.',
+    title: tr('Collection limit reached'),
+    message: tr(
+      'The Free plan holds {0}. Go Premium for unlimited collections, or delete one you no longer need.',
+      [AppFormatters.count(AppConfig.freeCollectionLimit, 'collection')],
+    ),
   );
 
   static Future<void> _showLimit(
@@ -148,12 +145,12 @@ abstract final class PremiumFlows {
                         Navigator.of(sheetContext).pop();
                         AppNavigator.premium(context);
                       },
-                      child: const Text('See Premium'),
+                      child: Text(tr('See Premium')),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     TextButton(
                       onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: const Text('Not now'),
+                      child: Text(tr('Not now')),
                     ),
                   ],
                 ),
@@ -200,16 +197,16 @@ abstract final class PremiumFlows {
         final until = settings.premiumUntil;
         if (context.mounted && until != null) {
           context.showSnack(
-            'Premium is active until ${AppFormatters.shortDate(until)}',
+            tr('Premium is active until {0}', [AppFormatters.shortDate(until)]),
           );
         }
       case PaymentStatus.cancelled:
-        context.showSnack('Payment cancelled');
+        context.showSnack(tr('Payment cancelled'));
       case PaymentStatus.expired:
-        context.showSnack('The payment link expired. Please try again.');
+        context.showSnack(tr('The payment link expired. Please try again.'));
       case PaymentStatus.pending || null:
         context.showSnack(
-          'If you paid, Premium starts once payOS confirms it.',
+          tr('If you paid, Premium starts once payOS confirms it.'),
         );
     }
     return settings.isPremium;
@@ -224,17 +221,18 @@ abstract final class PremiumFlows {
     );
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Start Premium?',
-      message:
-          'Premium is $price a month. This is a demo checkout, so no '
-          'payment is taken and Premium starts right away.',
-      confirmLabel: 'Start Premium',
+      title: tr('Start Premium?'),
+      message: tr(
+        'Premium is {0} a month. This is a demo checkout, so no payment is taken and Premium starts right away.',
+        [price],
+      ),
+      confirmLabel: tr('Start Premium'),
     );
     if (!confirmed || !context.mounted) return false;
     await ClosetFlows.guard(
       context,
       settings.startPremium,
-      successMessage: 'Welcome to Premium',
+      successMessage: tr('Welcome to Premium'),
     );
     return settings.isPremium;
   }
@@ -243,22 +241,24 @@ abstract final class PremiumFlows {
     final settings = context.read<SettingsController>();
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Cancel Premium?',
-      message:
-          'You’ll move to the Free plan. Your clothes and outfits stay, '
-          'but the AI Stylist drops to '
-          '${AppConfig.freeStylistMessagesPerDay} messages a day and you '
-          'can’t add clothes past ${AppConfig.freeWardrobeLimit} pieces '
-          'or collections past ${AppConfig.freeCollectionLimit}.',
-      confirmLabel: 'Cancel Premium',
-      cancelLabel: 'Keep Premium',
+      title: tr('Cancel Premium?'),
+      message: tr(
+        'You’ll move to the Free plan. Your clothes and outfits stay, but the AI Stylist drops to {0} messages a day and you can’t add clothes past {1} pieces or collections past {2}.',
+        [
+          AppConfig.freeStylistMessagesPerDay,
+          AppConfig.freeWardrobeLimit,
+          AppConfig.freeCollectionLimit,
+        ],
+      ),
+      confirmLabel: tr('Cancel Premium'),
+      cancelLabel: tr('Keep Premium'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return;
     await ClosetFlows.guard(
       context,
       settings.cancelPremium,
-      successMessage: 'You’re on the Free plan',
+      successMessage: tr('You’re on the Free plan'),
     );
   }
 }

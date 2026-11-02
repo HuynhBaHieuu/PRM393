@@ -11,6 +11,7 @@ import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/repositories/outfit_repository.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_draft.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Owns saved outfits and every mutation of them.
 class OutfitController extends ChangeNotifier {
@@ -147,7 +148,7 @@ class OutfitController extends ChangeNotifier {
   ) async {
     final updated = change(_require(id)).copyWith(updatedAt: _clock());
     if (updated.name.trim().isEmpty) {
-      throw const ValidationException('Give this outfit a name.');
+      throw ValidationException(tr('Give this outfit a name.'));
     }
     await _commit([updated]);
     return updated;
@@ -160,7 +161,7 @@ class OutfitController extends ChangeNotifier {
     final photo = source.photoPath;
     final copy = Outfit(
       id: _ids.next(),
-      name: '${source.name} (copy)',
+      name: tr('{0} (copy)', [source.name]),
       itemIds: source.itemIds,
       occasion: source.occasion,
       seasons: source.seasons,
@@ -236,7 +237,7 @@ class OutfitController extends ChangeNotifier {
     if (source == null) return null;
     final images = _images;
     if (images == null) {
-      throw const ValidationException('Outfit photos aren’t available here.');
+      throw ValidationException(tr('Outfit photos aren’t available here.'));
     }
     return images.saveImage(source);
   }
@@ -300,7 +301,7 @@ class OutfitController extends ChangeNotifier {
   Outfit _require(String id) {
     final outfit = _byId[id];
     if (outfit == null) {
-      throw const NotFoundException('This outfit no longer exists.');
+      throw NotFoundException(tr('This outfit no longer exists.'));
     }
     return outfit;
   }

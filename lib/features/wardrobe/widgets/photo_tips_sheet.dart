@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// "How to get best results": which photos the AI and the background
 /// remover read best, shown once before the first photo, like Fits. The
@@ -19,34 +20,36 @@ Future<void> showPhotoTipsSheet(BuildContext context) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetHeader(title: 'How to get best results'),
+            SheetHeader(title: tr('How to get best results')),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'When adding your clothes, pick online shop images for '
-                    'best results or snap your clothes on a flat surface.',
+                    tr(
+                      'When adding your clothes, pick online shop images for '
+                      'best results or snap your clothes on a flat surface.',
+                    ),
                     style: sheetContext.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  const _Example(
+                  _Example(
                     asset: 'assets/sample/cutouts/black-tee.webp',
                     emoji: '😍',
-                    label: 'Shop photo',
+                    label: tr('Shop photo'),
                     aspectRatio: 2,
                     cutout: true,
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  const Row(
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _Example(
                           asset: 'assets/sample/beige-chinos.jpg',
                           emoji: '🙂',
-                          label: 'Flat surface',
+                          label: tr('Flat surface'),
                         ),
                       ),
                       SizedBox(width: AppSpacing.sm),
@@ -54,7 +57,7 @@ Future<void> showPhotoTipsSheet(BuildContext context) {
                         child: _Example(
                           asset: 'assets/sample/balenciaga-hoodie.jpg',
                           emoji: '😕',
-                          label: 'Worn, busy background',
+                          label: tr('Worn, busy background'),
                         ),
                       ),
                     ],
@@ -62,7 +65,7 @@ Future<void> showPhotoTipsSheet(BuildContext context) {
                   const SizedBox(height: AppSpacing.lg),
                   FilledButton(
                     onPressed: () => Navigator.of(sheetContext).pop(),
-                    child: const Text('Got it 👌'),
+                    child: Text(tr('Got it 👌')),
                   ),
                 ],
               ),

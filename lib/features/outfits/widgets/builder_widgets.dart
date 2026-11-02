@@ -5,6 +5,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit_slot.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// One tappable tile per outfit slot, showing how many pieces it holds.
 class SlotSelector extends StatelessWidget {
@@ -134,7 +135,7 @@ class _CompositionRow extends StatelessWidget {
                 child: Icon(
                   Icons.drag_indicator_rounded,
                   color: palette.textTertiary,
-                  semanticLabel: 'Drag to reorder',
+                  semanticLabel: tr('Drag to reorder'),
                 ),
               ),
             ),
@@ -165,12 +166,12 @@ class _CompositionRow extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Replace',
+              tooltip: tr('Replace'),
               icon: const Icon(Icons.swap_horiz_rounded),
               onPressed: onReplace,
             ),
             IconButton(
-              tooltip: 'Remove',
+              tooltip: tr('Remove'),
               icon: const Icon(Icons.close_rounded),
               onPressed: onRemove,
             ),

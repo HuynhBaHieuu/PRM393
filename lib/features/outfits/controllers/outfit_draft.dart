@@ -4,6 +4,7 @@ import 'package:all_fits/data/models/occasion.dart';
 import 'package:all_fits/data/models/outfit_board.dart';
 import 'package:all_fits/data/models/outfit_placement.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// User input for creating or editing an outfit.
 class OutfitDraft {
@@ -41,7 +42,7 @@ class OutfitDraft {
 
   void ensureValid() {
     if (itemIds.isEmpty && !hasPhoto) {
-      throw const ValidationException('Add at least one piece to your outfit.');
+      throw ValidationException(tr('Add at least one piece to your outfit.'));
     }
     final nameError = Validators.requiredName(name);
     if (nameError != null) throw ValidationException(nameError);

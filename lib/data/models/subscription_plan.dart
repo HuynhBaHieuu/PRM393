@@ -1,13 +1,16 @@
 import 'package:all_fits/core/constants/app_config.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The user's plan. Premium is simulated: upgrading takes no payment.
 enum SubscriptionPlan {
   free('Free'),
   premium('Premium');
 
-  const SubscriptionPlan(this.label);
+  const SubscriptionPlan(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 
   bool get isPremium => this == SubscriptionPlan.premium;
 

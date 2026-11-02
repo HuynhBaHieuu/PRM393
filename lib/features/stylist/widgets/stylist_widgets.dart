@@ -20,6 +20,7 @@ import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 class StylistAvatar extends StatelessWidget {
   const StylistAvatar({super.key, required this.persona, this.size = 36});
@@ -62,7 +63,7 @@ class StylistHeader extends StatelessWidget {
     );
     return Semantics(
       button: true,
-      label: 'Change stylist',
+      label: tr('Change stylist'),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -88,7 +89,7 @@ class StylistHeader extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    'AI Stylist · ${persona.style}',
+                    tr('AI Stylist · {0}', [persona.style]),
                     style: text.bodySmall,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -129,19 +130,21 @@ class StylistWelcome extends StatelessWidget {
             Text(
               canChat
                   ? firstName.isEmpty
-                        ? 'How can I help you?'
-                        : 'How can I help you, $firstName?'
-                  : 'Add a few clothes first',
+                        ? tr('How can I help you?')
+                        : tr('How can I help you, {0}?', [firstName])
+                  : tr('Add a few clothes first'),
               textAlign: TextAlign.center,
               style: text.titleLarge,
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               canChat
-                  ? 'Ask for an outfit or send a photo, and I’ll build the '
-                        'look from your wardrobe. Item names and colors go to '
-                        'the AI service, and a photo only when you attach one.'
-                  : 'I need at least two pieces to style an outfit.',
+                  ? tr(
+                      'Ask for an outfit or send a photo, and I’ll build the '
+                      'look from your wardrobe. Item names and colors go to '
+                      'the AI service, and a photo only when you attach one.',
+                    )
+                  : tr('I need at least two pieces to style an outfit.'),
               textAlign: TextAlign.center,
               style: text.bodyMedium?.copyWith(
                 color: context.palette.textSecondary,
@@ -151,7 +154,7 @@ class StylistWelcome extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               FilledButton(
                 onPressed: () => AppNavigator.addClothing(context),
-                child: const Text('Add clothes'),
+                child: Text(tr('Add clothes')),
               ),
             ],
           ],
@@ -251,7 +254,7 @@ class ChatPhoto extends StatelessWidget {
     return Semantics(
       container: true,
       image: true,
-      label: 'Photo',
+      label: tr('Photo'),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: SizedBox.square(
@@ -410,7 +413,9 @@ class _PackingListCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Packing list · ${AppFormatters.count(items.length, 'piece')}',
+            tr('Packing list · {0}', [
+              AppFormatters.count(items.length, 'piece'),
+            ]),
             style: context.textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -441,14 +446,14 @@ class _ShoppingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Worth buying', style: text.titleMedium),
+          Text(tr('Worth buying'), style: text.titleMedium),
           for (final pick in picks)
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(pick.name),
               subtitle: pick.reason.isEmpty ? null : Text(pick.reason),
               trailing: IconButton(
-                tooltip: 'Shop ${pick.name}',
+                tooltip: tr('Shop {0}', [pick.name]),
                 icon: const Icon(Icons.shopping_bag_outlined),
                 onPressed: () => onShop(pick),
               ),
@@ -535,7 +540,7 @@ class SuggestionCard extends StatelessWidget {
                     FilledButton(
                       onPressed: saved ? null : onSave,
                       style: compactButton,
-                      child: Text(saved ? 'Saved' : 'Save outfit'),
+                      child: Text(saved ? tr('Saved') : tr('Save outfit')),
                     ),
                     OutlinedButton(
                       onPressed: () => AppNavigator.createOutfit(
@@ -543,14 +548,14 @@ class SuggestionCard extends StatelessWidget {
                         initialItemIds: suggestion.itemIds,
                       ),
                       style: compactButton,
-                      child: const Text('Edit'),
+                      child: Text(tr('Edit')),
                     ),
                     if (onTryOn != null)
                       OutlinedButton.icon(
                         onPressed: onTryOn,
                         style: compactButton,
                         icon: const Icon(Icons.accessibility_new_rounded),
-                        label: const Text('Try on'),
+                        label: Text(tr('Try on')),
                       ),
                   ],
                 ),
@@ -584,7 +589,7 @@ class ChatErrorNote extends StatelessWidget {
         TextButton.icon(
           onPressed: onRetry,
           icon: const Icon(Icons.refresh_rounded),
-          label: const Text('Try again'),
+          label: Text(tr('Try again')),
         ),
       ],
     );
@@ -620,9 +625,13 @@ class QuotaNote extends StatelessWidget {
         children: [
           Text(
             left == 0
-                ? 'You’ve used today’s free messages. Come back tomorrow or '
-                      'go Premium for unlimited chat.'
-                : '${AppFormatters.count(left, 'free message')} left today',
+                ? tr(
+                    'You’ve used today’s free messages. Come back tomorrow or '
+                    'go Premium for unlimited chat.',
+                  )
+                : tr('{0} left today', [
+                    AppFormatters.count(left, tr('free message')),
+                  ]),
             style: context.textTheme.bodySmall,
           ),
           Wrap(
@@ -633,12 +642,14 @@ class QuotaNote extends StatelessWidget {
                   onPressed: onShare,
                   icon: const Icon(Icons.ios_share_rounded),
                   label: Text(
-                    'Share with a friend: +${AppConfig.shareBonusMessages}',
+                    tr('Share with a friend: +{0}', [
+                      AppConfig.shareBonusMessages,
+                    ]),
                   ),
                 ),
               TextButton(
                 onPressed: () => AppNavigator.premium(context),
-                child: const Text('See Premium'),
+                child: Text(tr('See Premium')),
               ),
             ],
           ),
@@ -670,7 +681,7 @@ class PendingAttachments extends StatelessWidget {
     final photo = this.photo;
     final items = context.watch<WardrobeController>().itemsByIds(itemIds);
     Widget removable(String label, VoidCallback onTap, Widget thumb) => Tooltip(
-      message: 'Remove $label',
+      message: tr('Remove {0}', [label]),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -767,7 +778,7 @@ class ChatComposer extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Attach',
+            tooltip: tr('Attach'),
             onPressed: enabled && !busy ? onAttach : null,
             icon: const Icon(Icons.add_rounded),
           ),
@@ -779,8 +790,8 @@ class ChatComposer extends StatelessWidget {
               minLines: 1,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Ask anything',
+              decoration: InputDecoration(
+                hintText: tr('Ask anything'),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -792,7 +803,7 @@ class ChatComposer extends StatelessWidget {
           ),
           if (busy)
             IconButton.filled(
-              tooltip: 'Stop',
+              tooltip: tr('Stop'),
               onPressed: onStop,
               icon: const Icon(Icons.stop_rounded),
               style: style,
@@ -801,7 +812,7 @@ class ChatComposer extends StatelessWidget {
             ValueListenableBuilder(
               valueListenable: controller,
               builder: (context, value, _) => IconButton.filled(
-                tooltip: 'Send',
+                tooltip: tr('Send'),
                 onPressed:
                     enabled && (hasAttachments || value.text.trim().isNotEmpty)
                     ? onSend
@@ -830,17 +841,18 @@ class ChatHistorySheet extends StatelessWidget {
       maxChildSize: 0.95,
       builder: (context, scrollController) => Column(
         children: [
-          const SheetHeader(title: 'Chat history'),
+          SheetHeader(title: tr('Chat history')),
           Expanded(
             child: chats.isEmpty
                 ? SingleChildScrollView(
                     controller: scrollController,
-                    child: const AppEmptyState(
+                    child: AppEmptyState(
                       compact: true,
                       icon: Icons.history_rounded,
-                      title: 'No chats yet',
-                      message:
-                          'Your conversations with the stylist show up here.',
+                      title: tr('No chats yet'),
+                      message: tr(
+                        'Your conversations with the stylist show up here.',
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -859,7 +871,7 @@ class ChatHistorySheet extends StatelessWidget {
                         ),
                         onTap: () => Navigator.of(context).pop(chat),
                         trailing: IconButton(
-                          tooltip: 'Delete chat',
+                          tooltip: tr('Delete chat'),
                           icon: const Icon(Icons.delete_outline_rounded),
                           onPressed: () async {
                             try {
@@ -922,7 +934,7 @@ class _PersonaSheetState extends State<PersonaSheet> {
       builder: (_, scrollController) => ListView(
         controller: scrollController,
         children: [
-          const SheetHeader(title: 'Your stylist'),
+          SheetHeader(title: tr('Your stylist')),
           for (final persona in StylistPersona.values)
             ListTile(
               leading: StylistAvatar(persona: persona),
@@ -944,7 +956,7 @@ class _PersonaSheetState extends State<PersonaSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('About you', style: text.titleMedium),
+                Text(tr('About you'), style: text.titleMedium),
                 const SizedBox(height: AppSpacing.xs),
                 TextField(
                   controller: _notes,
@@ -953,9 +965,10 @@ class _PersonaSheetState extends State<PersonaSheet> {
                   maxLines: 4,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    hintText:
-                        'Anything ${store.persona.label} should know? '
-                        'e.g. 1m75, I like loose fits, no shorts',
+                    hintText: tr(
+                      'Anything {0} should know? e.g. 1m75, I like loose fits, no shorts',
+                      [store.persona.label],
+                    ),
                   ),
                 ),
                 Align(
@@ -963,18 +976,18 @@ class _PersonaSheetState extends State<PersonaSheet> {
                   child: FilledButton(
                     onPressed: () => _guard(() async {
                       await store.setNotes(_notes.text);
-                      if (mounted) this.context.showSnack('Saved');
+                      if (mounted) this.context.showSnack(tr('Saved'));
                     }),
-                    child: const Text('Save'),
+                    child: Text(tr('Save')),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.accessibility_new_rounded),
-                  title: const Text('Try on profile'),
-                  subtitle: const Text(
-                    'Your selfie, body photo and body type for AI try-on',
+                  title: Text(tr('Try on profile')),
+                  subtitle: Text(
+                    tr('Your selfie, body photo and body type for AI try-on'),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: widget.onOpenTryOnProfile,

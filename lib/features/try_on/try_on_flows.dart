@@ -20,6 +20,7 @@ import 'package:all_fits/data/models/try_on.dart';
 import 'package:all_fits/data/remote/ai_stylist_service.dart';
 import 'package:all_fits/features/settings/controllers/settings_controller.dart';
 import 'package:all_fits/features/try_on/try_on_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// What the try-on screen opens with: pieces to try on, or a saved picture.
 class TryOnArgs {
@@ -49,7 +50,9 @@ abstract final class TryOnFlows {
   }) async {
     final tryOn = context.read<TryOnController>();
     if (!tryOn.isAvailable) {
-      context.showSnack('AI try-on needs a Gemini API key in assets/env.json.');
+      context.showSnack(
+        tr('AI try-on needs a Gemini API key in assets/env.json.'),
+      );
       return;
     }
     await tryOn.load();
@@ -102,13 +105,13 @@ abstract final class TryOnFlows {
             if (picker.supportsCamera)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Camera'),
+                title: Text(tr('Camera')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.camera),
               ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Library'),
+              title: Text(tr('Library')),
               onTap: () =>
                   Navigator.of(sheetContext).pop(ImagePickSource.gallery),
             ),
@@ -134,11 +137,11 @@ abstract final class TryOnFlows {
       final bytes = await AiStylistService.readImage(
         images.resolvePath(result.photo) ?? result.photo,
       );
-      if (bytes == null) throw const FileSystemException('Unreadable');
+      if (bytes == null) throw FileSystemException(tr('Unreadable'));
       if (!await Gal.hasAccess(toAlbum: true) &&
           !await Gal.requestAccess(toAlbum: true)) {
         if (context.mounted) {
-          context.showSnack('Allow photo access to save the picture.');
+          context.showSnack(tr('Allow photo access to save the picture.'));
         }
         return;
       }
@@ -147,9 +150,11 @@ abstract final class TryOnFlows {
         album: AppConfig.appName,
         name: 'tryon_${result.id}',
       );
-      if (context.mounted) context.showSnack('Saved to your photos');
+      if (context.mounted) context.showSnack(tr('Saved to your photos'));
     } catch (_) {
-      if (context.mounted) context.showSnack('The picture could not be saved.');
+      if (context.mounted) {
+        context.showSnack(tr('The picture could not be saved.'));
+      }
     }
   }
 
@@ -159,7 +164,7 @@ abstract final class TryOnFlows {
       final bytes = await AiStylistService.readImage(
         images.resolvePath(result.photo) ?? result.photo,
       );
-      if (bytes == null) throw const FileSystemException('Unreadable');
+      if (bytes == null) throw FileSystemException(tr('Unreadable'));
       final extension = switch (AiStylistService.mimeOf(bytes)) {
         'image/png' => 'png',
         'image/webp' => 'webp',
@@ -171,12 +176,12 @@ abstract final class TryOnFlows {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          text: 'AI try-on made with ${AppConfig.appName}',
+          text: tr('AI try-on made with {0}', [AppConfig.appName]),
         ),
       );
     } catch (_) {
       if (context.mounted) {
-        context.showSnack('The picture could not be shared.');
+        context.showSnack(tr('The picture could not be shared.'));
       }
     }
   }
@@ -185,9 +190,9 @@ abstract final class TryOnFlows {
   static Future<bool> delete(BuildContext context, TryOnResult result) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete this picture?',
-      message: 'The try-on picture is removed from All Fits.',
-      confirmLabel: 'Delete',
+      title: tr('Delete this picture?'),
+      message: tr('The try-on picture is removed from All Fits.'),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
@@ -222,17 +227,28 @@ abstract final class TryOnFlows {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SheetHeader(title: 'No AI credits left'),
+              SheetHeader(title: tr('No AI credits left')),
               Text(
                 premium
-                    ? 'Premium makes '
-                          '${AppFormatters.count(AppConfig.premiumTryOnsPerMonth, 'try-on picture')} '
-                          'a month. New credits arrive on '
-                          '${AppFormatters.shortDate(renewal)}.'
-                    : 'You’ve used your free try-on. Premium makes '
-                          '${AppFormatters.count(AppConfig.premiumTryOnsPerMonth, 'try-on picture')} '
-                          'a month. A credit is only used when a picture '
-                          'comes back.',
+                    ? tr(
+                        'Premium makes {0} a month. New credits arrive on {1}.',
+                        [
+                          AppFormatters.count(
+                            AppConfig.premiumTryOnsPerMonth,
+                            tr('try-on picture'),
+                          ),
+                          AppFormatters.shortDate(renewal),
+                        ],
+                      )
+                    : tr(
+                        'You’ve used your free try-on. Premium makes {0} a month. A credit is only used when a picture comes back.',
+                        [
+                          AppFormatters.count(
+                            AppConfig.premiumTryOnsPerMonth,
+                            tr('try-on picture'),
+                          ),
+                        ],
+                      ),
                 style: text.bodyMedium?.copyWith(color: palette.textSecondary),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -242,13 +258,13 @@ abstract final class TryOnFlows {
                     Navigator.of(sheetContext).pop();
                     AppNavigator.premium(context);
                   },
-                  child: const Text('See Premium'),
+                  child: Text(tr('See Premium')),
                 ),
                 const SizedBox(height: AppSpacing.xs),
               ],
               TextButton(
                 onPressed: () => Navigator.of(sheetContext).pop(),
-                child: Text(premium ? 'OK' : 'Not now'),
+                child: Text(premium ? tr('OK') : tr('Not now')),
               ),
             ],
           ),
@@ -262,8 +278,8 @@ abstract final class TryOnFlows {
     final plan = context.watch<SettingsController>().plan;
     final left = context.watch<TryOnController>().creditsLeft(plan);
     if (!plan.isPremium && left > 0) {
-      return AppFormatters.count(left, 'free try-on');
+      return AppFormatters.count(left, tr('free try-on'));
     }
-    return AppFormatters.count(left, 'AI credit');
+    return AppFormatters.count(left, tr('AI credit'));
   }
 }

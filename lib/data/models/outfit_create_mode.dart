@@ -1,4 +1,5 @@
 import 'package:all_fits/data/models/outfit_board.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// How "Add outfit" turns the chosen pieces into an outfit, as in Fits.
 enum OutfitCreateMode {
@@ -6,9 +7,11 @@ enum OutfitCreateMode {
   dressingRoom('Dressing Room'),
   tryOn('AI Try On');
 
-  const OutfitCreateMode(this.label);
+  const OutfitCreateMode(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// What the Collage or Dressing Room closes with when the user picks

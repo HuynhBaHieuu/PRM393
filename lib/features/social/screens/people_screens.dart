@@ -15,6 +15,7 @@ import 'package:all_fits/features/shared/closet_flows.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/social/social_flows.dart';
 import 'package:all_fits/features/social/widgets/social_widgets.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Everyone with a profile; typing narrows it by username or name.
 class UserSearchScreen extends StatefulWidget {
@@ -73,16 +74,16 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
     } else if (results == null) {
       body = const AppLoadingView();
     } else if (people!.isEmpty) {
-      body = const AppEmptyState(
+      body = AppEmptyState(
         icon: Icons.person_search_outlined,
-        title: 'No one here yet',
-        message: 'People appear here once they set up their profile.',
+        title: tr('No one here yet'),
+        message: tr('People appear here once they set up their profile.'),
       );
     } else if (results.isEmpty) {
-      body = const AppEmptyState(
+      body = AppEmptyState(
         icon: Icons.search_off_rounded,
-        title: 'No users found',
-        message: 'Check the spelling, or ask them for their username.',
+        title: tr('No users found'),
+        message: tr('Check the spelling, or ask them for their username.'),
       );
     } else {
       body = RefreshIndicator(
@@ -107,8 +108,8 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
           autocorrect: false,
           textInputAction: TextInputAction.search,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(
-            hintText: 'Search people',
+          decoration: InputDecoration(
+            hintText: tr('Search people'),
             prefixIcon: Icon(Icons.search_rounded),
           ),
         ),
@@ -139,12 +140,16 @@ class ConnectionsScreen extends StatelessWidget {
       initialIndex: initialTab.index,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(social.me?.username ?? 'Followers'),
+          title: Text(social.me?.username ?? tr('Followers')),
           bottom: TabBar(
             tabs: [
-              Tab(text: '${social.followers.length} Followers'),
-              Tab(text: '${social.following.length} Following'),
-              Tab(text: requests == 0 ? 'Requests' : 'Requests ($requests)'),
+              Tab(text: tr('{0} Followers', [social.followers.length])),
+              Tab(text: tr('{0} Following', [social.following.length])),
+              Tab(
+                text: requests == 0
+                    ? tr('Requests')
+                    : tr('Requests ({0})', [requests]),
+              ),
             ],
           ),
         ),
@@ -152,21 +157,23 @@ class ConnectionsScreen extends StatelessWidget {
           children: [
             _ConnectionList(
               connections: social.followers,
-              emptyTitle: 'No followers yet',
-              emptyMessage: 'Followers will appear here.',
+              emptyTitle: tr('No followers yet'),
+              emptyMessage: tr('Followers will appear here.'),
               trailing: (c) => TextButton(
                 onPressed: () => SocialFlows.removeFollower(context, c.profile),
-                child: const Text('Remove'),
+                child: Text(tr('Remove')),
               ),
             ),
             _ConnectionList(
               connections: social.following,
-              emptyTitle: 'Not following anyone yet',
-              emptyMessage: 'Find friends to see their outfits on Discover.',
+              emptyTitle: tr('Not following anyone yet'),
+              emptyMessage: tr(
+                'Find friends to see their outfits on Discover.',
+              ),
               trailing: (c) => FilledButton(
                 onPressed: () => SocialFlows.unfollow(context, c.profile),
                 style: profileButtonStyle(context),
-                child: const Text('Following'),
+                child: Text(tr('Following')),
               ),
             ),
             _RequestsList(social: social),
@@ -202,7 +209,7 @@ class _ConnectionList extends StatelessWidget {
                   icon: Icons.people_outline_rounded,
                   title: emptyTitle,
                   message: emptyMessage,
-                  actionLabel: 'Find friends',
+                  actionLabel: tr('Find friends'),
                   onAction: () => AppNavigator.userSearch(context),
                 ),
               ],
@@ -238,11 +245,13 @@ class _RequestsList extends StatelessWidget {
       return RefreshIndicator(
         onRefresh: social.load,
         child: ListView(
-          children: const [
+          children: [
             AppEmptyState(
               icon: Icons.person_add_alt_outlined,
-              title: 'No follow requests',
-              message: 'People that request to follow you will appear here.',
+              title: tr('No follow requests'),
+              message: tr(
+                'People that request to follow you will appear here.',
+              ),
             ),
           ],
         ),
@@ -255,7 +264,7 @@ class _RequestsList extends StatelessWidget {
           for (final request in incoming) FollowRequestRow(request: request),
           if (sent.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
-            const SectionHeader(title: 'Sent'),
+            SectionHeader(title: tr('Sent')),
             for (final request in sent)
               ProfileRow(
                 profile: request.profile,
@@ -267,7 +276,7 @@ class _RequestsList extends StatelessWidget {
                     () => social.unfollow(request.profile.userId),
                   ),
                   style: profileButtonStyle(context),
-                  child: const Text('Requested'),
+                  child: Text(tr('Requested')),
                 ),
               ),
           ],
@@ -299,10 +308,10 @@ class FollowRequestRow extends StatelessWidget {
               () => social.acceptFollower(profile.userId),
             ),
             style: profileButtonStyle(context, primary: true),
-            child: const Text('Accept'),
+            child: Text(tr('Accept')),
           ),
           IconButton(
-            tooltip: 'Decline',
+            tooltip: tr('Decline'),
             onPressed: () => ClosetFlows.guard(
               context,
               () => social.removeFollower(profile.userId),
@@ -337,7 +346,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Blocked users')),
+      appBar: AppBar(title: Text(tr('Blocked users'))),
       body: FutureBuilder<List<SocialProfile>>(
         future: _blocked,
         builder: (context, snapshot) {
@@ -350,10 +359,10 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
           final blocked = snapshot.data;
           if (blocked == null) return const AppLoadingView();
           if (blocked.isEmpty) {
-            return const AppEmptyState(
+            return AppEmptyState(
               icon: Icons.block_rounded,
-              title: 'No blocked users',
-              message: 'If you block users, they will appear here.',
+              title: tr('No blocked users'),
+              message: tr('If you block users, they will appear here.'),
             );
           }
           return ListView.builder(
@@ -363,7 +372,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
               trailing: FilledButton(
                 onPressed: () => _unblock(blocked[index]),
                 style: profileButtonStyle(context),
-                child: const Text('Unblock'),
+                child: Text(tr('Unblock')),
               ),
             ),
           );
@@ -416,31 +425,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final styled = social.styledForMe.where((s) => s.isPending).toList();
     final activity = social.activity.items;
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: Text(tr('Notifications'))),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
           children: [
             if (requests.isEmpty && styled.isEmpty && activity.isEmpty)
-              const AppEmptyState(
+              AppEmptyState(
                 icon: Icons.notifications_off_outlined,
-                title: 'No notifications yet',
-                message:
-                    'You’ll get notified for activities, for example when '
-                    'someone wants to follow you, creates an outfit for '
-                    'you, or likes or comments on your outfits.',
+                title: tr('No notifications yet'),
+                message: tr(
+                  'You’ll get notified for activities, for example when '
+                  'someone wants to follow you, creates an outfit for '
+                  'you, or likes or comments on your outfits.',
+                ),
               ),
             if (requests.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
-              const SectionHeader(title: 'Follow requests'),
+              SectionHeader(title: tr('Follow requests')),
               for (final request in requests)
                 FollowRequestRow(request: request),
             ],
             if (styled.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.md),
               SectionHeader(
-                title: 'Outfits for you',
-                actionLabel: 'See all',
+                title: tr('Outfits for you'),
+                actionLabel: tr('See all'),
                 onAction: () => AppNavigator.styledTogether(context),
               ),
               for (final outfit in styled)
@@ -454,7 +464,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     url: outfit.other.avatarUrl,
                   ),
                   title: Text(
-                    '${outfit.other.username} created an outfit for you.',
+                    tr('{0} created an outfit for you.', [
+                      outfit.other.username,
+                    ]),
                   ),
                   subtitle: outfit.message == null
                       ? null
@@ -480,7 +492,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ],
             if (activity.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.md),
-              const SectionHeader(title: 'Likes & comments'),
+              SectionHeader(title: tr('Likes & comments')),
               for (final item in activity)
                 _ActivityRow(activity: item, isNew: _isNew(item)),
             ],
@@ -504,9 +516,11 @@ class _ActivityRow extends StatelessWidget {
     final actor = activity.actor;
     final post = activity.post;
     final what = switch (activity.kind) {
-      PostActivityKind.like => '${actor.username} liked your outfit.',
-      PostActivityKind.comment =>
-        '${actor.username} commented: ${activity.body ?? ''}',
+      PostActivityKind.like => tr('{0} liked your outfit.', [actor.username]),
+      PostActivityKind.comment => tr('{0} commented: {1}', [
+        actor.username,
+        activity.body ?? '',
+      ]),
     };
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),

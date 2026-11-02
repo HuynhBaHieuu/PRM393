@@ -10,6 +10,7 @@ import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/season.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_query.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Opens Fits' "Filters" sheet; resolves to the updated query, or null if
 /// dismissed.
@@ -94,7 +95,7 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
 
   Future<void> _pickBrands() async {
     if (widget.brands.isEmpty) {
-      context.showSnack('Add a brand to a piece to filter by it.');
+      context.showSnack(tr('Add a brand to a piece to filter by it.'));
       return;
     }
     final result = await _pickNames(widget.brands, _query.brands);
@@ -105,7 +106,7 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
 
   Future<void> _pickMaterials() async {
     if (widget.materials.isEmpty) {
-      context.showSnack('Add materials to a piece to filter by them.');
+      context.showSnack(tr('Add materials to a piece to filter by them.'));
       return;
     }
     final result = await _pickNames(widget.materials, _query.materials);
@@ -116,7 +117,7 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
 
   Future<void> _pickTags() async {
     if (widget.tags.isEmpty) {
-      context.showSnack('Add tags to a piece to filter by them.');
+      context.showSnack(tr('Add tags to a piece to filter by them.'));
       return;
     }
     final result = await _pickNames(widget.tags, _query.tags);
@@ -134,14 +135,14 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     return OptionSheetFrame(
-      title: 'Filters',
-      secondaryLabel: 'Clear filters',
+      title: tr('Filters'),
+      secondaryLabel: tr('Clear filters'),
       onSecondary: _clear,
       onDone: () =>
           Navigator.of(context)
               .pop(_query.copyWith(searchText: _name.text.trim())),
       children: [
-        const OptionSheetLabel('Colors'),
+        OptionSheetLabel(tr('Colors')),
         SizedBox(
           height: _ColorDot.size + 8,
           child: ListView(
@@ -160,13 +161,13 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
             ],
           ),
         ),
-        const OptionSheetLabel('Categories'),
+        OptionSheetLabel(tr('Categories')),
         SelectFieldButton(
-          placeholder: 'Select categories',
+          placeholder: tr('Select categories'),
           value: _summary(_query.categories.map((c) => c.label)),
           onTap: _pickCategories,
         ),
-        const OptionSheetLabel('Season'),
+        OptionSheetLabel(tr('Season')),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
@@ -183,17 +184,17 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
               ),
           ],
         ),
-        const OptionSheetLabel('Brands'),
+        OptionSheetLabel(tr('Brands')),
         SelectFieldButton(
-          placeholder: 'Select brands',
+          placeholder: tr('Select brands'),
           value: _summary(
             widget.brands.where((b) => _query.brands.contains(b.toLowerCase())),
           ),
           onTap: _pickBrands,
         ),
-        const OptionSheetLabel('Materials'),
+        OptionSheetLabel(tr('Materials')),
         SelectFieldButton(
-          placeholder: 'Select materials',
+          placeholder: tr('Select materials'),
           value: _summary(
             widget.materials.where(
               (m) => _query.materials.contains(m.toLowerCase()),
@@ -201,9 +202,9 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
           ),
           onTap: _pickMaterials,
         ),
-        const OptionSheetLabel('Tags'),
+        OptionSheetLabel(tr('Tags')),
         SelectFieldButton(
-          placeholder: 'Select tags',
+          placeholder: tr('Select tags'),
           value: _summary(
             widget.tags
                 .where((t) => _query.tags.contains(t.toLowerCase()))
@@ -211,13 +212,13 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
           ),
           onTap: _pickTags,
         ),
-        const OptionSheetLabel('Name'),
+        OptionSheetLabel(tr('Name')),
         TextField(
           controller: _name,
           textAlign: TextAlign.center,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            hintText: 'Search for name',
+            hintText: tr('Search for name'),
             filled: false,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -229,21 +230,21 @@ class _WardrobeFilterSheetState extends State<WardrobeFilterSheet> {
             ),
           ),
         ),
-        const OptionSheetLabel('Usage'),
+        OptionSheetLabel(tr('Usage')),
         _ChoiceRow<ItemUsage>(
           options: ItemUsage.values,
           selected: _query.usage,
           labelOf: (u) => u.label,
           onSelect: (u) => setState(() => _query = _query.copyWith(usage: u)),
         ),
-        const OptionSheetLabel('Sort items by'),
+        OptionSheetLabel(tr('Sort items by')),
         _ChoiceRow<WardrobeSort>(
           options: WardrobeSort.values,
           selected: _query.sort,
           labelOf: (s) => s.label,
           onSelect: (s) => setState(() => _query = _query.copyWith(sort: s)),
         ),
-        const OptionSheetLabel('Group items by'),
+        OptionSheetLabel(tr('Group items by')),
         _ChoiceRow<WardrobeGroup>(
           options: WardrobeGroup.values,
           selected: _query.groupBy,

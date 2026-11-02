@@ -12,6 +12,7 @@ import 'package:all_fits/features/planner/controllers/planner_controller.dart';
 import 'package:all_fits/features/planner/widgets/planner_actions.dart';
 import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' Month tab: a Sunday-first grid where every day is a tile, showing
 /// its outfit or a grey "+". Swipe sideways for other months.
@@ -71,10 +72,6 @@ class _MonthPage extends StatelessWidget {
   final DateTime today;
   final ValueChanged<DateTime> onOpenDay;
 
-  static const List<String> _weekdays = [
-    'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', //
-  ];
-
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -107,7 +104,9 @@ class _MonthPage extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
-            for (final name in _weekdays)
+            for (final name in AppFormatters.weekdayShortNames(
+              firstWeekday: DateTime.sunday,
+            ))
               Expanded(
                 child: Text(
                   name,
@@ -233,8 +232,9 @@ class _DayCell extends StatelessWidget {
                 child: outfit == null
                     ? Icon(
                         Icons.add_rounded,
-                        semanticLabel:
-                            'Add outfit on ${AppFormatters.shortDate(day)}',
+                        semanticLabel: tr('Add outfit on {0}', [
+                          AppFormatters.shortDate(day),
+                        ]),
                         color: palette.textSecondary,
                       )
                     : OutfitCover(
@@ -266,7 +266,7 @@ class _TripBand extends StatelessWidget {
     final last = DateHelpers.isSameDay(day, trip.endDate);
     const radius = Radius.circular(AppRadius.sm);
     return Semantics(
-      label: first ? 'Trip ${trip.name} starts' : null,
+      label: first ? tr('Trip {0} starts', [trip.name]) : null,
       child: Container(
         margin: EdgeInsets.only(left: first ? 3 : 0, right: last ? 3 : 0),
         padding: const EdgeInsets.symmetric(horizontal: 4),

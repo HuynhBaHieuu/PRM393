@@ -1,4 +1,5 @@
 import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Positions in an outfit composition, ordered top to bottom.
 enum OutfitSlot {
@@ -13,10 +14,12 @@ enum OutfitSlot {
     ClothingCategory.other,
   });
 
-  const OutfitSlot(this.label, this.categories);
+  const OutfitSlot(this._label, this.categories);
 
-  final String label;
+  final String _label;
   final Set<ClothingCategory> categories;
+
+  String get label => tr(_label);
 
   static OutfitSlot forCategory(ClothingCategory category) {
     for (final slot in values) {

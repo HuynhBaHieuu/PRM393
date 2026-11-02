@@ -27,16 +27,19 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// When the week starts, counted from today.
 enum _Start {
   today('Today', 0),
   tomorrow('Tomorrow', 1);
 
-  const _Start(this.label, this.offset);
+  const _Start(this._label, this.offset);
 
-  final String label;
+  final String _label;
   final int offset;
+
+  String get label => tr(_label);
 }
 
 /// One day of the plan being made.
@@ -185,7 +188,7 @@ class _WeekPlanScreenState extends State<WeekPlanScreen> {
     if (idea == null ||
         OutfitIdeas.lookKey(idea.itemIds) ==
             OutfitIdeas.lookKey(_lookOf(day) ?? const [])) {
-      context.showSnack('No other look yet. Add more clothes for variety.');
+      context.showSnack(tr('No other look yet. Add more clothes for variety.'));
       return;
     }
     setState(() {
@@ -231,7 +234,7 @@ class _WeekPlanScreenState extends State<WeekPlanScreen> {
     navigator.pop(toSave.first.day);
     if (mounted) {
       context.showSnack(
-        'Planned ${AppFormatters.count(toSave.length, 'outfit')}',
+        tr('Planned {0}', [AppFormatters.count(toSave.length, 'outfit')]),
       );
     }
   }
@@ -252,13 +255,13 @@ class _WeekPlanScreenState extends State<WeekPlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plan my week'),
+        title: Text(tr('Plan my week')),
         actions: [
           if (!empty)
             TextButton.icon(
               onPressed: _loading || _saving ? null : _shuffleAll,
               icon: const Icon(Icons.shuffle_rounded, size: AppSizes.iconSm),
-              label: const Text('Shuffle'),
+              label: Text(tr('Shuffle')),
             ),
           const SizedBox(width: AppSpacing.xs),
         ],
@@ -268,11 +271,12 @@ class _WeekPlanScreenState extends State<WeekPlanScreen> {
           : empty
           ? AppEmptyState(
               icon: Icons.checkroom_outlined,
-              title: 'Not enough clothes yet',
-              message:
-                  'Add tops, bottoms and shoes, and the planner will put '
-                  'together a different outfit for every day.',
-              actionLabel: 'Add clothes',
+              title: tr('Not enough clothes yet'),
+              message: tr(
+                'Add tops, bottoms and shoes, and the planner will put '
+                'together a different outfit for every day.',
+              ),
+              actionLabel: tr('Add clothes'),
               onAction: () => AppNavigator.addClothing(context),
             )
           : ListView(
@@ -335,9 +339,10 @@ class _WeekPlanScreenState extends State<WeekPlanScreen> {
                         )
                       : Text(
                           saving == 0
-                              ? 'Nothing new to plan'
-                              : 'Save ${AppFormatters.count(saving, 'outfit')} '
-                                    'to planner',
+                              ? tr('Nothing new to plan')
+                              : tr('Save {0} to planner', [
+                                  AppFormatters.count(saving, 'outfit'),
+                                ]),
                         ),
                 ),
               ),
@@ -374,13 +379,14 @@ class _Header extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'A different outfit for each day, from your own clothes'
-            '${city == null ? '' : ' and ${city!.name}’s forecast'}.',
+            tr('A different outfit for each day, from your own clothes{0}.', [
+              city == null ? '' : tr(' and {0}’s forecast', [city!.name]),
+            ]),
             style: text.bodyMedium?.copyWith(color: palette.textSecondary),
           ),
           const SizedBox(height: AppSpacing.md),
           LabeledSection(
-            label: 'Starts',
+            label: tr('Starts'),
             child: PillGroup<_Start>(
               options: _Start.values,
               selected: {start},
@@ -402,10 +408,11 @@ class _Header extends StatelessWidget {
               Expanded(
                 child: Text(
                   repeats == 0
-                      ? 'No top, bottom or dress is repeated this week.'
-                      : '${AppFormatters.count(repeats, 'piece')} '
-                            '${repeats == 1 ? 'repeats' : 'repeat'}. Add '
-                            'more clothes for more variety.',
+                      ? tr('No top, bottom or dress is repeated this week.')
+                      : tr('{0} {1}. Add more clothes for more variety.', [
+                          AppFormatters.count(repeats, 'piece'),
+                          tr(repeats == 1 ? 'repeats' : 'repeat'),
+                        ]),
                   style: text.bodySmall,
                 ),
               ),
@@ -466,9 +473,9 @@ class _DayCard extends StatelessWidget {
     }
 
     final String? tag = switch ((day.worn, existing != null, replaces)) {
-      (true, _, _) => 'Worn',
-      (_, true, false) => 'Already planned',
-      (_, _, true) => 'Replaces your plan',
+      (true, _, _) => tr('Worn'),
+      (_, true, false) => tr('Already planned'),
+      (_, _, true) => tr('Replaces your plan'),
       _ => null,
     };
 
@@ -517,7 +524,7 @@ class _DayCard extends StatelessWidget {
                           Flexible(
                             child: Text(
                               '${f.high.round()}° / ${f.low.round()}°'
-                              '${f.rainChance >= 30 ? ' · ${f.rainChance}% rain' : ''}',
+                              '${f.rainChance >= 30 ? tr(' · {0}% rain', [f.rainChance]) : ''}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: text.bodySmall,
@@ -530,10 +537,10 @@ class _DayCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         day.skipped
-                            ? 'Skipped. Nothing will be planned.'
+                            ? tr('Skipped. Nothing will be planned.')
                             : idea?.title ??
                                   existing?.name ??
-                                  'No full look for this day.',
+                                  tr('No full look for this day.'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: text.bodyMedium,
@@ -552,18 +559,20 @@ class _DayCard extends StatelessWidget {
                               Icons.autorenew_rounded,
                               size: AppSizes.iconSm,
                             ),
-                            label: const Text('Swap'),
+                            label: Text(tr('Swap')),
                           ),
                         const Spacer(),
                         if (replaces)
                           IconButton(
-                            tooltip: 'Keep the planned outfit',
+                            tooltip: tr('Keep the planned outfit'),
                             onPressed: onKeep,
                             icon: const Icon(Icons.undo_rounded),
                           )
                         else if (idea != null)
                           IconButton(
-                            tooltip: day.skipped ? 'Plan this day' : 'Skip',
+                            tooltip: day.skipped
+                                ? tr('Plan this day')
+                                : tr('Skip'),
                             onPressed: onSkip,
                             icon: Icon(
                               day.skipped

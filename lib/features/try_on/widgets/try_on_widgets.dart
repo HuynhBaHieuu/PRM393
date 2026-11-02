@@ -8,6 +8,7 @@ import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/small_widgets.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/models/try_on.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// A photo kept in image storage, or [placeholder] when there is none or it
 /// can't be loaded.
@@ -108,7 +109,7 @@ Future<BodyType?> showBodyTypeSheet(BuildContext context, BodyType? current) {
         controller: scrollController,
         padding: const EdgeInsets.only(bottom: AppSpacing.xl),
         children: [
-          const SheetHeader(title: 'Body type'),
+          SheetHeader(title: tr('Body type')),
           for (final gender in BodyGender.values) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(

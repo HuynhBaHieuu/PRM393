@@ -15,6 +15,7 @@ import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/trips/trip_flows.dart';
 import 'package:all_fits/features/trips/trip_query.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Every trip, with a search, a status filter and a sort order.
 class TripsScreen extends StatefulWidget {
@@ -47,11 +48,11 @@ class _TripsScreenState extends State<TripsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trips'),
+        title: Text(tr('Trips')),
         actions: [
           if (all.isNotEmpty)
             PopupMenuButton<TripSort>(
-              tooltip: 'Sort',
+              tooltip: tr('Sort'),
               icon: const Icon(Icons.swap_vert_rounded),
               initialValue: _query.sort,
               onSelected: (sort) =>
@@ -75,16 +76,17 @@ class _TripsScreenState extends State<TripsScreen> {
               // The theme's FAB is a circle; a labelled one needs a pill.
               shape: const StadiumBorder(),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Plan a trip'),
+              label: Text(tr('Plan a trip')),
             ),
       body: all.isEmpty
           ? AppEmptyState(
               icon: Icons.luggage_outlined,
-              title: 'No trips yet',
-              message:
-                  'Choose an outfit for each day of a trip and get a packing '
-                  'list for your suitcase.',
-              actionLabel: 'Plan a trip',
+              title: tr('No trips yet'),
+              message: tr(
+                'Choose an outfit for each day of a trip and get a packing '
+                'list for your suitcase.',
+              ),
+              actionLabel: tr('Plan a trip'),
               onAction: () => TripFlows.create(context),
             )
           : Column(
@@ -102,12 +104,12 @@ class _TripsScreenState extends State<TripsScreen> {
                     onChanged: (text) =>
                         setState(() => _query = _query.copyWith(search: text)),
                     decoration: InputDecoration(
-                      hintText: 'Search trips',
+                      hintText: tr('Search trips'),
                       prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: _query.search.isEmpty
                           ? null
                           : IconButton(
-                              tooltip: 'Clear',
+                              tooltip: tr('Clear'),
                               icon: const Icon(Icons.close_rounded),
                               onPressed: () {
                                 _search.clear();
@@ -140,9 +142,9 @@ class _TripsScreenState extends State<TripsScreen> {
                       ? AppEmptyState(
                           compact: true,
                           icon: Icons.search_off_rounded,
-                          title: 'No trips match',
-                          message: 'Try another name or filter.',
-                          actionLabel: 'Clear filters',
+                          title: tr('No trips match'),
+                          message: tr('Try another name or filter.'),
+                          actionLabel: tr('Clear filters'),
                           onAction: _clear,
                         )
                       : ListView.separated(
@@ -234,10 +236,13 @@ class _TripCard extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      '${AppFormatters.shortDate(trip.startDate)} – '
-                      '${AppFormatters.shortDate(trip.endDate)} · '
-                      '${AppFormatters.count(trip.length, 'day')} · '
-                      '$planned/${trip.length} planned',
+                      tr('{0} – {1} · {2} · {3}/{4} planned', [
+                        AppFormatters.shortDate(trip.startDate),
+                        AppFormatters.shortDate(trip.endDate),
+                        AppFormatters.count(trip.length, 'day'),
+                        planned,
+                        trip.length,
+                      ]),
                       style: text.bodySmall,
                     ),
                     if (!list.isEmpty) ...[
@@ -259,7 +264,10 @@ class _TripCard extends StatelessWidget {
                           SizedBox(
                             width: 96,
                             child: Text(
-                              '${list.packedCount}/${list.total} packed',
+                              tr('{0}/{1} packed', [
+                                list.packedCount,
+                                list.total,
+                              ]),
                               textAlign: TextAlign.end,
                               style: text.bodySmall,
                             ),
@@ -271,19 +279,22 @@ class _TripCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<_CardMenu>(
-                tooltip: 'More',
+                tooltip: tr('More'),
                 onSelected: (choice) => switch (choice) {
                   _CardMenu.edit => TripFlows.edit(context, trip),
                   _CardMenu.copy => TripFlows.copyPackingList(context, trip),
                   _CardMenu.delete => TripFlows.delete(context, trip),
                 },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: _CardMenu.edit, child: Text('Edit')),
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: _CardMenu.edit, child: Text(tr('Edit'))),
                   PopupMenuItem(
                     value: _CardMenu.copy,
-                    child: Text('Copy packing list'),
+                    child: Text(tr('Copy packing list')),
                   ),
-                  PopupMenuItem(value: _CardMenu.delete, child: Text('Delete')),
+                  PopupMenuItem(
+                    value: _CardMenu.delete,
+                    child: Text(tr('Delete')),
+                  ),
                 ],
               ),
             ],

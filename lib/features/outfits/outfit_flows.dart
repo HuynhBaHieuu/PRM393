@@ -14,6 +14,7 @@ import 'package:all_fits/features/outfits/widgets/outfit_canvas.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/wardrobe/controllers/wardrobe_controller.dart';
 import 'package:all_fits/features/weather/controllers/weather_controller.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Ways to start an outfit, shared by Home and "Add outfit".
 abstract final class OutfitFlows {
@@ -62,16 +63,16 @@ abstract final class OutfitFlows {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SheetHeader(title: 'Take a photo of your outfit'),
+              SheetHeader(title: tr('Take a photo of your outfit')),
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Take a selfie'),
+                title: Text(tr('Take a selfie')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choose from library'),
+                title: Text(tr('Choose from library')),
                 onTap: () =>
                     Navigator.of(sheetContext).pop(ImagePickSource.gallery),
               ),
@@ -115,7 +116,7 @@ abstract final class OutfitFlows {
   static Future<List<String>?> pickSuggestion(BuildContext context) {
     final ideas = todaysIdeas(context, count: 6);
     if (ideas.isEmpty) {
-      context.showSnack('Add tops, bottoms and shoes to get suggestions.');
+      context.showSnack(tr('Add tops, bottoms and shoes to get suggestions.'));
       return Future.value();
     }
     return showModalBottomSheet<List<String>>(
@@ -128,7 +129,7 @@ abstract final class OutfitFlows {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SheetHeader(title: 'Suggestions'),
+            SheetHeader(title: tr('Suggestions')),
             SizedBox(
               height: 300,
               child: ListView.separated(

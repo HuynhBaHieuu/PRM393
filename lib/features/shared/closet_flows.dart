@@ -19,6 +19,7 @@ import 'package:all_fits/data/sample/sample_data.dart';
 import 'package:all_fits/features/outfits/controllers/outfit_controller.dart';
 import 'package:all_fits/features/outfits/widgets/outfit_cards.dart';
 import 'package:all_fits/features/shared/closet_actions.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// UI flows shared by several screens: each combines dialogs, a
 /// [ClosetActions] call and user feedback. They return true on success.
@@ -32,8 +33,8 @@ abstract final class ClosetFlows {
       initialDate: today,
       firstDate: today,
       lastDate: DateHelpers.addDays(today, AppConfig.plannerRangeDays),
-      helpText: 'Plan outfit for',
-      confirmText: 'Plan',
+      helpText: tr('Plan outfit for'),
+      confirmText: tr('Plan'),
     );
     if (date == null || !context.mounted) return false;
     return planOutfitOn(context, outfitId, date);
@@ -48,7 +49,9 @@ abstract final class ClosetFlows {
       await context.read<ClosetActions>().planOutfit(outfitId, date);
       if (context.mounted) {
         context.showSnack(
-          'Planned for ${AppFormatters.relativeDay(date).toLowerCase()}',
+          tr('Planned for {0}', [
+            AppFormatters.relativeDay(date).toLowerCase(),
+          ]),
         );
       }
       return true;
@@ -60,7 +63,7 @@ abstract final class ClosetFlows {
 
   /// Lets the user choose an outfit, then plans it for [date].
   static Future<bool> pickAndPlan(BuildContext context, DateTime date) async {
-    final outfitId = await _pickOutfit(context, 'Plan an outfit');
+    final outfitId = await _pickOutfit(context, tr('Plan an outfit'));
     if (outfitId == null || !context.mounted) return false;
     return planOutfitOn(context, outfitId, date);
   }
@@ -70,7 +73,7 @@ abstract final class ClosetFlows {
     BuildContext context,
     DateTime date,
   ) async {
-    final outfitId = await _pickOutfit(context, 'What did you wear?');
+    final outfitId = await _pickOutfit(context, tr('What did you wear?'));
     if (outfitId == null || !context.mounted) return false;
     return markWorn(context, outfitId, date: date);
   }
@@ -88,8 +91,8 @@ abstract final class ClosetFlows {
       if (context.mounted) {
         context.showSnack(
           result == WearResult.alreadyWorn
-              ? 'Already marked as worn'
-              : 'Marked as worn',
+              ? tr('Already marked as worn')
+              : tr('Marked as worn'),
         );
       }
       return result == WearResult.marked;
@@ -106,21 +109,23 @@ abstract final class ClosetFlows {
   ) async {
     final usedIn = context.read<OutfitController>().outfitsUsingItem(item.id);
     final message = usedIn.isEmpty
-        ? 'This will permanently remove “${item.name}” and its photo.'
-        : '“${item.name}” is used in '
-              '${AppFormatters.count(usedIn.length, 'outfit')}. It will be '
-              'removed from ${usedIn.length == 1 ? 'it' : 'them'} too.';
+        ? tr('This will permanently remove “{0}” and its photo.', [item.name])
+        : tr('“{0}” is used in {1}. It will be removed from {2} too.', [
+            item.name,
+            AppFormatters.count(usedIn.length, 'outfit'),
+            tr(usedIn.length == 1 ? 'it' : 'them'),
+          ]);
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete item?',
+      title: tr('Delete item?'),
       message: message,
-      confirmLabel: 'Delete',
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
     try {
       await context.read<ClosetActions>().deleteItemPermanently(item.id);
-      if (context.mounted) context.showSnack('Item deleted');
+      if (context.mounted) context.showSnack(tr('Item deleted'));
       return true;
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);
@@ -148,11 +153,11 @@ abstract final class ClosetFlows {
             ? null
             : (await rootBundle.load(asset)).buffer.asUint8List();
       }
-      if (bytes == null) throw const FileSystemException('Unreadable');
+      if (bytes == null) throw FileSystemException(tr('Unreadable'));
       if (!await Gal.hasAccess(toAlbum: true) &&
           !await Gal.requestAccess(toAlbum: true)) {
         if (context.mounted) {
-          context.showSnack('Allow photo access to save the picture.');
+          context.showSnack(tr('Allow photo access to save the picture.'));
         }
         return;
       }
@@ -161,9 +166,11 @@ abstract final class ClosetFlows {
         album: AppConfig.appName,
         name: 'item_${item.id}',
       );
-      if (context.mounted) context.showSnack('Saved to your photos');
+      if (context.mounted) context.showSnack(tr('Saved to your photos'));
     } catch (_) {
-      if (context.mounted) context.showSnack('The picture could not be saved.');
+      if (context.mounted) {
+        context.showSnack(tr('The picture could not be saved.'));
+      }
     }
   }
 
@@ -175,11 +182,12 @@ abstract final class ClosetFlows {
     if (items.length == 1) return deleteItem(context, items.single);
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete ${AppFormatters.count(items.length, 'item')}?',
-      message:
-          'This will permanently remove them and their photos, and take '
-          'them out of your outfits.',
-      confirmLabel: 'Delete',
+      title: tr('Delete {0}?', [AppFormatters.count(items.length, 'item')]),
+      message: tr(
+        'This will permanently remove them and their photos, and take '
+        'them out of your outfits.',
+      ),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
@@ -190,7 +198,7 @@ abstract final class ClosetFlows {
       }
       if (context.mounted) {
         context.showSnack(
-          '${AppFormatters.count(items.length, 'item')} deleted',
+          tr('{0} deleted', [AppFormatters.count(items.length, 'item')]),
         );
       }
       return true;
@@ -204,17 +212,18 @@ abstract final class ClosetFlows {
   static Future<bool> deleteOutfit(BuildContext context, Outfit outfit) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Delete outfit?',
-      message:
-          '“${outfit.name}” will be removed along with its plans. '
-          'Your clothes stay in your wardrobe.',
-      confirmLabel: 'Delete',
+      title: tr('Delete outfit?'),
+      message: tr(
+        '“{0}” will be removed along with its plans. Your clothes stay in your wardrobe.',
+        [outfit.name],
+      ),
+      confirmLabel: tr('Delete'),
       destructive: true,
     );
     if (!confirmed || !context.mounted) return false;
     try {
       await context.read<ClosetActions>().deleteOutfit(outfit.id);
-      if (context.mounted) context.showSnack('Outfit deleted');
+      if (context.mounted) context.showSnack(tr('Outfit deleted'));
       return true;
     } catch (error) {
       if (context.mounted) context.showErrorSnack(error);

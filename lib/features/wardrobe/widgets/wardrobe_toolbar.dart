@@ -4,6 +4,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/constants/app_durations.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/data/models/clothing_category.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' closet toolbar: small category chips (the chosen one a black pill),
 /// then a round filter button and, optionally, a round "⋯" button.
@@ -44,7 +45,7 @@ class ClothesToolbar extends StatelessWidget {
                 padding: const EdgeInsets.only(left: AppSpacing.page),
                 children: [
                   CategoryChip(
-                    label: 'All',
+                    label: tr('All'),
                     selected: category == null,
                     onTap: () => onCategory(null),
                   ),
@@ -60,7 +61,7 @@ class ClothesToolbar extends StatelessWidget {
           ),
           RoundToolButton(
             icon: Icons.filter_list_rounded,
-            tooltip: 'Filter',
+            tooltip: tr('Filter'),
             badgeCount: filterCount,
             onPressed: onFilter,
           ),
@@ -68,7 +69,7 @@ class ClothesToolbar extends StatelessWidget {
             const SizedBox(width: AppSpacing.xs),
             RoundToolButton(
               icon: Icons.more_horiz_rounded,
-              tooltip: 'More',
+              tooltip: tr('More'),
               onPressed: onMore!,
             ),
           ],
@@ -101,7 +102,7 @@ class ClothesToolbarChips extends StatelessWidget {
         padding: padding,
         children: [
           CategoryChip(
-            label: 'All',
+            label: tr('All'),
             selected: category == null,
             onTap: () => onCategory(null),
           ),

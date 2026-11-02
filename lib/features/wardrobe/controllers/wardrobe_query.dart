@@ -2,6 +2,7 @@ import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_color.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/season.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// Fits' "Sort items by" options.
 enum WardrobeSort {
@@ -11,9 +12,11 @@ enum WardrobeSort {
   colors('Colors'),
   mostOutfits('Most outfits');
 
-  const WardrobeSort(this.label);
+  const WardrobeSort(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// Fits' "Group items by" options.
@@ -24,9 +27,11 @@ enum WardrobeGroup {
   colors('Colors'),
   tags('Tags');
 
-  const WardrobeGroup(this.label);
+  const WardrobeGroup(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 /// Fits' "Usage" filter: whether a piece is in any saved outfit.
@@ -35,9 +40,11 @@ enum ItemUsage {
   unused('Not used in outfits'),
   used('Used in outfits');
 
-  const ItemUsage(this.label);
+  const ItemUsage(this._label);
 
-  final String label;
+  final String _label;
+
+  String get label => tr(_label);
 }
 
 const Object _unset = Object();
@@ -212,7 +219,7 @@ class WardrobeQuery {
           ClothingColor.values,
           (item) => [?item.color],
           (c) => c.label,
-          other: 'No color',
+          other: tr('No color'),
         );
       case WardrobeGroup.season:
         return _groups(
@@ -220,7 +227,7 @@ class WardrobeQuery {
           Season.values,
           (item) => item.seasons,
           (s) => '${s.emoji} ${s.label}',
-          other: 'No season',
+          other: tr('No season'),
         );
       case WardrobeGroup.tags:
         // Tags are free text: group by their lower-cased form, labelled with
@@ -237,7 +244,7 @@ class WardrobeQuery {
           keys,
           (item) => [for (final t in item.tags) t.toLowerCase()],
           (key) => '#${labels[key]}',
-          other: 'No tags',
+          other: tr('No tags'),
         );
     }
   }

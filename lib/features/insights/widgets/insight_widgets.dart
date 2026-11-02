@@ -6,6 +6,7 @@ import 'package:all_fits/core/constants/app_dimensions.dart';
 import 'package:all_fits/core/extensions/context_extensions.dart';
 import 'package:all_fits/core/widgets/clothing_image.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// The validated 8-slot categorical palette (dataviz reference), in fixed
 /// order. A slice keeps its slot by rank in the current breakdown.
@@ -385,15 +386,15 @@ class LockedInsight extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('Upgrade to Premium 🔒', style: text.titleMedium),
+          Text(tr('Upgrade to Premium 🔒'), style: text.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Unlock all insights with All Fits Premium',
+            tr('Unlock all insights with All Fits Premium'),
             textAlign: TextAlign.center,
             style: text.bodyLarge?.copyWith(color: palette.textSecondary),
           ),
           const SizedBox(height: AppSpacing.md),
-          FilledButton(onPressed: onUpgrade, child: const Text('Upgrade')),
+          FilledButton(onPressed: onUpgrade, child: Text(tr('Upgrade'))),
         ],
       ),
     );
@@ -407,13 +408,13 @@ class InsightItemStrip extends StatelessWidget {
     required this.items,
     required this.onTap,
     this.captionOf,
-    this.emptyText = 'Nothing here yet.',
+    this.emptyText,
   });
 
   final List<ClothingItem> items;
   final ValueChanged<ClothingItem> onTap;
   final String Function(ClothingItem item)? captionOf;
-  final String emptyText;
+  final String? emptyText;
 
   static const double _size = 150;
   static const int _limit = 12;
@@ -423,7 +424,7 @@ class InsightItemStrip extends StatelessWidget {
     final palette = context.palette;
     if (items.isEmpty) {
       return Text(
-        emptyText,
+        emptyText ?? tr('Nothing here yet.'),
         style: context.textTheme.bodyLarge?.copyWith(
           color: palette.textSecondary,
         ),

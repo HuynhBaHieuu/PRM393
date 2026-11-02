@@ -3,6 +3,7 @@ import 'package:all_fits/data/models/clothing_category.dart';
 import 'package:all_fits/data/models/clothing_item.dart';
 import 'package:all_fits/data/models/outfit.dart';
 import 'package:all_fits/data/models/trip.dart';
+import 'package:all_fits/core/l10n/l10n.dart';
 
 /// One piece to pack, and on how many days of the trip it is worn.
 class PackingLine {
@@ -56,7 +57,7 @@ class PackingList {
   const PackingList._(this.trip, this.lines);
 
   /// Heading for the things typed in, apart from the "Other" category.
-  static const String extrasTitle = 'Also pack';
+  static String get extrasTitle => tr('Also pack');
 
   final Trip trip;
   final List<PackingLine> lines;
@@ -100,7 +101,7 @@ class PackingList {
         ..writeln()
         ..writeln(category.label);
       for (final line in group) {
-        final days = line.days > 1 ? ' (${line.days} days)' : '';
+        final days = line.days > 1 ? tr(' ({0} days)', [line.days]) : '';
         buffer.writeln('${_box(line.packed)} ${line.item.name}$days');
       }
     }
