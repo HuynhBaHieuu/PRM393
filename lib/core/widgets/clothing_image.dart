@@ -81,7 +81,7 @@ class ClothingImage extends StatelessWidget {
       fit: fit,
       gaplessPlayback: true,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded) return child;
+        if (wasSynchronouslyLoaded || NoImageFade.of(context)) return child;
         return AnimatedOpacity(
           opacity: frame == null ? 0 : 1,
           duration: AppDurations.medium,
@@ -96,4 +96,16 @@ class ClothingImage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Shows the [ClothingImage]s below it as soon as they load, without fading
+/// in. For pictures drawn off screen, where nothing animates.
+class NoImageFade extends InheritedWidget {
+  const NoImageFade({super.key, required super.child});
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<NoImageFade>() != null;
+
+  @override
+  bool updateShouldNotify(NoImageFade oldWidget) => false;
 }

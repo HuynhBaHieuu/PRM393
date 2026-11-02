@@ -4,6 +4,7 @@ import 'package:all_fits/app/app_dependencies.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/utils/id_generator.dart';
+import 'package:all_fits/data/local/home_screen_widget.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
 import 'package:all_fits/data/local/local_storage_service.dart';
@@ -157,6 +158,7 @@ AppDependencies testDependencies({
   AiStylistService aiStylist = const AiStylistService(apiKey: ''),
   WeatherService weather = const FakeWeatherService(),
   PayOSCheckout? payments,
+  HomeScreenWidget homeWidget = const NoHomeScreenWidget(),
 }) {
   return AppDependencies(
     storage: storage ?? InMemoryStorageService(),
@@ -168,6 +170,7 @@ AppDependencies testDependencies({
     aiStylist: aiStylist,
     weather: weather,
     payments: payments,
+    homeWidget: homeWidget,
     passwordHasher: fastPasswordHasher,
   );
 }

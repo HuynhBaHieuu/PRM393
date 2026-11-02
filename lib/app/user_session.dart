@@ -8,6 +8,7 @@ import 'package:all_fits/app/routes.dart';
 import 'package:all_fits/core/constants/storage_keys.dart';
 import 'package:all_fits/core/errors/app_exceptions.dart';
 import 'package:all_fits/core/widgets/feedback_views.dart';
+import 'package:all_fits/data/local/home_screen_widget.dart';
 import 'package:all_fits/data/local/reminder_service.dart';
 import 'package:all_fits/data/local/image_picker_service.dart';
 import 'package:all_fits/data/local/image_storage_service.dart';
@@ -23,6 +24,7 @@ import 'package:all_fits/features/settings/controllers/settings_controller.dart'
 import 'package:all_fits/features/shared/closet_actions.dart';
 import 'package:all_fits/features/social/social_controller.dart';
 import 'package:all_fits/features/stylist/stylist_store.dart';
+import 'package:all_fits/features/today_widget/today_widget_sync.dart';
 import 'package:all_fits/features/trips/trip_controller.dart';
 import 'package:all_fits/features/try_on/try_on_controller.dart';
 import 'package:all_fits/features/try_on/try_on_flows.dart';
@@ -232,6 +234,7 @@ class _UserSessionState extends State<UserSession> {
         Provider<AiStylistService>.value(value: deps.aiStylist),
         Provider<ProductLinkService>.value(value: deps.productLinks),
         Provider<ReminderService>.value(value: deps.reminders),
+        Provider<HomeScreenWidget>.value(value: deps.homeWidget),
         Provider<PayOSCheckout?>.value(value: deps.payments),
         ChangeNotifierProvider.value(value: _settings),
         ChangeNotifierProvider.value(value: _wardrobe),
@@ -265,7 +268,7 @@ class _UserSessionState extends State<UserSession> {
                   body: AppErrorView(error: snapshot.error!, onRetry: _retry),
                 );
               }
-              return const AppShell();
+              return const TodayWidgetSync(child: AppShell());
             },
           ),
         ),

@@ -218,3 +218,28 @@ Về quyền riêng tư và an toàn:
 Ghi chú cho nhóm: phần phân quyền nằm hết trong supabase/schema.sql (đoạn "Social"). Các bảng gốc chỉ chủ nhân đọc được; người khác chỉ thấy dữ liệu qua các hàm profile_summary, profile_closet, discover_feed…, và các hàm này chỉ chép những trường được liệt kê sẵn (không bao giờ có giá, ghi chú, số lần mặc). Ai sửa đoạn này cần một người khác kiểm tra lại, vì sai một chỗ là lộ tủ đồ của mọi người. Nhớ chạy lại schema.sql trong SQL Editor sau khi kéo code mới. Nếu app chạy ở chế độ chỉ lưu trên máy, không có tài khoản trực tuyến, thì toàn bộ mục mạng xã hội được ẩn đi.
 
 Miễn phí và Premium: cho dùng miễn phí, vì càng nhiều người tham gia thì chức năng này càng có ích.
+
+
+## 11. Widget "Today's outfit" trên màn hình chính Android (huy)
+
+Một ô widget đặt ngoài màn hình chính điện thoại, cạnh các icon app, cho thấy outfit hôm nay và thời tiết mà không cần mở app.
+
+Cách dùng:
+1. Nhấn giữ chỗ trống trên màn hình chính, chọn "Widgets", tìm "All Fits", chọn "Today's outfit" (cỡ 4 × 2, kéo giãn được) rồi bấm "Add".
+2. Widget hiện thời tiết ("🌧️ 26° · Hanoi"), ảnh outfit, tên outfit, các món trong outfit và một nút, tùy tình huống:
+   - Đã lên lịch outfit cho hôm nay: "Planned for today", nút "Mark as worn". Bấm nút thì app mở lên, đánh dấu đã mặc và hiện "Marked as worn".
+   - Đã mặc: "Worn today", không có nút.
+   - Chưa lên lịch: "Idea for today", một gợi ý từ tủ đồ hợp với thời tiết (giống mục "For today" trên Home), nút "Save this look". Bấm nút thì mở màn ghép outfit với các món đó; lưu xong outfit được lên lịch luôn cho hôm nay, nên widget chuyển sang "Planned for today".
+   - Tủ đồ chưa đủ đồ: nút "Add clothes".
+3. Bấm vào phần còn lại của widget thì mở chi tiết outfit (hoặc mở app nếu là gợi ý).
+4. Đăng xuất thì widget hiện "Sign in to see today’s outfit", không để lộ outfit của tài khoản cũ.
+
+App làm gì phía sau:
+1. Phần Flutter (lib/features/today_widget/) theo dõi Planner, tủ đồ, outfit và thời tiết. Khi có thay đổi (đợi 0,6 giây cho các thay đổi dồn lại), app tính nội dung widget trong TodayWidgetData, vẽ ảnh outfit ẩn ngoài màn hình thành file PNG (lib/core/utils/widget_snapshot.dart, dùng đúng OutfitCover/OutfitCanvas của app nên ảnh giống hệt trong app), rồi gửi chữ và đường dẫn ảnh sang Android qua thư viện home_widget. Nội dung không đổi thì không vẽ lại.
+2. Phần Android (android/app/src/main/kotlin/.../TodayWidgetProvider.kt và res/layout/today_widget.xml) chỉ đọc dữ liệu đó và vẽ widget bằng RemoteViews. Màu theo bảng màu đen trắng của app, có bản cho chế độ tối (values-night).
+3. Nút trên widget mở app bằng một link "allfits://widget/…" (wear, compose, outfit, add-clothes); app đọc link và làm việc tương ứng.
+4. Qua ngày mới mà chưa mở app thì widget không hiện outfit của hôm qua: Android kiểm tra lại mỗi 30 phút, thấy ngày đã cũ thì hiện "Open All Fits to see today's outfit".
+
+Ghi chú: chỉ có trên Android (iOS cần viết widget riêng bằng SwiftUI). Test nằm ở test/features/today_widget_test.dart.
+
+Miễn phí và Premium: miễn phí cho mọi người.
